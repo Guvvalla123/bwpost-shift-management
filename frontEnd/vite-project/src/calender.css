@@ -1,0 +1,218 @@
+:root {
+  /* Google Calendar Core Colors */
+  --gc-blue: #1a73e8;
+  --gc-blue-hover: #185abc;
+  --gc-blue-soft: #e8f0fe;
+  --gc-border: #dadce0;
+  --gc-text-main: #3c4043;
+  --gc-text-muted: #70757a;
+  --gc-bg-main: #ffffff;
+  --gc-bg-hover: #f1f3f4;
+  --gc-today: #1a73e8;
+  
+  /* FullCalendar overrides */
+  --fc-border-color: var(--gc-border);
+  --fc-button-text-color: var(--gc-text-main);
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: var(--gc-border);
+  --fc-button-hover-bg-color: var(--gc-bg-hover);
+  --fc-button-hover-border-color: var(--gc-border);
+  --fc-button-active-bg-color: var(--gc-blue-soft);
+  --fc-button-active-border-color: var(--gc-blue-soft);
+  --fc-button-active-text-color: var(--gc-blue);
+  --fc-event-bg-color: var(--gc-blue);
+  --fc-event-border-color: transparent;
+  --fc-event-text-color: #ffffff;
+  --fc-today-bg-color: transparent;
+  --fc-now-indicator-color: #ea4335;
+}
+
+/* ===== MAIN CANVAS ===== */
+.calendar-wrapper {
+  height: 100%;
+  width: 100%;
+  font-family: 'Open Sans', 'Roboto', 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--gc-text-main);
+}
+
+.fc {
+  background: var(--gc-bg-main);
+  height: 100% !important;
+}
+
+/* Removes external border of calendar to blend with container */
+.fc-theme-standard .fc-scrollgrid {
+  border: none;
+}
+
+/* ===== HEADER TOOLBAR ===== */
+.fc .fc-toolbar.fc-header-toolbar {
+  padding: 12px 16px 16px 16px;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid var(--gc-border);
+}
+
+.fc-toolbar-title {
+  font-size: 22px !important;
+  font-weight: 400 !important;
+  color: var(--gc-text-main) !important;
+  letter-spacing: -0.5px;
+}
+
+/* ===== BUTTONS (Google Pill Style) ===== */
+.fc-button {
+  text-transform: capitalize !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transition: background-color 0.15s, color 0.15s !important;
+}
+
+/* Primary View Buttons (Day, Week, Month) */
+.fc .fc-button-group > .fc-button {
+  border-radius: 0 !important;
+}
+.fc .fc-button-group > .fc-button:first-child {
+  border-top-left-radius: 4px !important;
+  border-bottom-left-radius: 4px !important;
+}
+.fc .fc-button-group > .fc-button:last-child {
+  border-top-right-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+}
+
+/* Prev/Next arrows */
+.fc .fc-prev-button, 
+.fc .fc-next-button {
+  padding: 8px 12px !important;
+  border-radius: 50% !important;
+  border: none !important;
+}
+.fc .fc-prev-button:hover, 
+.fc .fc-next-button:hover {
+  background-color: var(--gc-bg-hover) !important;
+}
+.fc .fc-prev-button .fc-icon,
+.fc .fc-next-button .fc-icon {
+  font-size: 18px;
+}
+
+/* "Today" button specifically */
+.fc .fc-today-button {
+  margin-left: 12px !important;
+  border-radius: 4px !important;
+}
+
+/* Active Button State (Light Blue) */
+.fc-button-primary:not(:disabled).fc-button-active, 
+.fc-button-primary:not(:disabled):active {
+  background-color: var(--gc-blue-soft) !important;
+  color: var(--gc-blue) !important;
+  border-color: var(--gc-border) !important;
+}
+
+
+/* ===== COLUMN HEADERS (Days) ===== */
+.fc-col-header-cell {
+  border-bottom: 1px solid var(--gc-border) !important;
+  border-top: none !important;
+  padding: 8px 0 !important;
+}
+
+.fc-col-header-cell-cushion {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--gc-text-muted);
+  padding: 8px;
+}
+
+/* Make "Today" column header text blue */
+.fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: var(--gc-blue);
+}
+
+/* Circular background for the "date number" on today if possible - 
+   Fullcalendar structure makes this tricky without custom render, 
+   but coloring text is possible natively */
+
+
+/* ===== TIME COLUMN (Left Side) ===== */
+.fc-timegrid-slot-label-cushion, 
+.fc-timegrid-axis-cushion {
+  font-size: 10px;
+  color: var(--gc-text-muted);
+  font-weight: 500;
+  padding-right: 8px !important;
+}
+
+/* Remove borders from time axis column */
+.fc-timegrid-axis {
+  border-right: none !important;
+}
+
+/* Subtler borders for grid lines */
+.fc-theme-standard td, .fc-theme-standard th {
+  border-color: var(--gc-border);
+}
+.fc-timegrid-slot-minor {
+  border-top-style: dotted !important;
+  border-color: #f1f3f4 !important;
+}
+
+
+/* ===== EVENTS (Blocks) ===== */
+.fc-event {
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  transition: filter 0.2s, transform 0.1s;
+}
+
+.fc-event:hover {
+  filter: brightness(0.9);
+  transform: scale(1.02);
+  z-index: 10 !important;
+}
+
+.fc-v-event .fc-event-main {
+  color: white;
+}
+
+.fc-event-time {
+  font-weight: 500;
+  font-size: 11px;
+  opacity: 0.9;
+  margin-bottom: 2px;
+}
+
+.fc-event-title {
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+/* Override a-tag defaults on events */
+.fc-event, .fc-event:hover {
+  color: #fff !important;
+  text-decoration: none !important;
+}
+
+
+/* ===== NOW INDICATOR (Red Line) ===== */
+.fc-timegrid-now-indicator-line {
+  border-color: var(--fc-now-indicator-color);
+  border-width: 2px;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  border-color: var(--fc-now-indicator-color);
+  border-width: 5px 0 5px 6px;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  margin-top: -4px;
+}
