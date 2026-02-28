@@ -4,6 +4,7 @@ import axios from "axios";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import toast from "react-hot-toast";
+import API from "@/api";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -61,13 +62,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-
-      const res = await axios.post(
-        "http://localhost:5000/api/users/login",
-        { email, password },
-        { withCredentials: true }
-      );
-
+      const res = await API.post("/api/users/login", formData);
       const role = res.data.user.role;
       toast.success("Login successful");
 
