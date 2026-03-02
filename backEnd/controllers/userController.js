@@ -2,6 +2,40 @@ const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
 
 /**
+ * Helper: Generate Tokens
+ */
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN }
+  );
+};
+
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN }
+  );
+};
+
+/**
+ * Helper: Cookie Options
+ */
+const getCookieOptions = (maxAge) => {
+  const isProd = process.env.NODE_ENV === "production";
+
+  return {
+    httpOnly: true,
+    secure: isProd, // true in production (Render)
+    sameSite: isProd ? "none" : "lax", // CRITICAL for Vercel ↔ Render
+    maxAge,
+    path: "/",
+  };
+};
+
+/**
  * REGISTER USER
  */
 const registerUser = async (req, res) => {
@@ -13,6 +47,7 @@ const registerUser = async (req, res) => {
     }
 
     const userExists = await User.findOne({ email: email.toLowerCase() });
+
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -48,41 +83,14 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Access token (15 min)
-    const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-    // Refresh token (7 days)
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN }
-    );
-
-    // Store refresh token in DB
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Access token cookie
-    res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
-      path: "/",
-    });
-
-    // Refresh token cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("token", accessToken, getCookieOptions(15 * 60 * 1000));
+    res.cookie("refreshToken", refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
     res.status(200).json({
       message: "Login successful",
@@ -120,38 +128,17 @@ const refreshAccessToken = async (req, res) => {
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    const newAccessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    const newRefreshToken = jwt.sign(
-      { id: user._id },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN }
-    );
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
 
     user.refreshToken = newRefreshToken;
     await user.save();
 
-    res.cookie("token", newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
-      path: "/",
-    });
-
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("token", newAccessToken, getCookieOptions(15 * 60 * 1000));
+    res.cookie("refreshToken", newRefreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
     res.status(200).json({ message: "Token refreshed" });
+
   } catch (err) {
     res.status(401).json({ message: "Invalid refresh token" });
   }
@@ -166,28 +153,31 @@ const logoutUser = async (req, res) => {
 
     if (refreshToken) {
       const user = await User.findOne({ refreshToken });
+
       if (user) {
         user.refreshToken = null;
         await user.save();
       }
     }
 
+    const isProd = process.env.NODE_ENV === "production";
+
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       path: "/",
     };
 
     res.clearCookie("token", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
 
-    return res.status(200).json({ message: "Logged out successfully" });
+    res.status(200).json({ message: "Logged out successfully" });
+
   } catch (err) {
-    return res.status(500).json({ message: "Logout failed" });
+    res.status(500).json({ message: "Logout failed" });
   }
 };
-
 
 /**
  * GET CURRENT USER
