@@ -6,6 +6,8 @@ import {
   CheckCircle2, Timer, CalendarX,
 } from "lucide-react";
 import { toast } from "sonner";
+import API from "@/api";
+
 import CreateShiftModal from "./CreateShiftModal";
 import EditShiftModal from "./EditShiftModal";
 
@@ -161,7 +163,7 @@ const ManagerShifts = () => {
   /* ── Fetch ── */
   const fetchShifts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/manager/shifts", { withCredentials: true });
+      const res = await API.get("/api/manager/shifts");
       setShifts(res.data.data || []);
     } catch {
       toast.error("Failed to load shifts");
@@ -179,7 +181,7 @@ const ManagerShifts = () => {
       return toast.error("Please fill all required fields");
     }
     try {
-      await axios.post("http://localhost:5000/api/manager/shifts", createShift, { withCredentials: true });
+      await API.post("/api/manager/shifts", createShift);
       toast.success("Shift created successfully");
       setCreateShift({ shiftTitle: "", shiftStartTime: "", shiftEndTime: "", shiftNotes: "", slotsAvailable: "" });
       setShowCreate(false);
@@ -192,7 +194,7 @@ const ManagerShifts = () => {
   const onUpdateHandler = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/api/manager/shifts/${editingShift._id}`, editingShift, { withCredentials: true });
+      await API.put(`/api/manager/shifts/${editingShift._id}`, editingShift);
       toast.success("Shift updated");
       setEditingShift(null);
       fetchShifts();
@@ -204,7 +206,7 @@ const ManagerShifts = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await axios.delete(`http://localhost:5000/api/manager/shifts/${deleteTarget._id}`, { withCredentials: true });
+     await API.delete(`/api/manager/shifts/${deleteTarget._id}`);
       toast.success("Shift deleted");
       setDeleteTarget(null);
       fetchShifts();
@@ -283,8 +285,8 @@ const ManagerShifts = () => {
                   key={tab.key}
                   onClick={() => setStatusFilter(tab.key)}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === tab.key
-                      ? "bg-white shadow-sm text-blue-700 border border-slate-100"
-                      : "text-slate-500 hover:text-slate-700"
+                    ? "bg-white shadow-sm text-blue-700 border border-slate-100"
+                    : "text-slate-500 hover:text-slate-700"
                     }`}
                 >
                   {tab.label}
