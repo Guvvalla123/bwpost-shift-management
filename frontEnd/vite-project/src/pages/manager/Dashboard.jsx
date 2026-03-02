@@ -8,6 +8,7 @@ import {
   ChevronRight, TrendingUp, UserCheck,
   BarChart2, Zap, Bell, ArrowRight,
 } from "lucide-react";
+import API from "@/api";
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -237,11 +238,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/manager/shifts/dashboard/data", { withCredentials: true })
+    API.get("/api/manager/shifts/dashboard/data")
       .then(res => setData(res.data))
       .catch(err => {
-        if (err.response?.status === 401) navigate("/login");
-        else toast.error("Failed to load dashboard");
+        if (err.response?.status === 401) {
+          navigate("/login");
+        } else {
+          toast.error("Failed to load dashboard");
+        }
       })
       .finally(() => setLoading(false));
   }, [navigate]);

@@ -68,6 +68,12 @@ app.use("/api/users", userRoutes);
 app.use("/api/manager/shifts", managerShiftRoutes);
 app.use("/api/employee/shifts", employeeShiftRoutes);
 
+
+//Global route for testing
+app.get("/", (req, res) => {
+  res.status(200).send("Backend is running");
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
@@ -78,6 +84,7 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ message: "Internal Server Error" });
 });
+
 
 // Start server
 const PORT = process.env.PORT || 5500;
