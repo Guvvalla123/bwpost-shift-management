@@ -1,12 +1,12 @@
 import React from "react";
-import axios from "axios";
+import API from "@/api";
 import { toast } from "sonner";
 import { LogOut, Calendar, Clock, CheckCircle } from "lucide-react";
 
 const EmployeeDashboard = () => {
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:5000/api/users/logout", {}, { withCredentials: true });
+      await API.post("/api/users/logout", {});
       toast.success("Logout successful");
       window.location.href = "/login";
     } catch (error) {

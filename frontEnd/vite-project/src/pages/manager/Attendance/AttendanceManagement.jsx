@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import axios from "axios";
+import API from "@/api";
 import { toast } from "sonner";
 import {
   Clock, CheckCircle2, XCircle, ChevronDown, Users, CalendarDays,
@@ -323,9 +323,8 @@ const AttendanceTab = ({ shifts }) => {
   const fetchAttendance = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `http://localhost:5000/api/manager/shifts/attendance/shift/${selectedShiftId}`,
-        { withCredentials: true }
+      const res = await API.get(
+        `/api/manager/shifts/attendance/shift/${selectedShiftId}`
       );
       setAttendance(res.data.data || { attendance: [], acceptedEmployees: [] });
     } catch { toast.error("Failed to load attendance"); }
@@ -337,18 +336,18 @@ const AttendanceTab = ({ shifts }) => {
 
   const confirmCheckIn = async (iso) => {
     try {
-      await axios.post("http://localhost:5000/api/manager/shifts/attendance/check-in",
-        { shiftId: selectedShiftId, employeeId: timePicker.employeeId, checkInTime: iso },
-        { withCredentials: true });
+      await API.post("/api/manager/shifts/attendance/check-in",
+        { shiftId: selectedShiftId, employeeId: timePicker.employeeId, checkInTime: iso }
+      );
       toast.success(`Check-in at ${new Date(iso).toLocaleTimeString()}`);
       setTimePicker(null); fetchAttendance();
     } catch (e) { toast.error(e.response?.data?.error || "Check-in failed"); }
   };
   const confirmCheckOut = async (iso) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/manager/shifts/attendance/check-out",
-        { shiftId: selectedShiftId, employeeId: timePicker.employeeId, checkOutTime: iso },
-        { withCredentials: true });
+      const res = await API.post("/api/manager/shifts/attendance/check-out",
+        { shiftId: selectedShiftId, employeeId: timePicker.employeeId, checkOutTime: iso }
+      );
       toast.success(`Checked out — ${res.data.data?.totalHours ?? 0}h logged`);
       setTimePicker(null); fetchAttendance();
     } catch (e) { toast.error(e.response?.data?.error || "Check-out failed"); }
@@ -585,7 +584,7 @@ const TimesheetTab = () => {
   const [empLoading, setEmpLoading] = useState(true);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/manager/shifts/employees", { withCredentials: true })
+    API.get("/api/manager/shifts/employees")
       .then((r) => setEmployees(r.data.data || []))
       .catch(() => toast.error("Failed to load employees"))
       .finally(() => setEmpLoading(false));
@@ -598,9 +597,8 @@ const TimesheetTab = () => {
       const params = new URLSearchParams();
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
-      const res = await axios.get(
-        `http://localhost:5000/api/manager/shifts/employees/${selectedEmpId}/attendance?${params}`,
-        { withCredentials: true }
+      const res = await API.get(
+        `/api/manager/shifts/employees/${selectedEmpId}/attendance?${params}`
       );
       setData(res.data.data || null);
     } catch { toast.error("Failed to load timesheet"); }
@@ -776,7 +774,7 @@ const AttendanceManagement = () => {
   const [shiftsLoading, setShiftsLoading] = useState(true);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/manager/shifts?limit=200", { withCredentials: true })
+    API.get("/api/manager/shifts?limit=200")
       .then((r) => setShifts(r.data.data || []))
       .catch(() => toast.error("Failed to load shifts"))
       .finally(() => setShiftsLoading(false));
@@ -821,8 +819,8 @@ const AttendanceManagement = () => {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-t-xl border border-b-0 transition-all duration-150 ${activeTab === tab.key
-                    ? "bg-slate-50 border-slate-200 text-indigo-700 border-b-slate-50"
-                    : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/60"
+                  ? "bg-slate-50 border-slate-200 text-indigo-700 border-b-slate-50"
+                  : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/60"
                   }`}
               >
                 <tab.icon className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import axios from "axios";
+import API from "@/api";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Plus, CalendarDays, Clock, Users, Trash2,
@@ -6,8 +6,6 @@ import {
   CheckCircle2, Timer, CalendarX,
 } from "lucide-react";
 import { toast } from "sonner";
-import API from "@/api";
-
 import CreateShiftModal from "./CreateShiftModal";
 import EditShiftModal from "./EditShiftModal";
 
@@ -206,7 +204,7 @@ const ManagerShifts = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-     await API.delete(`/api/manager/shifts/${deleteTarget._id}`);
+      await API.delete(`/api/manager/shifts/${deleteTarget._id}`);
       toast.success("Shift deleted");
       setDeleteTarget(null);
       fetchShifts();

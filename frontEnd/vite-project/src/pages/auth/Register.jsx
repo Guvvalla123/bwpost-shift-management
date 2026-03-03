@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import toast from "react-hot-toast";

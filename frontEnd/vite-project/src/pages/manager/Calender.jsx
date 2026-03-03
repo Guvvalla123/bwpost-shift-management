@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useGoogleLogin, googleLogout } from "@react-oauth/google";
-import axios from "axios";
+import API from "@/api";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -283,9 +283,8 @@ const CalendarPage = () => {
   /* ── Fetch app shifts ── */
   const fetchAppShifts = useCallback(async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/api/manager/shifts?limit=200",
-        { withCredentials: true }
+      const res = await API.get(
+        "/api/manager/shifts?limit=200"
       );
       setAppShifts(res.data.data || []);
     } catch {
