@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "@/api";
 import { toast } from "sonner";
 import {
   Trash2, ChevronRight, Search, Clock, CalendarDays,
@@ -41,9 +41,8 @@ const ShiftRequest = () => {
   /* ── API ── */
   const fetchShifts = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/api/manager/shifts?limit=200",
-        { withCredentials: true }
+      const res = await API.get(
+        "/api/manager/shifts?limit=200"
       );
       setShifts(res.data.data || []);
       // Auto-select first shift if none selected and data exists
@@ -75,10 +74,9 @@ const ShiftRequest = () => {
 
     setActionLoading(true);
     try {
-      await axios.post(
-        "http://localhost:5000/api/manager/shifts/shift/remove-employee",
-        { shiftId: selectedShiftId, employeeId: removingEmployee._id },
-        { withCredentials: true }
+      await API.post(
+        "/api/manager/shifts/shift/remove-employee",
+        { shiftId: selectedShiftId, employeeId: removingEmployee._id }
       );
       toast.success("Employee removed successfully");
       setRemovingEmployee(null);

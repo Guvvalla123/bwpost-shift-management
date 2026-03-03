@@ -26,14 +26,19 @@ app.use(morgan("dev"));
 
 // CORS (restricted)
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://bwpost-shift-management.vercel.app"
+  "https://bwpost-shift-management.vercel.app",
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow non-browser tools
+    if (!origin) return callback(null, true); // allow Postman / curl
 
+    // Allow any localhost port for local development
+    if (/^http:\/\/localhost:\d+$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow production Vercel URL
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }

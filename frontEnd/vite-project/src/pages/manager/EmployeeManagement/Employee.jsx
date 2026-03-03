@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import API from "@/api";
 import { toast } from "sonner";
 import {
     Pencil, Trash2, X, Search, Users,
@@ -78,9 +78,8 @@ const Employee = () => {
     /* ── Fetch ── */
     const fetchEmployees = async () => {
         try {
-            const res = await axios.get(
-                "http://localhost:5000/api/manager/shifts/employees",
-                { withCredentials: true }
+            const res = await API.get(
+                "/api/manager/shifts/employees"
             );
             setEmployees(res.data.data || []);
         } catch {
@@ -110,9 +109,8 @@ const Employee = () => {
         setAttendanceHistory([]);
         setAttendanceLoading(true);
         try {
-            const res = await axios.get(
-                `http://localhost:5000/api/manager/shifts/employees/${emp._id}/attendance`,
-                { withCredentials: true }
+            const res = await API.get(
+                `/api/manager/shifts/employees/${emp._id}/attendance`
             );
             setAttendanceHistory(res.data.data || []);
         } catch {
@@ -132,10 +130,9 @@ const Employee = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await axios.put(
-                `http://localhost:5000/api/manager/shifts/employees/${editTarget._id}`,
-                { username: form.username, email: form.email },
-                { withCredentials: true }
+            await API.put(
+                `/api/manager/shifts/employees/${editTarget._id}`,
+                { username: form.username, email: form.email }
             );
             toast.success("Employee updated successfully");
             setEditTarget(null);
@@ -153,9 +150,8 @@ const Employee = () => {
         if (!deleteTarget) return;
         setSubmitting(true);
         try {
-            await axios.delete(
-                `http://localhost:5000/api/manager/shifts/employees/${deleteTarget._id}`,
-                { withCredentials: true }
+            await API.delete(
+                `/api/manager/shifts/employees/${deleteTarget._id}`
             );
             toast.success("Employee deleted successfully");
             setDeleteTarget(null);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import API from "@/api";
 import { toast } from "sonner";
 import ShiftTable from "./ShiftTable";
 
@@ -11,9 +11,8 @@ const EmployeeShifts = () => {
   const fetchShifts = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        "http://localhost:5000/api/employee/shifts/Availableshifts",
-        { withCredentials: true }
+      const res = await API.get(
+        "/api/employee/shifts/Availableshifts"
       );
       setShifts(res.data.data);
     } catch (error) {
@@ -30,10 +29,9 @@ const EmployeeShifts = () => {
   // Apply Shift
   const handleApply = async (shiftId) => {
     try {
-      await axios.post(
-        "http://localhost:5000/api/employee/shifts/applyForShift",
-        { shiftId },
-        { withCredentials: true }
+      await API.post(
+        "/api/employee/shifts/applyForShift",
+        { shiftId }
       );
       toast.success("Applied successfully");
       fetchShifts();
@@ -45,10 +43,9 @@ const EmployeeShifts = () => {
   // Cancel Shift
   const handleCancel = async (shiftId) => {
     try {
-      await axios.post(
-        "http://localhost:5000/api/employee/shifts/cancelShift",
-        { shiftId },
-        { withCredentials: true }
+      await API.post(
+        "/api/employee/shifts/cancelShift",
+        { shiftId }
       );
       toast.success("Cancelled successfully");
       fetchShifts();

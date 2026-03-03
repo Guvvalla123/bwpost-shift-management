@@ -1,4 +1,4 @@
-import axios from "axios";
+import API from "@/api";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Plus, CalendarDays, Clock, Users, Trash2,
@@ -161,7 +161,7 @@ const ManagerShifts = () => {
   /* ── Fetch ── */
   const fetchShifts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/manager/shifts", { withCredentials: true });
+      const res = await API.get("/api/manager/shifts");
       setShifts(res.data.data || []);
     } catch {
       toast.error("Failed to load shifts");
@@ -179,7 +179,7 @@ const ManagerShifts = () => {
       return toast.error("Please fill all required fields");
     }
     try {
-      await axios.post("http://localhost:5000/api/manager/shifts", createShift, { withCredentials: true });
+      await API.post("/api/manager/shifts", createShift);
       toast.success("Shift created successfully");
       setCreateShift({ shiftTitle: "", shiftStartTime: "", shiftEndTime: "", shiftNotes: "", slotsAvailable: "" });
       setShowCreate(false);
@@ -192,7 +192,7 @@ const ManagerShifts = () => {
   const onUpdateHandler = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/api/manager/shifts/${editingShift._id}`, editingShift, { withCredentials: true });
+      await API.put(`/api/manager/shifts/${editingShift._id}`, editingShift);
       toast.success("Shift updated");
       setEditingShift(null);
       fetchShifts();
@@ -204,7 +204,7 @@ const ManagerShifts = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await axios.delete(`http://localhost:5000/api/manager/shifts/${deleteTarget._id}`, { withCredentials: true });
+      await API.delete(`/api/manager/shifts/${deleteTarget._id}`);
       toast.success("Shift deleted");
       setDeleteTarget(null);
       fetchShifts();
