@@ -17,20 +17,20 @@ exports.getDashboardData = async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const managerId = req.user.id; // Only this manager's own data
 
-    const [totalEmployees, totalManagers, totalShifts, upcomingShiftsCount, nextUpcomingShift, recentShifts, allShifts] =
+    const [totalEmployees, totalShifts, upcomingShiftsCount, nextUpcomingShift, recentShifts, allShifts] =
       await Promise.all([
         User.countDocuments({ role: "employee" }),
-        User.countDocuments({ role: "manager" }),
-        Shift.countDocuments(),
-        Shift.countDocuments({ shiftStartTime: { $gte: today } }),
-        Shift.findOne({ shiftStartTime: { $gte: today } }).sort({ shiftStartTime: 1 }),
-        Shift.find()
+        Shift.countDocuments({ createdByManager: managerId }),
+        Shift.countDocuments({ createdByManager: managerId, shiftStartTime: { $gte: today } }),
+        Shift.findOne({ createdByManager: managerId, shiftStartTime: { $gte: today } }).sort({ shiftStartTime: 1 }),
+        Shift.find({ createdByManager: managerId })
           .sort({ createdAt: -1 })
           .limit(6)
           .populate("acceptedEmployees", "username email")
-          .select("shiftTitle shiftStartTime slotsAvailable acceptedEmployees"),
-        Shift.find(),
+          .select("shiftTitle shiftStartTime shiftEndTime slotsAvailable acceptedEmployees"),
+        Shift.find({ createdByManager: managerId }),
       ]);
 
     let totalSlots = 0;
@@ -46,6 +46,7 @@ exports.getDashboardData = async (req, res) => {
     const capacityPercent = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
 
     const shiftsToday = await Shift.find({
+      createdByManager: managerId,
       shiftStartTime: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
     });
 
@@ -66,14 +67,13 @@ exports.getDashboardData = async (req, res) => {
     res.status(200).json({
       stats: {
         totalEmployees,
-        totalManagers,
         totalShifts,
         upcomingCount: upcomingShiftsCount,
         nextShift: nextUpcomingShift
           ? {
-              date: nextUpcomingShift.shiftStartTime,
-              label: getNextShiftLabel(nextUpcomingShift.shiftStartTime),
-            }
+            date: nextUpcomingShift.shiftStartTime,
+            label: getNextShiftLabel(nextUpcomingShift.shiftStartTime),
+          }
           : null,
       },
       capacity: capacityPercent,

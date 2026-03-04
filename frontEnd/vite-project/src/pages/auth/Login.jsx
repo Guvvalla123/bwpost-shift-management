@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import toast from "react-hot-toast";
 import API from "@/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { login } = useAuth();
   const { email, password } = formData;
 
   const validateEmail = (email) =>
@@ -62,7 +64,16 @@ export default function Login() {
     try {
       setLoading(true);
       const res = await API.post("/api/users/login", formData);
-      const role = res.data.user.role;
+      const { role } = res.data.user;
+
+      // Fetch full user profile (username + email) and update AuthContext immediately
+      try {
+        const meRes = await API.get("/api/users/me");
+        login(meRes.data); // { id, role, username, email }
+      } catch {
+        login(res.data.user); // fallback
+      }
+
       toast.success("Login successful");
 
       if (role === "manager") {
@@ -79,6 +90,7 @@ export default function Login() {
       setLoading(false);
     }
   };
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
 
