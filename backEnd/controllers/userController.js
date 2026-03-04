@@ -182,11 +182,49 @@ const logoutUser = async (req, res) => {
 /**
  * GET CURRENT USER
  */
-const getMe = (req, res) => {
-  res.status(200).json({
-    id: req.user.id,
-    role: req.user.role,
-  });
+const getMe = async (req, res) => {
+  try {
+    const user = await require("../models/userModel")
+      .findById(req.user.id)
+      .select("username email role profileImage");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({
+      id: user._id,
+      role: user.role,
+      username: user.username,
+      email: user.email,
+      profileImage: user.profileImage || "",
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * UPDATE PROFILE (username + profileImage)
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const { username, profileImage } = req.body;
+    const User = require("../models/userModel");
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (username) user.username = username.trim();
+    if (profileImage) user.profileImage = profileImage;
+
+    await user.save();
+
+    res.status(200).json({
+      id: user._id,
+      role: user.role,
+      username: user.username,
+      email: user.email,
+      profileImage: user.profileImage || "",
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 module.exports = {
@@ -195,4 +233,5 @@ module.exports = {
   refreshAccessToken,
   logoutUser,
   getMe,
+  updateProfile,
 };

@@ -11,6 +11,13 @@ import {
   ChevronRight,
   Briefcase,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+
+/* Sharp Cloudinary avatar URL (72×72 face-crop) */
+const avatarUrl = (url) => {
+  if (!url || !url.includes("cloudinary.com")) return url;
+  return url.replace("/upload/", "/upload/w_72,h_72,c_fill,g_face,q_auto,f_auto/");
+};
 
 /* ── Nav groups ──────────────────────────────────────────────────── */
 const NAV_GROUPS = [
@@ -84,6 +91,11 @@ const NavItem = ({ item, isActive }) => {
 /* ── Sidebar ─────────────────────────────────────────────────────── */
 const Managersidebar = () => {
   const { pathname } = useLocation();
+  const { user } = useAuth();
+
+  const initials = user?.username
+    ? user.username.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+    : "M";
 
   return (
     <aside className="w-64 min-h-screen flex flex-col bg-slate-900 shadow-2xl border-r border-slate-800/50">
@@ -123,24 +135,10 @@ const Managersidebar = () => {
         ))}
       </nav>
 
-      {/* ── Manager Profile Card ─────────────────────────────────── */}
-      <div className="shrink-0 p-3 border-t border-slate-800">
-        <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-default border border-slate-700/40">
-          {/* Avatar */}
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow ring-2 ring-indigo-500/30 shrink-0">
-            M
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-slate-100 text-sm font-semibold truncate">Manager</p>
-            <p className="text-slate-500 text-xs truncate">Admin Access</p>
-          </div>
-          {/* Online dot */}
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_2px_rgba(52,211,153,0.5)] shrink-0" title="Online" />
-        </div>
-      </div>
 
     </aside>
   );
 };
+
 
 export default Managersidebar;

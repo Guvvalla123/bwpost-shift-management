@@ -101,7 +101,8 @@ exports.getAllShiftsManager = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const shifts = await Shift.find(query)
-      .populate("acceptedEmployees", "username email")
+      .populate("acceptedEmployees", "username email profileImage")
+
       .populate("attendance.employee", "username email")
       .sort({ createdAt: -1 })
       .skip(skip)

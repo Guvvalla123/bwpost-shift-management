@@ -71,10 +71,13 @@ app.use(limiter);
 const userRoutes = require("./routes/userRoutes");
 const managerShiftRoutes = require("./routes/managerRoutes");
 const employeeShiftRoutes = require("./routes/employeeRoutes");
+const requestRoutes = require("./routes/requestRoutes");
 
 app.use("/api/users", userRoutes);
 app.use("/api/manager/shifts", managerShiftRoutes);
 app.use("/api/employee/shifts", employeeShiftRoutes);
+app.use("/api/manager/requests", requestRoutes);
+
 
 
 //Global route for testing

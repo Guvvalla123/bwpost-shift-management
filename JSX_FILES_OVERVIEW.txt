@@ -1,0 +1,202 @@
+====================================================
+  BWPOST Shift Management — JSX Files Overview
+====================================================
+Date: 04 March 2026
+
+----------------------------------------------------
+AUTH
+----------------------------------------------------
+
+Login.jsx
+  - Login form with email/password validation
+  - Calls POST /api/users/login
+  - On success: fetches /api/users/me, updates AuthContext (name, email, role, photo)
+  - Redirects managers → /manager/dashboard, employees → /employee
+
+Register.jsx
+  - Registration form for new users
+  - Calls POST /api/users/register
+
+----------------------------------------------------
+CORE LOGIC
+----------------------------------------------------
+
+main.jsx
+  - Entry point of the entire app
+  - Wraps the app inside AuthProvider and BrowserRouter
+  - Without this, no route or auth context would work
+
+App.jsx
+  - Defines ALL routes of the application
+  - /login, /register → public pages
+  - /manager/* → protected (only managers can access)
+  - /employee/* → protected (only employees can access)
+  - Uses ProtectedRoute to enforce this
+
+context/AuthContext.jsx
+  - GLOBAL auth state: stores { id, role, username, email, profileImage }
+  - On app load: checks session via /api/users/me; if expired, tries refresh token
+  - Provides: user, loading, login(), logout(), updateUser()
+  - updateUser() lets any component silently merge updates (e.g. new photo)
+    without forcing a full page reload
+
+components/ProtectedRoute.jsx
+  - Wraps any route that needs authentication
+  - Shows a spinner while auth is loading
+  - If not logged in → redirects to /login
+  - If wrong role → redirects away
+  - Protects all manager and employee routes
+
+----------------------------------------------------
+LAYOUTS (shared page wrappers)
+----------------------------------------------------
+
+layout/ManagerLayout.jsx
+  - Wraps every manager page
+  - Contains the sticky top navbar with:
+      • Page title + breadcrumb
+      • Notification bell (live popover, auto-refresh, mark as read)
+      • Profile avatar (shows Cloudinary photo or initials)
+      • Profile dropdown (name, email, settings, logout)
+  - Renders Managersidebar alongside page content
+
+layout/Managersidebar.jsx
+  - Left sidebar for the manager panel
+  - Navigation groups: Overview, Workforce, Tracking, System
+  - Bottom profile card shows real username, email, and Cloudinary avatar
+  - Active route is highlighted with an indigo pill indicator
+
+layout/EmployeeLayout.jsx
+  - Wraps every employee page
+  - Contains the employee sidebar and main content area
+
+layout/Employeesidebar.jsx
+  - Basic sidebar for employees
+  - Links to Dashboard and All Shifts
+
+----------------------------------------------------
+MANAGER PAGES
+----------------------------------------------------
+
+manager/Dashboard.jsx
+  - Main KPI dashboard for managers
+  - Shows: Total Employees, Upcoming Shifts, Capacity %, Attendance Rate
+  - Next Scheduled Shift card
+  - Alerts/Notifications section
+  - Recent Shifts table (clickable for details)
+  - Personalized greeting: "Good morning, [Name]!"
+  - All data filtered by this manager's own shifts
+
+manager/shiftsfolder/ManagerShifts.jsx
+  - Full shift management page
+  - List all shifts with search and filter
+  - Create new shift (modal with custom date/time picker)
+  - Edit existing shift (modal)
+  - Delete shift with confirmation
+  - Shows slot fill progress bars
+
+manager/shiftsfolder/ShiftRequest.jsx
+  - View employees accepted on each shift
+  - Select a shift from the list → see who's assigned
+  - Remove an employee from a shift if needed
+
+manager/EmployeeManagement/Employee.jsx
+  - Full employee CRUD management
+  - View all employees with stats (total, active, managers)
+  - Add new employee (creates account)
+  - Edit employee details
+  - Delete employee with confirmation
+  - View individual employee's attendance history
+
+manager/Attendance/AttendanceManagement.jsx
+  - Per-shift attendance tracking
+  - Select a shift → see all assigned employees
+  - Mark check-in and check-out for each employee
+  - View attendance status: In Progress / Completed / Absent
+  - Summary stats: Present, Absent, Completed, Avg Hours
+
+manager/Calender.jsx
+  - Full calendar view using FullCalendar library
+  - Shows all shifts as events on the calendar
+  - Supports Day / Week / Month grid views
+  - Google Calendar sync (connect your Google account)
+  - Push shifts to Google Calendar as events
+  - Click a shift to view its details
+
+manager/Reports.jsx
+  - Analytics and reporting dashboard
+  - KPI cards: Total Shifts, Employees, Completed, Fill Rate
+  - Bar chart: Shifts per month (last 6 months)
+  - Pie chart: Shift status breakdown (Upcoming / Ongoing / Completed)
+  - Top 5 Employees by shift count (leaderboard with progress bars)
+  - Summary table with all key metrics
+
+manager/Settings.jsx
+  - Manager account settings page
+  - Profile Photo section:
+      • Upload image → goes directly to Cloudinary
+      • Face-detected crop stored as URL in MongoDB
+      • Shows instantly in navbar + sidebar (no page reload)
+      • Remove photo option
+  - Profile Information: Display Name, Email, Phone, Department, Timezone
+  - Notifications: toggles for shift requests, reminders, alerts, weekly report
+  - Security: placeholder for Password, 2FA, Active Sessions (coming soon)
+
+----------------------------------------------------
+EMPLOYEE PAGES
+----------------------------------------------------
+
+Employee/EmployeeDashboard.jsx
+  - Personalized home for employees
+  - Greeting: "Good morning, [Name]!" with email shown
+  - Stats: Total Shifts, Upcoming, Completed — pulled live from API
+  - Shift list showing recent 5 shifts with status badges
+  - Logout button
+
+Employee/EmployeeShifts.jsx
+  - Browse all available shifts posted by managers
+  - Apply for a shift (POST /api/employee/shifts/applyForShift)
+  - Cancel an application (POST /api/employee/shifts/cancelShift)
+
+----------------------------------------------------
+HOW THEY ALL CONNECT
+----------------------------------------------------
+
+main.jsx
+  └── AuthProvider (AuthContext.jsx)
+       └── App.jsx (all routes)
+            ├── /login          → Login.jsx
+            ├── /register       → Register.jsx
+            ├── /manager/*      → ProtectedRoute (role=manager)
+            │    └── ManagerLayout.jsx
+            │         ├── Managersidebar.jsx
+            │         ├── Dashboard.jsx
+            │         ├── ManagerShifts.jsx
+            │         ├── ShiftRequest.jsx
+            │         ├── Employee.jsx
+            │         ├── AttendanceManagement.jsx
+            │         ├── Calender.jsx
+            │         ├── Reports.jsx
+            │         └── Settings.jsx
+            └── /employee/*     → ProtectedRoute (role=employee)
+                 └── EmployeeLayout.jsx
+                      ├── Employeesidebar.jsx
+                      ├── EmployeeDashboard.jsx
+                      └── EmployeeShifts.jsx
+
+----------------------------------------------------
+KEY CONCEPT: AuthContext is the heart of the app
+----------------------------------------------------
+
+Every component reads from AuthContext:
+  - user.username  → shown in greetings, sidebar, navbar
+  - user.email     → shown in profile dropdown, settings
+  - user.role      → used by ProtectedRoute to allow/deny access
+  - user.profileImage → shown as avatar everywhere
+
+updateUser({ profileImage: newUrl }) called in Settings:
+  → Sidebar avatar updates instantly
+  → Navbar avatar updates instantly
+  → No page refresh needed
+
+====================================================

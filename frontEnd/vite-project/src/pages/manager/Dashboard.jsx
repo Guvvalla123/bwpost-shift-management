@@ -8,6 +8,7 @@ import {
   BarChart2, Zap, Bell, ArrowRight,
 } from "lucide-react";
 import API from "@/api";
+import { useAuth } from "@/context/AuthContext";
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -235,6 +236,14 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   useEffect(() => {
     API.get("/api/manager/shifts/dashboard/data")
@@ -278,9 +287,11 @@ const Dashboard = () => {
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Live</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Manager Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight">
+              {greeting()}, {user?.username || "Manager"}!
+            </h1>
             <p className="text-blue-200 text-sm mt-1.5">
-              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}! Here's your shift overview.
+              Here's your shift overview for today.
             </p>
 
             {/* Quick action links */}
