@@ -5,8 +5,9 @@ import {
   Clock, CheckCircle2, XCircle, ChevronDown, Users, CalendarDays,
   Timer, BarChart2, Download, Search, UserCheck,
   ClipboardList, TrendingUp, RefreshCw,
-  LogIn, LogOut, FlaskConical, Calendar,
+  LogIn, LogOut, FlaskConical, Calendar, Loader2,
 } from "lucide-react";
+
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -55,7 +56,9 @@ const StatusBadge = ({ status }) => {
   const cfg = {
     checked_out: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
     checked_in: { label: "In Progress", cls: "bg-blue-50 text-blue-700 ring-1 ring-blue-200", dot: "bg-blue-500 animate-pulse" },
-    not_checked_in: { label: "Absent", cls: "bg-slate-100 text-slate-500 ring-1 ring-slate-200", dot: "bg-slate-400" },
+    on_break: { label: "On Break", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200", dot: "bg-amber-500 animate-pulse" },
+    not_started: { label: "Not Started", cls: "bg-slate-100 text-slate-500 ring-1 ring-slate-200", dot: "bg-slate-400" },
+    not_checked_in: { label: "Not Started", cls: "bg-slate-100 text-slate-500 ring-1 ring-slate-200", dot: "bg-slate-400" },
   }[status] ?? { label: "Unknown", cls: "bg-gray-100 text-gray-500", dot: "bg-gray-400" };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.cls}`}>
@@ -313,73 +316,65 @@ const Sk = ({ className }) => <div className={`bg-slate-200 animate-pulse rounde
 ════════════════════════════════════════════════════════════ */
 const AttendanceTab = ({ shifts }) => {
   const [selectedShiftId, setSelectedShiftId] = useState("");
-  const [attendance, setAttendance] = useState({ attendance: [], acceptedEmployees: [] });
+  const [attendanceData, setAttendanceData] = useState({ shift: null, attendance: [] });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [timePicker, setTimePicker] = useState(null);
+  const [actionBusy, setActionBusy] = useState(null); // employeeId of the row being actioned
 
-  useEffect(() => { if (selectedShiftId) fetchAttendance(); }, [selectedShiftId]);
+  /* ── Auto-refresh every 30s ── */
+  useEffect(() => {
+    if (!selectedShiftId) return;
+    fetchAttendance();
+    const id = setInterval(() => fetchAttendance(true), 30_000);
+    return () => clearInterval(id);
+  }, [selectedShiftId]);
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = async (silent = false) => {
     try {
-      setLoading(true);
-      const res = await API.get(
-        `/api/manager/shifts/attendance/shift/${selectedShiftId}`
-      );
-      setAttendance(res.data.data || { attendance: [], acceptedEmployees: [] });
+      if (!silent) setLoading(true);
+      const res = await API.get(`/api/attendance/shift/${selectedShiftId}`);
+      setAttendanceData(res.data.data || { shift: null, attendance: [] });
     } catch { toast.error("Failed to load attendance"); }
     finally { setLoading(false); }
   };
 
-  const handleCheckIn = (id, name) => setTimePicker({ mode: "checkIn", employeeId: id, employeeName: name, defaultTime: new Date() });
-  const handleCheckOut = (id, name) => setTimePicker({ mode: "checkOut", employeeId: id, employeeName: name, defaultTime: new Date() });
-
-  const confirmCheckIn = async (iso) => {
+  /* ── Action helpers ── */
+  const doAction = async (endpoint, empId, extra = {}) => {
+    setActionBusy(empId);
     try {
-      await API.post("/api/manager/shifts/attendance/check-in",
-        { shiftId: selectedShiftId, employeeId: timePicker.employeeId, checkInTime: iso }
-      );
-      toast.success(`Check-in at ${new Date(iso).toLocaleTimeString()}`);
-      setTimePicker(null); fetchAttendance();
-    } catch (e) { toast.error(e.response?.data?.error || "Check-in failed"); }
-  };
-  const confirmCheckOut = async (iso) => {
-    try {
-      const res = await API.post("/api/manager/shifts/attendance/check-out",
-        { shiftId: selectedShiftId, employeeId: timePicker.employeeId, checkOutTime: iso }
-      );
-      toast.success(`Checked out — ${res.data.data?.totalHours ?? 0}h logged`);
-      setTimePicker(null); fetchAttendance();
-    } catch (e) { toast.error(e.response?.data?.error || "Check-out failed"); }
+      await API.post(endpoint, { shiftId: selectedShiftId, employeeId: empId, ...extra });
+      await fetchAttendance(true);
+    } catch (e) { toast.error(e.response?.data?.error || "Action failed"); }
+    finally { setActionBusy(null); }
   };
 
-  const getStatus = (empId) => {
-    const rec = attendance.attendance.find((a) => {
-      const id = a.employee?._id || a.employee;
-      return id === empId || id?.toString() === empId?.toString();
-    });
-    if (!rec) return "not_checked_in";
-    return rec.checkOut && new Date(rec.checkOut).getTime() !== new Date(rec.checkIn).getTime()
-      ? "checked_out" : "checked_in";
-  };
+  const handleCheckIn = (empId) => doAction("/api/attendance/checkin", empId);
+  const handleCheckOut = (empId) => doAction("/api/attendance/checkout", empId);
+  const handleStartBreak = (empId, type) => doAction("/api/attendance/break/start", empId, { type });
+  const handleEndBreak = (empId) => doAction("/api/attendance/break/end", empId);
 
   const selectedShift = shifts.find((s) => s._id === selectedShiftId);
-  const accepted = attendance.acceptedEmployees || [];
-  const records = attendance.attendance || [];
-  const filtered = useMemo(() => accepted.filter((e) =>
-    e.username.toLowerCase().includes(search.toLowerCase()) ||
-    e.email.toLowerCase().includes(search.toLowerCase())
-  ), [accepted, search]);
+  const records = attendanceData.attendance || [];
 
-  const present = accepted.filter((e) => getStatus(e._id) !== "not_checked_in").length;
-  const absent = accepted.length - present;
-  const completed = accepted.filter((e) => getStatus(e._id) === "checked_out").length;
-  const totalHours = records.filter((r) => r.totalHours).reduce((s, r) => s + r.totalHours, 0);
+  const filtered = useMemo(() => records.filter((r) => {
+    const name = r.employee?.username?.toLowerCase() || "";
+    const email = r.employee?.email?.toLowerCase() || "";
+    return name.includes(search.toLowerCase()) || email.includes(search.toLowerCase());
+  }), [records, search]);
+
+  /* KPI counts */
+  const present = records.filter(r => r.status !== "not_started").length;
+  const absent = records.filter(r => r.status === "not_started").length;
+  const completed = records.filter(r => r.status === "checked_out").length;
+  const onBreak = records.filter(r => r.status === "on_break").length;
+  const totalMins = records.reduce((s, r) => s + (r.totalWorkMinutes || 0), 0);
+
+  const fmtMins = (m) => m >= 60 ? `${(m / 60).toFixed(1)}h` : `${m}m`;
 
   return (
     <div className="space-y-5">
 
-      {/* ── Shift selector card ──────────────────────────────── */}
+      {/* ── Shift selector ── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Select Shift</p>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -387,36 +382,40 @@ const AttendanceTab = ({ shifts }) => {
             <ShiftSelect shifts={shifts} value={selectedShiftId} onChange={setSelectedShiftId} />
           </div>
           {selectedShiftId && (
-            <div className="flex gap-2 shrink-0">
-              <button onClick={fetchAttendance}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
-                <RefreshCw className="w-4 h-4" /> Refresh
-              </button>
-              <button
-                onClick={() => exportAttendanceCSV(selectedShift, accepted, records, getStatus)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition">
-                <Download className="w-4 h-4" /> Export CSV
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                const rows = records.map(r => ({
+                  Employee: r.employee?.username,
+                  Email: r.employee?.email,
+                  Status: r.status,
+                  "Work Mins": r.totalWorkMinutes,
+                  "Break Mins": r.totalBreakMinutes,
+                  "Late?": r.isLate ? `Yes (+${r.lateByMins}min)` : "No",
+                  "Left Early?": r.leftEarly ? "Yes" : "No",
+                }));
+                downloadCSV(rows, `Attendance_${selectedShift?.shiftTitle?.replace(/\s+/g, "_")}.csv`);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition shrink-0">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
           )}
         </div>
       </div>
 
-      {/* ── KPI strip ────────────────────────────────────────── */}
+      {/* ── KPI strip ── */}
       {selectedShiftId && !loading && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatPill icon={Users} label="Assigned" value={accepted.length} color="bg-indigo-500" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <StatPill icon={Users} label="Assigned" value={records.length} color="bg-indigo-500" />
           <StatPill icon={CheckCircle2} label="Present" value={present} color="bg-emerald-500" />
           <StatPill icon={XCircle} label="Absent" value={absent} color="bg-rose-500" />
-          <StatPill icon={BarChart2} label="Hrs Logged" value={`${Math.round(totalHours * 10) / 10}h`} color="bg-amber-500" />
+          <StatPill icon={Timer} label="On Break" value={onBreak} color="bg-amber-500" />
+          <StatPill icon={BarChart2} label="Hrs Logged" value={fmtMins(totalMins)} color="bg-violet-500" />
         </div>
       )}
 
-      {/* ── Attendance table card ─────────────────────────────── */}
+      {/* ── Table ── */}
       {selectedShiftId && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-
-          {/* Card header */}
           <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-slate-800">Employee Attendance</h2>
@@ -435,17 +434,13 @@ const AttendanceTab = ({ shifts }) => {
             </div>
           </div>
 
-          {/* Body */}
           {loading ? (
             <div className="p-6 space-y-3">{[1, 2, 3].map(i => <Sk key={i} className="h-14 w-full" />)}</div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <UserCheck className="h-10 w-10 text-slate-200 mb-3" />
               <p className="text-sm font-semibold text-slate-500">
-                {accepted.length === 0 ? "No employees accepted this shift yet" : "No results for your search"}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {accepted.length === 0 ? "Employees will appear once they accept the shift." : "Try a different search term."}
+                {records.length === 0 ? "No employees accepted this shift yet" : "No results for your search"}
               </p>
             </div>
           ) : (
@@ -453,76 +448,129 @@ const AttendanceTab = ({ shifts }) => {
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {["Employee", "Status", "Check-In", "Check-Out", "Hours", "Action"].map((h, i) => (
-                      <th key={h} className={`px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 5 ? "text-right" : "text-left"}`}>{h}</th>
+                    {["Employee", "Status", "Sessions", "Work", "Break", "Flags", "Action"].map((h, i) => (
+                      <th key={h} className={`px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filtered.map((emp) => {
-                    const status = getStatus(emp._id);
-                    const rec = records.find((a) => {
-                      const id = a.employee?._id || a.employee;
-                      return id === emp._id || id?.toString() === emp._id?.toString();
-                    });
-                    const outValid = rec?.checkOut &&
-                      new Date(rec.checkOut).getTime() !== new Date(rec.checkIn).getTime();
+                  {filtered.map((rec) => {
+                    const emp = rec.employee || {};
+                    const busy = actionBusy === emp._id;
+
+                    /* first check-in / last check-out */
+                    const firstIn = rec.workSessions?.[0]?.checkIn;
+                    const lastOut = rec.workSessions?.[rec.workSessions.length - 1]?.checkOut;
 
                     return (
-                      <tr key={emp._id} className="hover:bg-slate-50/60 transition-colors group">
+                      <tr key={emp._id} className="hover:bg-slate-50/60 transition-colors">
                         {/* Employee */}
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
-                            <Avatar name={emp.username} />
+                            <Avatar name={emp.username || "?"} />
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-slate-800 truncate">{emp.username}</p>
                               <p className="text-xs text-slate-400 truncate">{emp.email}</p>
                             </div>
                           </div>
                         </td>
+
                         {/* Status */}
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          <StatusBadge status={status} />
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <StatusBadge status={rec.status || "not_started"} />
                         </td>
-                        {/* Check-In */}
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          {rec?.checkIn
-                            ? <span className="text-sm font-medium text-slate-700">{fmtTime(rec.checkIn)}</span>
-                            : <span className="text-slate-300 text-sm">—</span>}
+
+                        {/* Sessions: first in → last out */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="text-xs">
+                            {firstIn
+                              ? <span className="text-emerald-600 font-medium">{fmtTime(firstIn)}</span>
+                              : <span className="text-slate-300">—</span>}
+                            {lastOut && (
+                              <> <span className="text-slate-300">→</span> <span className="text-blue-600 font-medium">{fmtTime(lastOut)}</span></>
+                            )}
+                            {rec.workSessions?.length > 1 && (
+                              <span className="ml-1 text-[10px] bg-slate-100 text-slate-500 px-1 rounded">{rec.workSessions.length} sessions</span>
+                            )}
+                          </div>
                         </td>
-                        {/* Check-Out */}
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          {outValid
-                            ? <span className="text-sm font-medium text-slate-700">{fmtTime(rec.checkOut)}</span>
-                            : <span className="text-slate-300 text-sm">—</span>}
-                        </td>
-                        {/* Hours */}
-                        <td className="px-5 py-3.5 whitespace-nowrap">
-                          {rec?.totalHours
-                            ? <span className="inline-flex items-center gap-1 text-sm font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg">
-                              <Timer className="w-3 h-3" />{rec.totalHours}h
+
+                        {/* Work time */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          {rec.totalWorkMinutes > 0
+                            ? <span className="inline-flex items-center gap-1 text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">
+                              <Timer className="w-3 h-3" />{fmtMins(rec.totalWorkMinutes)}
                             </span>
                             : <span className="text-slate-300 text-sm">—</span>}
                         </td>
+
+                        {/* Break time */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          {rec.totalBreakMinutes > 0
+                            ? <span className="text-xs font-semibold text-amber-600">{fmtMins(rec.totalBreakMinutes)}</span>
+                            : <span className="text-slate-300 text-xs">—</span>}
+                        </td>
+
+                        {/* Flags: late / left early */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex flex-col gap-0.5">
+                            {rec.isLate && (
+                              <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded">
+                                Late +{rec.lateByMins}m
+                              </span>
+                            )}
+                            {rec.leftEarly && (
+                              <span className="text-[10px] font-bold text-orange-500 bg-orange-50 border border-orange-100 px-1.5 py-0.5 rounded">
+                                Left Early
+                              </span>
+                            )}
+                            {rec.overtimeMinutes > 0 && (
+                              <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded">
+                                OT +{fmtMins(rec.overtimeMinutes)}
+                              </span>
+                            )}
+                            {!rec.isLate && !rec.leftEarly && rec.overtimeMinutes === 0 && (
+                              <span className="text-slate-300 text-xs">—</span>
+                            )}
+                          </div>
+                        </td>
+
                         {/* Action */}
-                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
-                          {status === "not_checked_in" && (
-                            <button onClick={() => handleCheckIn(emp._id, emp.username)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition">
-                              <LogIn className="w-3.5 h-3.5" /> Check In
-                            </button>
-                          )}
-                          {status === "checked_in" && (
-                            <button onClick={() => handleCheckOut(emp._id, emp.username)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
-                              <LogOut className="w-3.5 h-3.5" /> Check Out
-                            </button>
-                          )}
-                          {status === "checked_out" && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 bg-slate-100 rounded-lg">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Done
-                            </span>
-                          )}
+                        <td className="px-4 py-3.5 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {rec.status === "not_started" && (
+                              <button onClick={() => handleCheckIn(emp._id)} disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition disabled:opacity-50">
+                                <LogIn className="w-3 h-3" /> Check In
+                              </button>
+                            )}
+                            {rec.status === "checked_in" && (<>
+                              <button onClick={() => handleStartBreak(emp._id, "short_break")} disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition disabled:opacity-50">
+                                Break
+                              </button>
+                              <button onClick={() => handleStartBreak(emp._id, "lunch")} disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition disabled:opacity-50">
+                                Lunch
+                              </button>
+                              <button onClick={() => handleCheckOut(emp._id)} disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition disabled:opacity-50">
+                                <LogOut className="w-3 h-3" /> Out
+                              </button>
+                            </>)}
+                            {rec.status === "on_break" && (
+                              <button onClick={() => handleEndBreak(emp._id)} disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition disabled:opacity-50 animate-pulse">
+                                ▶ Resume
+                              </button>
+                            )}
+                            {rec.status === "checked_out" && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-400 bg-slate-100 rounded-lg">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Done
+                              </span>
+                            )}
+                            {busy && <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin ml-1" />}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -532,22 +580,21 @@ const AttendanceTab = ({ shifts }) => {
             </div>
           )}
 
-          {/* Footer */}
           {!loading && filtered.length > 0 && (
             <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
               <p className="text-xs text-slate-400">
-                Showing <span className="font-semibold text-slate-600">{filtered.length}</span> of{" "}
-                <span className="font-semibold text-slate-600">{accepted.length}</span> employees
+                <span className="font-semibold text-slate-600">{filtered.length}</span> employees · auto-refreshes every 30s
               </p>
               <p className="text-xs text-slate-400">
-                <span className="font-semibold text-emerald-600">{completed}</span> completed · <span className="font-semibold text-rose-500">{absent}</span> absent
+                <span className="font-semibold text-emerald-600">{completed}</span> completed ·{" "}
+                <span className="font-semibold text-amber-500">{onBreak}</span> on break ·{" "}
+                <span className="font-semibold text-rose-500">{absent}</span> not started
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Empty state ───────────────────────────────────────── */}
       {!selectedShiftId && (
         <div className="bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center py-24">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
@@ -556,16 +603,6 @@ const AttendanceTab = ({ shifts }) => {
           <p className="text-base font-bold text-slate-600">No shift selected</p>
           <p className="text-sm text-slate-400 mt-1">Choose a shift above to view and manage attendance.</p>
         </div>
-      )}
-
-      {timePicker && (
-        <TimePickerModal
-          mode={timePicker.mode}
-          employeeName={timePicker.employeeName}
-          defaultTime={timePicker.defaultTime}
-          onConfirm={timePicker.mode === "checkIn" ? confirmCheckIn : confirmCheckOut}
-          onClose={() => setTimePicker(null)}
-        />
       )}
     </div>
   );
