@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate, authorizeRoles } = require("../middleware/authMiddleware");
+const { authenticate, authorizeRoles } = require("../middlewares/authMiddleware");
 const ctrl = require("../controllers/attendanceController");
 
 /* ── Both roles can check themselves in/out ── */
