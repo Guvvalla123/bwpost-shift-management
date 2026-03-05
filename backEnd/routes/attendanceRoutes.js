@@ -1,18 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate, authorizeRoles } = require("../middlewares/authMiddleware");
+
+const { auth, authorize } = require("../middlewares/authMiddleware");
 const ctrl = require("../controllers/attendanceController");
 
-/* ── Both roles can check themselves in/out ── */
-router.post("/checkin", authenticate, ctrl.checkIn);
-router.post("/checkout", authenticate, ctrl.checkOut);
-router.post("/break/start", authenticate, ctrl.startBreak);
-router.post("/break/end", authenticate, ctrl.endBreak);
+router.post("/checkin", auth, ctrl.checkIn);
+router.post("/checkout", auth, ctrl.checkOut);
+router.post("/break/start", auth, ctrl.startBreak);
+router.post("/break/end", auth, ctrl.endBreak);
 
-/* ── Employee: see their own attendance for a shift ── */
-router.get("/my/:shiftId", authenticate, ctrl.getMyAttendance);
+router.get("/my/:shiftId", auth, ctrl.getMyAttendance);
 
-/* ── Manager: see full shift attendance ── */
-router.get("/shift/:shiftId", authenticate, authorizeRoles("manager"), ctrl.getShiftAttendance);
+router.get("/shift/:shiftId", auth, authorize("manager"), ctrl.getShiftAttendance);
 
 module.exports = router;
