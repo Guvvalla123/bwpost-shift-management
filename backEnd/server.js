@@ -10,7 +10,6 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -18,48 +17,51 @@ const app = express();
 // Connect MongoDB
 connectDB();
 
-// Security headers (FIRST)
+/* ================= SECURITY ================= */
+
+// Security headers
 app.use(helmet());
 
 // Logging
 app.use(morgan("dev"));
 
-// CORS (restricted)
+/* ================= CORS ================= */
+
 const allowedOrigins = [
   "https://bwpost-shift-management.vercel.app",
+  "http://localhost:5173"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / curl
 
-    // Allow any localhost port for local development
-    if (/^http:\/\/localhost:\d+$/.test(origin)) {
-      return callback(null, true);
-    }
+    // Allow Postman / curl / server requests
+    if (!origin) return callback(null, true);
 
-    // Allow production Vercel URL
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    return callback(new Error("Not allowed by CORS"));
+    return callback(null, false);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 }));
 
-// Body & cookies
+// Handle preflight requests
+app.options("*", cors());
+
+/* ================= BODY ================= */
+
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
 
-// Prevent NoSQL injection
-app.use(mongoSanitize());
+/* ================= SECURITY PROTECTION ================= */
 
-// Prevent XSS
+app.use(mongoSanitize());
 app.use(xss());
 
-// Rate limiting
+// Rate limiter
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -67,7 +69,8 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Routes
+/* ================= ROUTES ================= */
+
 const userRoutes = require("./routes/userRoutes");
 const managerShiftRoutes = require("./routes/managerRoutes");
 const employeeShiftRoutes = require("./routes/employeeRoutes");
@@ -80,28 +83,29 @@ app.use("/api/employee/shifts", employeeShiftRoutes);
 app.use("/api/manager/requests", requestRoutes);
 app.use("/api/attendance", attendanceRoutes);
 
+/* ================= HEALTH CHECK ================= */
 
-
-
-//Global route for testing
 app.get("/", (req, res) => {
   res.status(200).send("Backend is running");
 });
 
-// 404 handler
+/* ================= 404 ================= */
+
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Global error handler (NO LEAKS)
+/* ================= GLOBAL ERROR ================= */
+
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error("Server Error:", err);
   res.status(500).json({ message: "Internal Server Error" });
 });
 
+/* ================= START SERVER ================= */
 
-// Start server
 const PORT = process.env.PORT || 5500;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
