@@ -9,8 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 
 /* ─── Cloudinary config ──────────────────────────────────── */
-const CLOUD_NAME = "ddggugpga";
-const UPLOAD_PRESET = "bwpost_profiles";
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 const transformCloudinaryUrl = (url, opts = "w_400,h_400,c_fill,g_face,q_auto,f_auto") => {
     if (!url || !url.includes("cloudinary.com")) return url;
@@ -18,11 +18,11 @@ const transformCloudinaryUrl = (url, opts = "w_400,h_400,c_fill,g_face,q_auto,f_
 };
 
 /* ─── Section wrapper ────────────────────────────────────── */
-const Section = ({ icon: Icon, title, description, children, accent = "emerald" }) => (
+const Section = ({ icon: Icon, title, description, children }) => (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
-            <div className={`w-8 h-8 rounded-lg bg-${accent}-100 flex items-center justify-center`}>
-                <Icon size={15} className={`text-${accent}-600`} />
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <Icon size={15} className="text-emerald-600" />
             </div>
             <div>
                 <h3 className="text-sm font-bold text-slate-800">{title}</h3>

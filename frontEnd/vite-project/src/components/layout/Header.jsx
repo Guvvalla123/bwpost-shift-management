@@ -1,10 +1,17 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
-  const user = false; // replace later with auth check
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const navItem =
     "relative text-gray-700 hover:text-blue-700 transition duration-200 after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-blue-600 after:transition-all after:duration-300 hover:after:w-full";
+
+  const handleDashboard = () => {
+    if (user?.role === "manager") navigate("/manager/dashboard");
+    else navigate("/employee/dashboard");
+  };
 
   return (
     <header className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 shadow-sm z-50">
@@ -21,32 +28,33 @@ export default function Header() {
         {/* NAVIGATION */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link to="/" className={navItem}>Home</Link>
-          <Link to="/" className={navItem}>Products</Link>
-          <Link to="/" className={navItem}>Digital Shipping</Link>
-          <Link to="/" className={navItem}>Services</Link>
-          <Link to="/" className={navItem}>Jobs</Link>
-          <Link to="/" className={navItem}>About Us</Link>
-          <Link to="/" className={navItem}>Contact Us</Link>
+          <span className={`${navItem} cursor-default`}>About</span>
+          <span className={`${navItem} cursor-default`}>Services</span>
+          <span className={`${navItem} cursor-default`}>Contact</span>
         </nav>
 
         {/* AUTH BUTTONS */}
-        {!user && (
+        {user ? (
+          <button
+            onClick={handleDashboard}
+            className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
+          >
+            Go to Dashboard
+          </button>
+        ) : (
           <div className="flex items-center gap-3">
-
             <Link
               to="/register"
               className="px-4 py-2 text-sm font-medium rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50 transition"
             >
               Register
             </Link>
-
             <Link
               to="/login"
               className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
             >
               Login
             </Link>
-
           </div>
         )}
       </div>

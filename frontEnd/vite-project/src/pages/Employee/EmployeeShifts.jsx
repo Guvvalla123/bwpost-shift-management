@@ -12,7 +12,7 @@ const EmployeeShifts = () => {
     try {
       setLoading(true);
       const res = await API.get(
-        "/api/employee/shifts/Availableshifts"
+        "/api/employee/shifts/available-shifts"
       );
       setShifts(res.data.data);
     } catch (error) {

@@ -7,9 +7,10 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { toast } from "sonner";
 import {
-  LogIn, LogOut, RefreshCw, Calendar, Clock,
+  LogOut, RefreshCw, Calendar, Clock,
   MapPin, AlignLeft, Users, X, ExternalLink,
-  ChevronRight, Plus, AlertCircle,
+  ChevronRight, Plus, PanelLeftOpen, PanelLeftClose,
+  Briefcase, UserCheck, StickyNote,
 } from "lucide-react";
 import "../../calender.css";
 
@@ -59,7 +60,7 @@ const mapGoogleEvent = (ev) => ({
   start: ev.start?.dateTime || ev.start?.date,
   end: ev.end?.dateTime || ev.end?.date,
   allDay: !ev.start?.dateTime,
-  backgroundColor: ev.colorId ? COLOR_MAP[ev.colorId] || "#1a73e8" : "#1a73e8",
+  backgroundColor: "#0ea5e9",
   borderColor: "transparent",
   extendedProps: {
     source: "google",
@@ -70,13 +71,6 @@ const mapGoogleEvent = (ev) => ({
     status: ev.status,
   },
 });
-
-/* Google Calendar event colors map */
-const COLOR_MAP = {
-  1: "#7986cb", 2: "#33b679", 3: "#8e24aa", 4: "#e67c73",
-  5: "#f6c026", 6: "#f5511d", 7: "#039be5", 8: "#616161",
-  9: "#3f51b5", 10: "#0b8043", 11: "#d60000",
-};
 
 /* ─── Format helpers ─────────────────────────────────────────── */
 const fmtDate = (iso) =>
@@ -98,30 +92,19 @@ const fmtTime = (iso) =>
 const SignInScreen = ({ onLogin }) => (
   <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-slate-50 px-4">
     <div className="w-full max-w-sm text-center space-y-6">
-      {/* Google Calendar Icon */}
       <div className="flex justify-center">
-        <div className="w-24 h-24 rounded-3xl bg-white shadow-lg border border-slate-100 flex items-center justify-center">
-          <svg viewBox="0 0 87.3 78" className="w-14 h-14" xmlns="http://www.w3.org/2000/svg">
-            <path d="m6.6 66.85 3.85 6.65 4.5-6.65z" fill="#0066da" />
-            <path d="m14.95 73.5 3.85-6.65h-8.35z" fill="#0066da" />
-            <path d="m14.95 73.5h-8.35l4.5 6.65z" fill="#00ac47" />
-            <path d="m6.6 66.85-4.5 6.65 3.85 6.65 4.5-6.65z" fill="#00832d" />
-            <path d="m21.4 66.85h-6.45l-8.35 13.3h6.45z" fill="#00ac47" />
-            <path d="m14.95 60.2h6.45l-6.45 6.65z" fill="#0066da" />
-            <path d="m21.4 60.2h-6.45l-2.06 6.65z" fill="#2684fc" />
-          </svg>
-          <Calendar className="w-10 h-10 text-blue-600 absolute" />
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg flex items-center justify-center">
+          <Calendar className="w-10 h-10 text-white" />
         </div>
       </div>
 
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Google Calendar</h1>
         <p className="text-slate-500 text-sm mt-2">
-          Sign in with your Google account to view your calendar events and sync your work shifts.
+          Sign in with your Google account to view calendar events and sync work shifts.
         </p>
       </div>
 
-      {/* Permission list */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50 text-left">
         {[
           { icon: Calendar, text: "View your calendar events" },
@@ -138,12 +121,10 @@ const SignInScreen = ({ onLogin }) => (
         ))}
       </div>
 
-      {/* Sign In Button */}
       <button
         onClick={onLogin}
         className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 shadow-sm hover:shadow-md py-3.5 rounded-xl font-medium text-slate-700 hover:bg-slate-50 transition-all duration-200"
       >
-        {/* Google logo */}
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -154,16 +135,16 @@ const SignInScreen = ({ onLogin }) => (
       </button>
 
       <p className="text-xs text-slate-400">
-        We only request read/write access to your Google Calendar. No other data is accessed.
+        We only request read/write access to your Google Calendar.
       </p>
     </div>
   </div>
 );
 
 /* ═══════════════════════════════════════════════════════════════ */
-/* EVENT DETAIL POPUP                                              */
+/* EVENT DETAIL POPUP — SHIFT                                      */
 /* ═══════════════════════════════════════════════════════════════ */
-const EventPopup = ({ event, onClose }) => {
+const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
   if (!event) return null;
   const p = event.extendedProps;
 
@@ -176,28 +157,18 @@ const EventPopup = ({ event, onClose }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Color bar */}
-        <div
-          className="h-2 w-full"
-          style={{ backgroundColor: event.backgroundColor || "#1a73e8" }}
-        />
+        <div className="h-2 w-full bg-indigo-500" />
 
-        {/* Header */}
         <div className="flex items-start justify-between px-5 pt-4 pb-2">
           <h2 className="text-lg font-semibold text-slate-900 leading-tight pr-4">
             {event.title}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors shrink-0"
-          >
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Details */}
         <div className="px-5 pb-5 space-y-3">
-          {/* Date / Time */}
           <div className="flex items-start gap-3">
             <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
             <div className="text-sm text-slate-700">
@@ -210,7 +181,78 @@ const EventPopup = ({ event, onClose }) => {
             </div>
           </div>
 
-          {/* Location */}
+          <div className="flex items-start gap-3">
+            <UserCheck className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+            <p className="text-sm text-slate-700">
+              {p.accepted || 0} assigned · {p.slots || 0} slots remaining
+            </p>
+          </div>
+
+          {p.notes && (
+            <div className="flex items-start gap-3">
+              <StickyNote className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed line-clamp-4">
+                {p.notes}
+              </p>
+            </div>
+          )}
+
+          {onSync && (
+            <button
+              onClick={() => onSync(p.shiftId)}
+              disabled={syncing}
+              className="w-full flex items-center justify-center gap-2 mt-2 pt-3 border-t border-slate-100 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+            >
+              {syncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {syncing ? "Syncing…" : "Sync to Google Calendar"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* EVENT DETAIL POPUP — GOOGLE                                     */
+/* ═══════════════════════════════════════════════════════════════ */
+const GooglePopup = ({ event, onClose }) => {
+  if (!event) return null;
+  const p = event.extendedProps;
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="h-2 w-full bg-sky-500" />
+
+        <div className="flex items-start justify-between px-5 pt-4 pb-2">
+          <h2 className="text-lg font-semibold text-slate-900 leading-tight pr-4">
+            {event.title}
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-5 pb-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+            <div className="text-sm text-slate-700">
+              <p>{fmtDate(event.start)}</p>
+              {!event.allDay && (
+                <p className="text-slate-500 text-xs mt-0.5">
+                  {fmtTime(event.startStr)} — {fmtTime(event.endStr)}
+                </p>
+              )}
+            </div>
+          </div>
+
           {p.location && (
             <div className="flex items-start gap-3">
               <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -218,7 +260,6 @@ const EventPopup = ({ event, onClose }) => {
             </div>
           )}
 
-          {/* Description */}
           {p.description && (
             <div className="flex items-start gap-3">
               <AlignLeft className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -228,7 +269,6 @@ const EventPopup = ({ event, onClose }) => {
             </div>
           )}
 
-          {/* Attendees */}
           {p.attendees?.length > 0 && (
             <div className="flex items-start gap-3">
               <Users className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -248,7 +288,6 @@ const EventPopup = ({ event, onClose }) => {
             </div>
           )}
 
-          {/* Open in Google Calendar */}
           {p.htmlLink && (
             <a
               href={p.htmlLink}
@@ -276,28 +315,23 @@ const CalendarPage = () => {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  /* ── App shifts (from your backend) ── */
   const [appShifts, setAppShifts] = useState([]);
-  const [syncing, setSyncing] = useState(null); // shiftId being synced
+  const [syncing, setSyncing] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  /* ── Fetch app shifts ── */
   const fetchAppShifts = useCallback(async () => {
     try {
-      const res = await API.get(
-        "/api/manager/shifts?limit=200"
-      );
+      const res = await API.get("/api/manager/shifts?limit=200");
       setAppShifts(res.data.data || []);
     } catch {
-      /* silent fail if not logged into app */
+      /* silent */
     }
   }, []);
 
-  /* ── Google OAuth Login ── */
   const login = useGoogleLogin({
     scope: "https://www.googleapis.com/auth/calendar",
     onSuccess: async (codeResponse) => {
       setToken(codeResponse.access_token);
-      // fetch basic user info
       try {
         const info = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
           headers: { Authorization: `Bearer ${codeResponse.access_token}` },
@@ -308,7 +342,6 @@ const CalendarPage = () => {
     onError: () => toast.error("Google sign-in failed"),
   });
 
-  /* ── Load Google events after login ── */
   useEffect(() => {
     if (!token) return;
     setLoadingEvents(true);
@@ -318,15 +351,13 @@ const CalendarPage = () => {
       .finally(() => setLoadingEvents(false));
   }, [token]);
 
-  /* ── Load app shifts ── */
   useEffect(() => {
     fetchAppShifts();
   }, [fetchAppShifts]);
 
-  /* ── App shifts as gray read-only events ── */
   const shiftEvents = appShifts.map((s) => ({
     id: `shift-${s._id}`,
-    title: `🏢 ${s.shiftTitle}`,
+    title: s.shiftTitle,
     start: s.shiftStartTime,
     end: s.shiftEndTime,
     backgroundColor: "#6366f1",
@@ -340,30 +371,29 @@ const CalendarPage = () => {
     },
   }));
 
-  /* ── Sync a shift → Google Calendar ── */
-  const syncShiftToGoogle = async (shift) => {
+  const syncShiftToGoogle = async (shiftId) => {
+    const shift = appShifts.find((s) => s._id === shiftId);
+    if (!shift) return;
     if (!token) return toast.error("Please sign in with Google first");
-    setSyncing(shift._id);
+    setSyncing(shiftId);
     try {
       await createGoogleEvent(token, {
         summary: shift.shiftTitle,
         description: shift.shiftNotes || `Shift: ${shift.shiftTitle}\nSlots: ${shift.slotsAvailable}`,
         start: { dateTime: shift.shiftStartTime, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
         end: { dateTime: shift.shiftEndTime, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-        colorId: "7", // Google blue
+        colorId: "7",
       });
-      toast.success(`"${shift.shiftTitle}" synced to Google Calendar ✓`);
-      // Refresh Google events
+      toast.success(`"${shift.shiftTitle}" synced to Google Calendar`);
       const updated = await fetchGoogleEvents(token);
       setEvents(updated.map(mapGoogleEvent));
     } catch {
-      toast.error("Failed to sync shift to Google Calendar");
+      toast.error("Failed to sync shift");
     } finally {
       setSyncing(null);
     }
   };
 
-  /* ── Logout ── */
   const handleLogout = () => {
     googleLogout();
     setToken(null);
@@ -372,24 +402,49 @@ const CalendarPage = () => {
     toast.success("Signed out from Google");
   };
 
-  /* ── Event click ── */
   const handleEventClick = (info) => {
     setSelectedEvent(info.event);
   };
 
-  /* ═══════ SIGN-IN SCREEN ═══════ */
+  const handleRefresh = async () => {
+    if (!token) return;
+    setLoadingEvents(true);
+    try {
+      const items = await fetchGoogleEvents(token);
+      setEvents(items.map(mapGoogleEvent));
+      toast.success("Calendar refreshed");
+    } catch {
+      toast.error("Failed to refresh");
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
   if (!token) {
     return <SignInScreen onLogin={login} />;
   }
 
-  /* ═══════ CALENDAR VIEW ═══════ */
+  const selectedSource = selectedEvent?.extendedProps?.source;
+
   return (
     <div className="flex h-[calc(100vh-64px)] bg-slate-50 overflow-hidden">
 
-      {/* ── Left Panel: Shift Sync List ───────────────────────── */}
-      <div className="hidden xl:flex w-72 flex-col bg-white border-r border-slate-100 shrink-0">
+      {/* ── Mobile sidebar overlay ────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {/* User Profile strip */}
+      {/* ── Left Panel: Shift Sync List ───────────────────────── */}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        lg:relative lg:translate-x-0 lg:z-auto
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
+        {/* User Profile */}
         {userInfo && (
           <div className="p-4 border-b border-slate-100 flex items-center gap-3">
             <img
@@ -411,36 +466,36 @@ const CalendarPage = () => {
           </div>
         )}
 
-        {/* Shift Sync Panel */}
         <div className="p-4 border-b border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Sync Shifts
-          </p>
-          <p className="text-xs text-slate-400">Push your work shifts into Google Calendar</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sync Shifts</p>
+          <p className="text-xs text-slate-400">Push work shifts into Google Calendar</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {appShifts.length === 0 ? (
             <div className="py-10 text-center text-slate-300">
-              <Calendar className="w-8 h-8 mx-auto mb-2" />
+              <Briefcase className="w-8 h-8 mx-auto mb-2" />
               <p className="text-xs">No shifts found</p>
             </div>
           ) : (
             appShifts.map((shift) => (
               <div
                 key={shift._id}
-                className="bg-slate-50 hover:bg-blue-50 border border-slate-100 hover:border-blue-200 rounded-xl p-3 transition-all group"
+                className="bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 rounded-xl p-3 transition-all group"
               >
-                <p className="text-xs font-semibold text-slate-800 truncate mb-1 group-hover:text-blue-700">
+                <p className="text-xs font-semibold text-slate-800 truncate mb-1 group-hover:text-indigo-700">
                   {shift.shiftTitle}
                 </p>
-                <p className="text-[11px] text-slate-400 mb-2">
+                <p className="text-[11px] text-slate-400 mb-0.5">
                   {fmtDate(shift.shiftStartTime)}
+                </p>
+                <p className="text-[11px] text-slate-400 mb-2">
+                  {shift.acceptedEmployees?.length || 0} assigned · {shift.slotsAvailable} slots left
                 </p>
                 <button
                   onClick={() => syncShiftToGoogle(shift)}
                   disabled={syncing === shift._id}
-                  className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all font-medium disabled:opacity-50"
+                  className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all font-medium disabled:opacity-50"
                 >
                   {syncing === shift._id ? (
                     <RefreshCw className="w-3 h-3 animate-spin" />
@@ -459,7 +514,11 @@ const CalendarPage = () => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Legend</p>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-indigo-500 shrink-0" />
-            <span className="text-xs text-slate-600">Shift schedule</span>
+            <span className="text-xs text-slate-600">Work shifts</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-sky-500 shrink-0" />
+            <span className="text-xs text-slate-600">Google Calendar</span>
           </div>
         </div>
       </div>
@@ -467,66 +526,55 @@ const CalendarPage = () => {
       {/* ── Main Calendar ─────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 bg-white">
 
-        {/* Toolbar */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <span className="text-sm font-bold text-slate-900">Google Calendar</span>
-              <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live
-              </span>
-            </div>
-          </div>
+        {/* Single header bar */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+            title="Toggle sidebar"
+          >
+            {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+          </button>
 
-          <div className="ml-auto flex items-center gap-2">
-            {loadingEvents && (
-              <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
-            )}
+          {userInfo && (
+            <div className="hidden sm:flex items-center gap-2">
+              <img src={userInfo.picture} alt="" className="w-7 h-7 rounded-full" />
+              <span className="text-sm font-medium text-slate-700 truncate max-w-[120px]">{userInfo.name}</span>
+            </div>
+          )}
 
-            {/* Refresh */}
+          <div className="ml-auto flex items-center gap-1.5">
+            {loadingEvents && <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />}
+
             <button
-              onClick={async () => {
-                setLoadingEvents(true);
-                try {
-                  const items = await fetchGoogleEvents(token);
-                  setEvents(items.map(mapGoogleEvent));
-                  toast.success("Calendar refreshed");
-                } catch {
-                  toast.error("Failed to refresh");
-                } finally {
-                  setLoadingEvents(false);
-                }
-              }}
+              onClick={handleRefresh}
               className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-              title="Refresh calendar"
+              title="Refresh"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
 
-            {/* Sign out */}
             <button
               onClick={handleLogout}
-              className="xl:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              title="Sign out"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign out
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* FullCalendar */}
-        <div className="flex-1 p-4 min-h-0 calendar-wrapper">
+        <div className="flex-1 p-2 sm:p-4 min-h-0 calendar-wrapper">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
+            initialView="dayGridMonth"
             height="100%"
             selectable={false}
             nowIndicator
             editable={false}
             allDaySlot
+            dayMaxEvents={3}
             slotMinTime="06:00:00"
             slotMaxTime="23:00:00"
             slotDuration="00:30"
@@ -537,16 +585,27 @@ const CalendarPage = () => {
               center: "title",
               right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
-            events={shiftEvents}
+            events={[...shiftEvents, ...events]}
             eventClick={handleEventClick}
             eventClassNames="cursor-pointer"
           />
         </div>
       </div>
 
-      {/* ── Event Detail Popup ─── */}
-      {selectedEvent && (
-        <EventPopup event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      {/* ── Event Popups ────────────────────────────────────────── */}
+      {selectedEvent && selectedSource === "app" && (
+        <ShiftPopup
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onSync={token ? (id) => syncShiftToGoogle(id) : null}
+          syncing={syncing === selectedEvent.extendedProps?.shiftId}
+        />
+      )}
+      {selectedEvent && selectedSource === "google" && (
+        <GooglePopup
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
     </div>
   );

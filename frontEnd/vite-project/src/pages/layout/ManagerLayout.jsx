@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { LogOut, Settings, User, Bell, ChevronDown, CheckCheck, AlertTriangle, Info, CheckCircle2, Zap } from "lucide-react";
+import { LogOut, Settings, User, Bell, ChevronDown, CheckCheck, AlertTriangle, Info, CheckCircle2, Zap, Menu, X } from "lucide-react";
 import Managersidebar from "./Managersidebar";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
@@ -205,10 +205,13 @@ const NotificationBell = () => {
 ══════════════════════════════════════════════════════════════════ */
 const ManagerLayout = () => {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const dropdownRef = useRef();
   const { user, logout } = useAuth();
+
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
   const pageTitle = PAGE_TITLES[pathname] ?? "Manager Panel";
 
@@ -236,21 +239,33 @@ const ManagerLayout = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
 
+      {/* ── Mobile sidebar overlay ── */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* ── Sidebar ─────────────────────────────────────────────── */}
-      <Managersidebar />
+      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <Managersidebar />
+      </div>
 
       {/* ── Main area ───────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* ── Top Navbar ──────────────────────────────────────── */}
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 md:px-8 shadow-sm shrink-0 sticky top-0 z-30">
+        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 md:px-8 shadow-sm shrink-0 sticky top-0 z-30">
 
-          {/* Page title + breadcrumb */}
+          {/* Hamburger + Page title */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(o => !o)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition">
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           <div>
             <h2 className="text-base font-bold text-slate-900 leading-tight">{pageTitle}</h2>
             <p className="text-xs text-slate-400 hidden sm:block">
               Manager Panel &nbsp;/&nbsp; {pageTitle}
             </p>
+          </div>
           </div>
 
           {/* Right side controls */}

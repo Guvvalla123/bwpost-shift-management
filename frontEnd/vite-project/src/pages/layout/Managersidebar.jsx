@@ -127,7 +127,7 @@ const Managersidebar = () => {
                 <NavItem
                   key={item.path}
                   item={item}
-                  isActive={pathname === item.path}
+                  isActive={pathname === item.path || pathname.startsWith(item.path + "/")}
                 />
               ))}
             </div>

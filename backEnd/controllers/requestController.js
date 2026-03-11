@@ -8,23 +8,31 @@ const Shift = require("../models/shiftModel");
 ───────────────────────────────────────────────────────────────*/
 exports.getAllRequests = async (req, res) => {
     try {
-        const { status, type } = req.query;
+        const { status, type, page = 1, limit = 20 } = req.query;
+        const skip = (page - 1) * limit;
         const managerId = req.user.id;
 
-        // Only get requests for shifts this manager created
         const managerShiftIds = await Shift.find({ createdByManager: managerId }).distinct("_id");
 
         const filter = { currentShift: { $in: managerShiftIds } };
         if (status) filter.status = status;
         if (type) filter.type = type;
 
-        const requests = await ShiftRequest.find(filter)
-            .populate("employee", "username email profileImage")
-            .populate("currentShift", "shiftTitle shiftStartTime shiftEndTime")
-            .populate("requestedShift", "shiftTitle shiftStartTime shiftEndTime slotsAvailable")
-            .sort({ createdAt: -1 });
+        const [requests, total] = await Promise.all([
+            ShiftRequest.find(filter)
+                .populate("employee", "username email profileImage")
+                .populate("currentShift", "shiftTitle shiftStartTime shiftEndTime")
+                .populate("requestedShift", "shiftTitle shiftStartTime shiftEndTime slotsAvailable")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit)),
+            ShiftRequest.countDocuments(filter),
+        ]);
 
-        return res.status(200).json({ success: true, data: requests });
+        return res.status(200).json({
+            success: true, data: requests,
+            total, page: Number(page), pages: Math.ceil(total / limit),
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: "Error fetching requests" });
     }
@@ -44,6 +52,10 @@ exports.approveRequest = async (req, res) => {
 
         if (!request) return res.status(404).json({ message: "Request not found" });
         if (request.status !== "pending") return res.status(400).json({ message: "Request already resolved" });
+
+        if (request.currentShift.createdByManager.toString() !== req.user.id) {
+            return res.status(403).json({ message: "You can only approve requests for your own shifts" });
+        }
 
         const employeeId = request.employee.toString();
 
@@ -91,9 +103,13 @@ exports.rejectRequest = async (req, res) => {
         const { id } = req.params;
         const { managerNote } = req.body;
 
-        const request = await ShiftRequest.findById(id);
+        const request = await ShiftRequest.findById(id).populate("currentShift");
         if (!request) return res.status(404).json({ message: "Request not found" });
         if (request.status !== "pending") return res.status(400).json({ message: "Request already resolved" });
+
+        if (request.currentShift.createdByManager.toString() !== req.user.id) {
+            return res.status(403).json({ message: "You can only reject requests for your own shifts" });
+        }
 
         request.status = "rejected";
         request.managerNote = managerNote || "";

@@ -37,7 +37,7 @@ const EmployeeSidebar = () => {
             <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
                 {NAV_ITEMS.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.path;
+                    const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
                     return (
                         <Link
                             key={item.path}

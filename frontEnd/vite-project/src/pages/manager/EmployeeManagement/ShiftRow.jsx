@@ -72,7 +72,7 @@ const ShiftRow = ({ employee, onEdit, onDelete, onView }) => {
       </td>
 
       {/* Actions */}
-      {/* <td className="px-6 py-4 whitespace-nowrap">
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center gap-1">
           <button
             onClick={() => onView(employee)}
@@ -96,7 +96,7 @@ const ShiftRow = ({ employee, onEdit, onDelete, onView }) => {
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
-      </td> */}
+      </td>
     </tr>
   );
 };

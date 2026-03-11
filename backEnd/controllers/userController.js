@@ -184,8 +184,7 @@ const logoutUser = async (req, res) => {
  */
 const getMe = async (req, res) => {
   try {
-    const user = await require("../models/userModel")
-      .findById(req.user.id)
+    const user = await User.findById(req.user.id)
       .select("username email role profileImage");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json({
@@ -203,15 +202,36 @@ const getMe = async (req, res) => {
 /**
  * UPDATE PROFILE (username + profileImage)
  */
+const isValidImageUrl = (url) => {
+  if (!url) return true;
+  if (url === "") return true;
+  try {
+    const parsed = new URL(url);
+    if (!["https:"].includes(parsed.protocol)) return false;
+    const allowedHosts = ["res.cloudinary.com", "images.unsplash.com"];
+    if (!allowedHosts.some(h => parsed.hostname.endsWith(h))) return false;
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const updateProfile = async (req, res) => {
   try {
     const { username, profileImage } = req.body;
-    const User = require("../models/userModel");
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (username) user.username = username.trim();
-    if (profileImage) user.profileImage = profileImage;
+    if (profileImage !== undefined) {
+      if (profileImage === "") {
+        user.profileImage = "";
+      } else if (!isValidImageUrl(profileImage)) {
+        return res.status(400).json({ message: "Invalid image URL. Only HTTPS Cloudinary URLs are allowed." });
+      } else {
+        user.profileImage = profileImage;
+      }
+    }
 
     await user.save();
 

@@ -9,8 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 
 /* ─── Cloudinary config ──────────────────────────────────────────── */
-const CLOUD_NAME = "ddggugpga";
-const UPLOAD_PRESET = "bwpost_profiles";
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 /**
  * Inject Cloudinary transformations into the URL so the avatar is always

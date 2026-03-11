@@ -58,10 +58,19 @@ const getOrCreate = (shift, employeeId) => {
 exports.checkIn = async (req, res) => {
     try {
         const { shiftId, employeeId } = req.body;
+
+        if (employeeId && employeeId !== req.user.id && req.user.role !== "manager") {
+            return res.status(403).json({ status: "N", error: "Only managers can check in other employees" });
+        }
+
         const targetId = employeeId || req.user.id;
 
         const shift = await Shift.findById(shiftId);
         if (!shift) return res.status(404).json({ status: "N", error: "Shift not found" });
+
+        if (!shift.acceptedEmployees.some(id => id.toString() === targetId.toString())) {
+            return res.status(403).json({ status: "N", error: "Employee is not assigned to this shift" });
+        }
 
         const att = getOrCreate(shift, targetId);
 
@@ -102,6 +111,11 @@ exports.checkIn = async (req, res) => {
 exports.checkOut = async (req, res) => {
     try {
         const { shiftId, employeeId, notes } = req.body;
+
+        if (employeeId && employeeId !== req.user.id && req.user.role !== "manager") {
+            return res.status(403).json({ status: "N", error: "Only managers can check out other employees" });
+        }
+
         const targetId = employeeId || req.user.id;
 
         const shift = await Shift.findById(shiftId);
@@ -146,8 +160,13 @@ exports.checkOut = async (req, res) => {
 ══════════════════════════════════════════════════════════════════ */
 exports.startBreak = async (req, res) => {
     try {
-        const { shiftId, type = "short_break" } = req.body;
-        const targetId = req.body.employeeId || req.user.id;
+        const { shiftId, type = "short_break", employeeId } = req.body;
+
+        if (employeeId && employeeId !== req.user.id && req.user.role !== "manager") {
+            return res.status(403).json({ status: "N", error: "Only managers can start breaks for other employees" });
+        }
+
+        const targetId = employeeId || req.user.id;
 
         const shift = await Shift.findById(shiftId);
         if (!shift) return res.status(404).json({ status: "N", error: "Shift not found" });
@@ -185,8 +204,13 @@ exports.startBreak = async (req, res) => {
 ══════════════════════════════════════════════════════════════════ */
 exports.endBreak = async (req, res) => {
     try {
-        const { shiftId } = req.body;
-        const targetId = req.body.employeeId || req.user.id;
+        const { shiftId, employeeId } = req.body;
+
+        if (employeeId && employeeId !== req.user.id && req.user.role !== "manager") {
+            return res.status(403).json({ status: "N", error: "Only managers can end breaks for other employees" });
+        }
+
+        const targetId = employeeId || req.user.id;
 
         const shift = await Shift.findById(shiftId);
         if (!shift) return res.status(404).json({ status: "N", error: "Shift not found" });

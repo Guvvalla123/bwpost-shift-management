@@ -152,7 +152,7 @@ const MyShifts = () => {
         try {
             const [myRes, allRes] = await Promise.all([
                 API.get("/api/employee/shifts/myshifts"),
-                API.get("/api/employee/shifts/Availableshifts"),
+                API.get("/api/employee/shifts/available-shifts"),
             ]);
             setShifts(Array.isArray(myRes.data?.data) ? myRes.data.data : []);
             setAllShifts(Array.isArray(allRes.data?.data) ? allRes.data.data : []);

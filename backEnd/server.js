@@ -22,8 +22,8 @@ connectDB();
 // Security headers
 app.use(helmet());
 
-// Logging
-app.use(morgan("dev"));
+// Logging (use short format in production to avoid noisy output)
+app.use(morgan(process.env.NODE_ENV === "production" ? "short" : "dev"));
 
 /* ================= CORS ================= */
 
@@ -34,9 +34,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-
-    // Allow Postman / curl / server requests
-    if (!origin) return callback(null, true);
+    // In production, block requests with no Origin header (Postman/curl)
+    // In development, allow them for easier testing
+    if (!origin) {
+      const isProd = process.env.NODE_ENV === "production";
+      return callback(null, !isProd);
+    }
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
@@ -51,6 +54,18 @@ app.use(cors({
 // Handle preflight requests
 app.options("*", cors());
 
+/* ================= CSRF PROTECTION ================= */
+const csrfProtect = (req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+  const origin = req.get("origin");
+  if (!origin) return next();
+  if (!allowedOrigins.includes(origin)) {
+    return res.status(403).json({ message: "Forbidden: origin not allowed" });
+  }
+  next();
+};
+app.use(csrfProtect);
+
 /* ================= BODY ================= */
 
 app.use(express.json({ limit: "10kb" }));
@@ -61,13 +76,15 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(xss());
 
-// Rate limiter
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests, try again later"
-});
-app.use(limiter);
+// Global rate limiter (production only — dev has hot-reload + StrictMode double-mounts)
+if (process.env.NODE_ENV === "production") {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: "Too many requests, try again later",
+  });
+  app.use(limiter);
+}
 
 /* ================= ROUTES ================= */
 
@@ -106,6 +123,22 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5500;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+/* ================= GRACEFUL SHUTDOWN ================= */
+const mongoose = require("mongoose");
+
+const shutdown = async (signal) => {
+  console.log(`\n${signal} received — shutting down gracefully…`);
+  server.close(async () => {
+    await mongoose.connection.close();
+    console.log("MongoDB connection closed. Process exiting.");
+    process.exit(0);
+  });
+  setTimeout(() => { process.exit(1); }, 10000);
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

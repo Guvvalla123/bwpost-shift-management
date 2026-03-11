@@ -7,15 +7,24 @@ const ShiftRequest = require("../models/shiftRequestModel");
 ───────────────────────────────────────────────────────────────*/
 exports.getAvailableShifts = async (req, res) => {
     try {
+        const { page = 1, limit = 20 } = req.query;
+        const skip = (page - 1) * limit;
         const today = new Date();
-        const shifts = await Shift.find({
-            shiftStartTime: { $gte: today },
-            slotsAvailable: { $gt: 0 },
-        })
-            .populate("createdByManager", "username")
-            .sort({ shiftStartTime: 1 });
+        const query = { shiftStartTime: { $gte: today }, slotsAvailable: { $gt: 0 } };
 
-        return res.status(200).json({ success: true, data: shifts });
+        const [shifts, total] = await Promise.all([
+            Shift.find(query)
+                .populate("createdByManager", "username")
+                .sort({ shiftStartTime: 1 })
+                .skip(skip)
+                .limit(Number(limit)),
+            Shift.countDocuments(query),
+        ]);
+
+        return res.status(200).json({
+            success: true, data: shifts,
+            total, page: Number(page), pages: Math.ceil(total / limit),
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: "Error fetching available shifts" });
     }
@@ -27,12 +36,24 @@ exports.getAvailableShifts = async (req, res) => {
 ───────────────────────────────────────────────────────────────*/
 exports.getMyShifts = async (req, res) => {
     try {
+        const { page = 1, limit = 20 } = req.query;
+        const skip = (page - 1) * limit;
         const employeeId = req.user.id;
-        const shifts = await Shift.find({ acceptedEmployees: employeeId })
-            .populate("createdByManager", "username email")
-            .sort({ shiftStartTime: 1 });
+        const query = { acceptedEmployees: employeeId };
 
-        return res.status(200).json({ success: true, data: shifts });
+        const [shifts, total] = await Promise.all([
+            Shift.find(query)
+                .populate("createdByManager", "username email")
+                .sort({ shiftStartTime: 1 })
+                .skip(skip)
+                .limit(Number(limit)),
+            Shift.countDocuments(query),
+        ]);
+
+        return res.status(200).json({
+            success: true, data: shifts,
+            total, page: Number(page), pages: Math.ceil(total / limit),
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: "Error fetching your shifts" });
     }
@@ -46,18 +67,26 @@ exports.applyForShift = async (req, res) => {
         const { shiftId } = req.body;
         const employeeId = req.user.id;
 
-        const shift = await Shift.findById(shiftId);
-        if (!shift) return res.status(404).json({ message: "Shift not found" });
+        const shift = await Shift.findOneAndUpdate(
+            {
+                _id: shiftId,
+                slotsAvailable: { $gt: 0 },
+                acceptedEmployees: { $ne: employeeId },
+            },
+            {
+                $push: { acceptedEmployees: employeeId },
+                $inc: { slotsAvailable: -1 },
+            },
+            { new: true }
+        );
 
-        if (shift.acceptedEmployees.some(id => id.toString() === employeeId))
-            return res.status(400).json({ message: "You have already applied for this shift" });
-
-        if (shift.slotsAvailable <= 0)
+        if (!shift) {
+            const exists = await Shift.findById(shiftId);
+            if (!exists) return res.status(404).json({ message: "Shift not found" });
+            if (exists.acceptedEmployees.some(id => id.toString() === employeeId))
+                return res.status(400).json({ message: "You have already applied for this shift" });
             return res.status(400).json({ message: "No slots available for this shift" });
-
-        shift.acceptedEmployees.push(employeeId);
-        shift.slotsAvailable -= 1;
-        await shift.save();
+        }
 
         return res.status(200).json({ message: "Successfully applied for the shift" });
     } catch (error) {
@@ -178,12 +207,24 @@ exports.submitShiftChangeRequest = async (req, res) => {
 ───────────────────────────────────────────────────────────────*/
 exports.getMyRequests = async (req, res) => {
     try {
-        const requests = await ShiftRequest.find({ employee: req.user.id })
-            .populate("currentShift", "shiftTitle shiftStartTime shiftEndTime")
-            .populate("requestedShift", "shiftTitle shiftStartTime shiftEndTime")
-            .sort({ createdAt: -1 });
+        const { page = 1, limit = 20 } = req.query;
+        const skip = (page - 1) * limit;
+        const query = { employee: req.user.id };
 
-        return res.status(200).json({ success: true, data: requests });
+        const [requests, total] = await Promise.all([
+            ShiftRequest.find(query)
+                .populate("currentShift", "shiftTitle shiftStartTime shiftEndTime")
+                .populate("requestedShift", "shiftTitle shiftStartTime shiftEndTime")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit)),
+            ShiftRequest.countDocuments(query),
+        ]);
+
+        return res.status(200).json({
+            success: true, data: requests,
+            total, page: Number(page), pages: Math.ceil(total / limit),
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: "Error fetching requests" });
     }

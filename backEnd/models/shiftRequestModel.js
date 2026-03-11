@@ -62,4 +62,9 @@ const shiftRequestSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+/* ── Indexes for query performance at scale ── */
+shiftRequestSchema.index({ employee: 1, status: 1 });
+shiftRequestSchema.index({ currentShift: 1, status: 1 });
+shiftRequestSchema.index({ employee: 1, currentShift: 1, type: 1, status: 1 });
+
 module.exports = mongoose.model("ShiftRequest", shiftRequestSchema);

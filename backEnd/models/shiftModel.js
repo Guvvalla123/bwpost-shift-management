@@ -59,6 +59,12 @@ const shiftSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/* ── Indexes for query performance at scale ── */
+shiftSchema.index({ createdByManager: 1, shiftStartTime: -1 });
+shiftSchema.index({ shiftStartTime: 1, slotsAvailable: 1 });
+shiftSchema.index({ acceptedEmployees: 1 });
+shiftSchema.index({ createdByManager: 1, createdAt: -1 });
+
 // validation
 shiftSchema.pre("save", function (next) {
   if (this.shiftEndTime <= this.shiftStartTime) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
 import {
@@ -98,6 +99,7 @@ const ShiftRequest = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [dateFrom, setDateFrom] = useState(defFrom());
   const [dateTo, setDateTo] = useState(defTo());
   const [modal, setModal] = useState(null);
@@ -122,9 +124,13 @@ const ShiftRequest = () => {
   /* ── Re-fetch on tab focus ── */
   useEffect(() => {
     const fn = () => fetchRequests(true);
+    const visHandler = () => { if (document.visibilityState === "visible") fn(); };
     window.addEventListener("focus", fn);
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") fn(); });
-    return () => window.removeEventListener("focus", fn);
+    document.addEventListener("visibilitychange", visHandler);
+    return () => {
+      window.removeEventListener("focus", fn);
+      document.removeEventListener("visibilitychange", visHandler);
+    };
   }, [fetchRequests]);
 
   /* ── Computed ── */
@@ -146,13 +152,13 @@ const ShiftRequest = () => {
     .filter(r => statusFilter === "all" || r.status === statusFilter)
     .filter(r => typeFilter === "all" || r.type === typeFilter)
     .filter(r => {
-      if (!search) return true;
-      const q = search.toLowerCase();
+      if (!debouncedSearch) return true;
+      const q = debouncedSearch.toLowerCase();
       return r.employee?.username?.toLowerCase().includes(q)
         || r.currentShift?.shiftTitle?.toLowerCase().includes(q)
         || r.reason?.toLowerCase().includes(q);
     }),
-    [ranged, statusFilter, typeFilter, search]);
+    [ranged, statusFilter, typeFilter, debouncedSearch]);
 
   return (
     <div className="p-6 md:p-8 space-y-5">

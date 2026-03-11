@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
 import {
@@ -63,6 +64,7 @@ const Employee = () => {
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
 
     /* modals */
     const [editTarget, setEditTarget] = useState(null);
@@ -91,9 +93,9 @@ const Employee = () => {
 
     useEffect(() => { fetchEmployees(); }, []);
 
-    /* ── Live search filter ── */
+    /* ── Live search filter (debounced) ── */
     useEffect(() => {
-        const q = search.toLowerCase();
+        const q = debouncedSearch.toLowerCase();
         setFiltered(
             employees.filter(
                 (e) =>
@@ -101,7 +103,7 @@ const Employee = () => {
                     e.email?.toLowerCase().includes(q)
             )
         );
-    }, [search, employees]);
+    }, [debouncedSearch, employees]);
 
     /* ── Fetch attendance for drawer ── */
     const openDrawer = async (emp) => {
@@ -112,7 +114,8 @@ const Employee = () => {
             const res = await API.get(
                 `/api/manager/shifts/employees/${emp._id}/attendance`
             );
-            setAttendanceHistory(res.data.data || []);
+            const data = res.data.data;
+            setAttendanceHistory(Array.isArray(data) ? data : data?.attendanceHistory || []);
         } catch {
             setAttendanceHistory([]);
         } finally {

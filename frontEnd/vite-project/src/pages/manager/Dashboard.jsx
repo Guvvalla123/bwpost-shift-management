@@ -43,9 +43,9 @@ const initials = (n = "") => n.split(" ").map(w => w[0]).join("").toUpperCase().
 /* ════════════════════════════════════════════════════════════
    LIVE CLOCK
 ════════════════════════════════════════════════════════════ */
-const LiveClock = () => {
+const LiveClock = React.memo(() => {
   const [t, setT] = useState(new Date());
-  useEffect(() => { const id = setInterval(() => setT(new Date()), 1000); return () => clearInterval(id); }, []);
+  useEffect(() => { const id = setInterval(() => setT(new Date()), 60_000); return () => clearInterval(id); }, []);
   return (
     <div className="text-right hidden sm:block">
       <p className="text-2xl font-bold text-white tabular-nums tracking-tight">
@@ -56,7 +56,7 @@ const LiveClock = () => {
       </p>
     </div>
   );
-};
+});
 
 /* ════════════════════════════════════════════════════════════
    KPI STAT CARD(KEY PERFORMANCE INDICATOR CARDS) 
@@ -337,7 +337,7 @@ const Dashboard = () => {
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
               <Zap className="w-4 h-4 text-blue-600" />
-              <p className="text-sm font-bold text-slate-700 uppercase tracking-wider text-xs">Next Scheduled Shift</p>
+              <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Next Scheduled Shift</p>
             </div>
             {nextShift ? (
               <div className="p-6 flex items-center justify-between gap-4">

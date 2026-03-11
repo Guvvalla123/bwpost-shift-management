@@ -13,7 +13,7 @@ const {
 const router = express.Router();
 
 // View available shifts (upcoming, has open slots)
-router.get("/Availableshifts", auth, authorize("employee"), getAvailableShifts);
+router.get("/available-shifts", auth, authorize("employee"), getAvailableShifts);
 
 // My accepted shifts
 router.get("/myshifts", auth, authorize("employee"), getMyShifts);

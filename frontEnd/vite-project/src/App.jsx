@@ -1,87 +1,102 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Auth
+// Auth (eagerly loaded — first thing users see)
 import Home from "./pages/layout/Home.jsx";
 import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
 
-// Layouts
+// Layouts (eagerly loaded — shared chrome)
 import ManagerLayout from "./pages/layout/ManagerLayout.jsx";
 import EmployeeLayout from "./pages/layout/EmployeeLayout.jsx";
 
-// Manager Pages
-import Dashboard from "./pages/manager/Dashboard";
-import ManagerShifts from "./pages/manager/shiftsfolder/ManagerShifts.jsx";
-import Employee from "./pages/manager/EmployeeManagement/Employee.jsx";
-import ShiftRequest from "./pages/manager/shiftsfolder/ShiftRequest.jsx";
-import Calender from "./pages/manager/Calender.jsx";
-import AttendanceManagement from "./pages/manager/Attendance/AttendanceManagement.jsx";
-import Reports from "./pages/manager/Reports.jsx";
-import Settings from "./pages/manager/Settings.jsx";
+// Manager Pages (lazy loaded — only when a manager navigates here)
+const Dashboard = lazy(() => import("./pages/manager/Dashboard"));
+const ManagerShifts = lazy(() => import("./pages/manager/shiftsfolder/ManagerShifts.jsx"));
+const Employee = lazy(() => import("./pages/manager/EmployeeManagement/Employee.jsx"));
+const ShiftRequest = lazy(() => import("./pages/manager/shiftsfolder/ShiftRequest.jsx"));
+const Calender = lazy(() => import("./pages/manager/Calender.jsx"));
+const AttendanceManagement = lazy(() => import("./pages/manager/Attendance/AttendanceManagement.jsx"));
+const Reports = lazy(() => import("./pages/manager/Reports.jsx"));
+const Settings = lazy(() => import("./pages/manager/Settings.jsx"));
 
-// Employee Pages
-import EmployeeDashboard from "./pages/Employee/EmployeeDashboard.jsx";
-import EmployeeShifts from "./pages/Employee/EmployeeShifts.jsx";
-import MyShifts from "./pages/Employee/MyShifts.jsx";
-import MyRequests from "./pages/Employee/MyRequests.jsx";
-import EmployeeProfile from "./pages/Employee/EmployeeProfile.jsx";
+// Employee Pages (lazy loaded — only when an employee navigates here)
+const EmployeeDashboard = lazy(() => import("./pages/Employee/EmployeeDashboard.jsx"));
+const EmployeeShifts = lazy(() => import("./pages/Employee/EmployeeShifts.jsx"));
+const MyShifts = lazy(() => import("./pages/Employee/MyShifts.jsx"));
+const MyRequests = lazy(() => import("./pages/Employee/MyRequests.jsx"));
+const EmployeeProfile = lazy(() => import("./pages/Employee/EmployeeProfile.jsx"));
 
 // Guards
 import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute.jsx";
 
-// Toasts
-import { Toaster } from "react-hot-toast";
+// Toast notifications (single library)
 import { Toaster as Sonner } from "sonner";
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 function App() {
   return (
     <>
-      <Toaster position="top-right" />
       <Sonner position="top-right" richColors />
 
-      <Routes>
-        {/* ── Public (redirect to dashboard if already logged in) ── */}
-        <Route path="/" element={
-          <PublicRoute><Home /></PublicRoute>
-        } />
-        <Route path="/login" element={
-          <PublicRoute><Login /></PublicRoute>
-        } />
-        <Route path="/register" element={
-          <PublicRoute><Register /></PublicRoute>
-        } />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* ── Public (redirect to dashboard if already logged in) ── */}
+          <Route path="/" element={
+            <PublicRoute><Home /></PublicRoute>
+          } />
+          <Route path="/login" element={
+            <PublicRoute><Login /></PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute><Register /></PublicRoute>
+          } />
 
-        {/* ── Manager (requires login + manager role) ─────────── */}
-        <Route element={<ProtectedRoute requiredRole="manager" />}>
-          <Route path="/manager" element={<ManagerLayout />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="shifts" element={<ManagerShifts />} />
-            <Route path="employees" element={<Employee />} />
-            <Route path="shiftrequests" element={<ShiftRequest />} />
-            <Route path="calender" element={<Calender />} />
-            <Route path="attendance" element={<AttendanceManagement />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
+          {/* ── Manager (requires login + manager role) ─────────── */}
+          <Route element={<ProtectedRoute requiredRole="manager" />}>
+            <Route path="/manager" element={<ManagerLayout />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="shifts" element={<ManagerShifts />} />
+              <Route path="employees" element={<Employee />} />
+              <Route path="shiftrequests" element={<ShiftRequest />} />
+              <Route path="calender" element={<Calender />} />
+              <Route path="attendance" element={<AttendanceManagement />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* ── Employee (requires login + employee role) ─────────── */}
-        <Route element={<ProtectedRoute requiredRole="employee" />}>
-          <Route path="/employee" element={<EmployeeLayout />}>
-            <Route index element={<EmployeeDashboard />} />
-            <Route path="dashboard" element={<EmployeeDashboard />} />
-            <Route path="AllShifts" element={<EmployeeShifts />} />
-            <Route path="myshifts" element={<MyShifts />} />
-            <Route path="requests" element={<MyRequests />} />
-            <Route path="profile" element={<EmployeeProfile />} />
+          {/* ── Employee (requires login + employee role) ─────────── */}
+          <Route element={<ProtectedRoute requiredRole="employee" />}>
+            <Route path="/employee" element={<EmployeeLayout />}>
+              <Route index element={<EmployeeDashboard />} />
+              <Route path="dashboard" element={<EmployeeDashboard />} />
+              <Route path="AllShifts" element={<EmployeeShifts />} />
+              <Route path="myshifts" element={<MyShifts />} />
+              <Route path="requests" element={<MyRequests />} />
+              <Route path="profile" element={<EmployeeProfile />} />
+            </Route>
           </Route>
-        </Route>
 
         {/* ── 404 fallback ──────────────────────────────────────── */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        <Route path="*" element={
+          <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+            <div className="text-center max-w-md">
+              <p className="text-7xl font-black text-slate-200 mb-4">404</p>
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">Page not found</h1>
+              <p className="text-slate-500 mb-6">The page you're looking for doesn't exist or has been moved.</p>
+              <a href="/" className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition inline-block">Go Home</a>
+            </div>
+          </div>
+        } />
+        </Routes>
+      </Suspense>
     </>
   );
 }

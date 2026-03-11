@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import API from "@/api";
 
 const Register = () => {
@@ -10,13 +11,14 @@ const Register = () => {
     username: "",
     email: "",
     password: "",
-    role: "",
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
-  const { username, email, password, role } = formData;
+  const { username, email, password } = formData;
 
   const validateEmail = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -50,12 +52,10 @@ const Register = () => {
 
     if (!password) {
       newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (!role) {
-      newErrors.role = "Please select a role";
+    } else if (password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/.test(password)) {
+      newErrors.password = "Must include uppercase, lowercase, number, and special character";
     }
 
     return newErrors;
@@ -74,16 +74,8 @@ const Register = () => {
     try {
       setLoading(true);
       await API.post("/api/users/register", formData);
-      toast.success("Account created successfully!");
-
-      setFormData({
-        username: "",
-        email: "",
-        password: "",
-        role: "",
-      });
-
-      setErrors({});
+      toast.success("Account created! Redirecting to login…");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Registration failed"
@@ -185,47 +177,26 @@ const Register = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Password
                   </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={password}
-                    onChange={handleChange}
-                    placeholder="Enter password"
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 transition
-              ${errors.password
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300 focus:ring-blue-500"
-                      }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={password}
+                      onChange={handleChange}
+                      placeholder="Enter password"
+                      className={`w-full px-4 py-3 pr-11 rounded-xl border focus:outline-none focus:ring-2 transition
+                ${errors.password
+                          ? "border-red-500 focus:ring-red-400"
+                          : "border-gray-300 focus:ring-blue-500"
+                        }`}
+                    />
+                    <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="text-sm text-red-500 mt-2">
                       {errors.password}
-                    </p>
-                  )}
-                </div>
-
-                {/* Role */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Role
-                  </label>
-                  <select
-                    name="role"
-                    value={role}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-3 rounded-xl border bg-white focus:outline-none focus:ring-2 transition
-              ${errors.role
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300 focus:ring-blue-500"
-                      }`}
-                  >
-                    <option value="">Select role</option>
-                    <option value="manager">Manager</option>
-                    <option value="employee">Employee</option>
-                  </select>
-                  {errors.role && (
-                    <p className="text-sm text-red-500 mt-2">
-                      {errors.role}
                     </p>
                   )}
                 </div>

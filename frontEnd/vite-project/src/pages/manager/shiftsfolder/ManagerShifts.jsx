@@ -1,5 +1,6 @@
 import API from "@/api";
 import React, { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Plus, CalendarDays, Clock, Users, Trash2,
   Pencil, Search, X, AlignLeft, AlertTriangle,
@@ -320,6 +321,7 @@ const ManagerShifts = () => {
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [showCreate, setShowCreate] = useState(false);
@@ -396,9 +398,9 @@ const ManagerShifts = () => {
   /* ── Filter ── */
   const filteredShifts = useMemo(() =>
     shifts
-      .filter(s => s.shiftTitle?.toLowerCase().includes(search.toLowerCase()))
+      .filter(s => s.shiftTitle?.toLowerCase().includes(debouncedSearch.toLowerCase()))
       .filter(s => statusFilter === "all" || getStatus(s.shiftStartTime, s.shiftEndTime) === statusFilter),
-    [shifts, search, statusFilter]
+    [shifts, debouncedSearch, statusFilter]
   );
 
   const FILTER_TABS = [

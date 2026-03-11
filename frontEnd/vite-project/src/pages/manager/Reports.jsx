@@ -57,6 +57,26 @@ const Reports = () => {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const exportCSV = () => {
+        if (!shifts.length) return;
+        const header = "Shift Title,Start Time,End Time,Slots Available,Employees Assigned,Status\n";
+        const now = Date.now();
+        const rows = shifts.map(s => {
+            const start = new Date(s.shiftStartTime);
+            const end = new Date(s.shiftEndTime);
+            const status = end < now ? "Completed" : start <= now ? "Ongoing" : "Upcoming";
+            const title = `"${(s.shiftTitle || "").replace(/"/g, '""')}"`;
+            return `${title},${start.toISOString()},${end.toISOString()},${s.slotsAvailable || 0},${s.acceptedEmployees?.length || 0},${status}`;
+        }).join("\n");
+        const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `shift-report-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -81,9 +101,9 @@ const Reports = () => {
     const ongoing = shifts.filter(s => new Date(s.shiftStartTime) <= now && new Date(s.shiftEndTime) >= now).length;
     const completed = shifts.filter(s => new Date(s.shiftEndTime) < now).length;
 
-    const totalSlots = shifts.reduce((a, s) => a + (s.slotsAvailable || 0), 0);
     const filledSlots = shifts.reduce((a, s) => a + (s.acceptedEmployees?.length || 0), 0);
-    const fillRate = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
+    const totalCapacity = shifts.reduce((a, s) => a + (s.slotsAvailable || 0) + (s.acceptedEmployees?.length || 0), 0);
+    const fillRate = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
 
     /* Shifts per month (last 6 months) */
     const monthlyData = (() => {
@@ -146,7 +166,10 @@ const Reports = () => {
                     <h1 className="text-2xl font-bold text-slate-900">Reports & Analytics</h1>
                     <p className="text-sm text-slate-500 mt-0.5">Workforce performance overview</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all">
+                <button
+                    onClick={exportCSV}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all"
+                >
                     <Download size={15} />
                     Export Report
                 </button>
@@ -240,7 +263,7 @@ const Reports = () => {
                             { label: "Currently Ongoing", value: ongoing, color: "text-emerald-600" },
                             { label: "Completed Shifts", value: completed, color: "text-slate-600" },
                             { label: "Total Employees", value: employees.length, color: "text-purple-600" },
-                            { label: "Total Slots Available", value: totalSlots, color: "text-amber-600" },
+                            { label: "Total Capacity", value: totalCapacity, color: "text-amber-600" },
                             { label: "Slots Filled", value: filledSlots, color: "text-teal-600" },
                             { label: "Overall Fill Rate", value: `${fillRate}%`, color: "text-orange-600" },
                         ].map((r, i) => (

@@ -93,9 +93,10 @@ exports.getAllShiftsManager = async (req, res) => {
       query.shiftStartTime = { $lt: new Date() };
     }
 
-    // SEARCH FILTER
+    // SEARCH FILTER (escape special regex chars to prevent ReDoS)
     if (search) {
-      query.shiftTitle = { $regex: search, $options: "i" };
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.shiftTitle = { $regex: escaped, $options: "i" };
     }
 
     const skip = (page - 1) * limit;
@@ -261,12 +262,27 @@ exports.deleteShift = async (req, res) => {
 ============================================================ */
 exports.getAllEmployees = async (req, res) => {
   try {
-    const employees = await User.find({ role: "employee" })
-      .select("username email");
+    const { page = 1, limit = 50, search = "" } = req.query;
+    const skip = (page - 1) * limit;
+    const query = { role: "employee" };
+
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { username: { $regex: escaped, $options: "i" } },
+        { email: { $regex: escaped, $options: "i" } },
+      ];
+    }
+
+    const [employees, total] = await Promise.all([
+      User.find(query).select("username email").skip(skip).limit(Number(limit)),
+      User.countDocuments(query),
+    ]);
 
     res.status(200).json({
       status: "Y",
       data: employees,
+      total, page: Number(page), pages: Math.ceil(total / limit),
     });
   } catch (error) {
     res.status(500).json({
@@ -344,8 +360,7 @@ exports.markCheckIn = async (req, res) => {
       });
     }
 
-    // Check if employee is in acceptedEmployees
-    if (!shift.acceptedEmployees.includes(employeeId)) {
+    if (!shift.acceptedEmployees.some(id => id.toString() === employeeId)) {
       return res.status(400).json({
         status: "N",
         error: "Employee has not accepted this shift",
@@ -776,27 +791,12 @@ exports.assignEmployeeToShift = async (req, res) => {
       });
     }
 
-    const shift = await Shift.findById(shiftId);
     const employee = await User.findById(employeeId);
-
-    if (!shift) {
-      return res.status(404).json({
-        status: "N",
-        error: "Shift not found",
-      });
-    }
 
     if (!employee) {
       return res.status(404).json({
         status: "N",
         error: "Employee not found",
-      });
-    }
-
-    if (shift.createdByManager.toString() !== req.user.id) {
-      return res.status(403).json({
-        status: "N",
-        error: "Access denied",
       });
     }
 
@@ -807,26 +807,29 @@ exports.assignEmployeeToShift = async (req, res) => {
       });
     }
 
-    // Check if already assigned
-    if (shift.acceptedEmployees.includes(employeeId)) {
-      return res.status(400).json({
-        status: "N",
-        error: "Employee already assigned to this shift",
-      });
+    const shift = await Shift.findOneAndUpdate(
+      {
+        _id: shiftId,
+        createdByManager: req.user.id,
+        slotsAvailable: { $gt: 0 },
+        acceptedEmployees: { $ne: employeeId },
+      },
+      {
+        $push: { acceptedEmployees: employeeId },
+        $inc: { slotsAvailable: -1 },
+      },
+      { new: true }
+    );
+
+    if (!shift) {
+      const existing = await Shift.findById(shiftId);
+      if (!existing) return res.status(404).json({ status: "N", error: "Shift not found" });
+      if (existing.createdByManager.toString() !== req.user.id)
+        return res.status(403).json({ status: "N", error: "Access denied" });
+      if (existing.acceptedEmployees.some(id => id.toString() === employeeId))
+        return res.status(400).json({ status: "N", error: "Employee already assigned to this shift" });
+      return res.status(400).json({ status: "N", error: "No slots available for this shift" });
     }
-
-    // Check slots availability
-    if (shift.slotsAvailable <= 0) {
-      return res.status(400).json({
-        status: "N",
-        error: "No slots available for this shift",
-      });
-    }
-
-    shift.acceptedEmployees.push(employeeId);
-    shift.slotsAvailable -= 1;
-
-    await shift.save();
 
     res.status(200).json({
       status: "Y",
@@ -847,7 +850,8 @@ exports.assignEmployeeToShift = async (req, res) => {
 exports.getEmployeeAttendanceHistory = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
 
     const employee = await User.findById(employeeId);
 
@@ -858,7 +862,6 @@ exports.getEmployeeAttendanceHistory = async (req, res) => {
       });
     }
 
-    // Build query for shifts where employee is accepted
     const query = {
       acceptedEmployees: employeeId,
       "attendance.employee": employeeId,
@@ -870,12 +873,16 @@ exports.getEmployeeAttendanceHistory = async (req, res) => {
       if (endDate) query.shiftStartTime.$lte = new Date(endDate);
     }
 
-    const shifts = await Shift.find(query)
-      .select("shiftTitle shiftStartTime shiftEndTime attendance")
-      .populate("createdByManager", "username")
-      .sort({ shiftStartTime: -1 });
+    const [shifts, total] = await Promise.all([
+      Shift.find(query)
+        .select("shiftTitle shiftStartTime shiftEndTime attendance")
+        .populate("createdByManager", "username")
+        .sort({ shiftStartTime: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Shift.countDocuments(query),
+    ]);
 
-    // Extract attendance records for this employee
     const attendanceHistory = shifts
       .map((shift) => {
         const attendance = shift.attendance.find(
@@ -904,6 +911,7 @@ exports.getEmployeeAttendanceHistory = async (req, res) => {
           email: employee.email,
         },
         attendanceHistory,
+        total, page: Number(page), pages: Math.ceil(total / limit),
       },
     });
   } catch (error) {

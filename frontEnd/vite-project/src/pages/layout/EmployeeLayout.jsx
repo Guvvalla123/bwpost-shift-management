@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Settings, User, Bell, ChevronDown, CheckCircle2, ClipboardList } from "lucide-react";
+import { LogOut, Settings, User, Bell, ChevronDown, CheckCircle2, ClipboardList, Menu, X } from "lucide-react";
 import EmployeeSidebar from "./Employeesidebar";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
@@ -25,10 +25,13 @@ const PAGE_TITLES = {
 ══════════════════════════════════════════════════════════ */
 const EmployeeLayout = () => {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef();
   const { user, logout } = useAuth();
+
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
   const pageTitle = PAGE_TITLES[pathname] ?? "Employee Portal";
 
@@ -56,21 +59,33 @@ const EmployeeLayout = () => {
   return (
     <div className="flex min-h-screen bg-slate-50">
 
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <EmployeeSidebar />
+      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <EmployeeSidebar />
+      </div>
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* ── Top Navbar (same structure as ManagerLayout) ── */}
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 md:px-8 shadow-sm shrink-0 sticky top-0 z-30">
+        {/* ── Top Navbar ── */}
+        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 md:px-8 shadow-sm shrink-0 sticky top-0 z-30">
 
-          {/* Page title + breadcrumb */}
-          <div>
-            <h2 className="text-base font-bold text-slate-900 leading-tight">{pageTitle}</h2>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Employee Portal &nbsp;/&nbsp; {pageTitle}
-            </p>
+          {/* Hamburger + Page title */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(o => !o)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition">
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 leading-tight">{pageTitle}</h2>
+              <p className="text-xs text-slate-400 hidden sm:block">
+                Employee Portal &nbsp;/&nbsp; {pageTitle}
+              </p>
+            </div>
           </div>
 
           {/* Right side controls */}

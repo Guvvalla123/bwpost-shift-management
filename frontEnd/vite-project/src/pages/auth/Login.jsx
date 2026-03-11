@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -14,6 +15,7 @@ export default function Login() {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -169,39 +171,29 @@ export default function Login() {
                     Password
                   </label>
 
-                  <input
-                    type="password"
-                    name="password"
-                    value={password}
-                    onChange={handleChange}
-                    placeholder="Enter password"
-                    className={`w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 transition
-                  ${errors.password
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-gray-300 focus:ring-blue-500"
-                      }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={password}
+                      onChange={handleChange}
+                      placeholder="Enter password"
+                      className={`w-full px-4 py-2.5 pr-11 rounded-lg border focus:outline-none focus:ring-2 transition
+                    ${errors.password
+                          ? "border-red-500 focus:ring-red-400"
+                          : "border-gray-300 focus:ring-blue-500"
+                        }`}
+                    />
+                    <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
 
                   {errors.password && (
                     <p className="text-sm text-red-500 mt-2">
                       {errors.password}
                     </p>
                   )}
-                </div>
-
-                {/* Remember + Forgot */}
-                <div className="flex items-center justify-between text-sm">
-                  <label className="flex items-center gap-2 text-gray-600">
-                    <input type="checkbox" className="accent-blue-600" />
-                    Remember me
-                  </label>
-
-                  <button
-                    type="button"
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Forgot password?
-                  </button>
                 </div>
 
                 {/* Submit */}
