@@ -1,19 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import API from "@/api";
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     // user shape: { id, role, username, email, profileImage }
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchMe = async () => {
+    const fetchMe = useCallback(async () => {
         const res = await API.get("/api/users/me");
         setUser(res.data);
         return res.data;
-    };
+    }, []);
 
     /* ── Initial session check (runs once on mount) ── */
     useEffect(() => {
@@ -21,12 +20,11 @@ export const AuthProvider = ({ children }) => {
             try {
                 await fetchMe();
             } catch {
-                // Access token expired — try silent refresh
+                // Try refresh once (handles expired token; when no cookies both fail)
                 try {
                     await API.post("/api/users/refresh-token");
                     await fetchMe();
                 } catch {
-                    // Both failed — truly unauthenticated
                     setUser(null);
                 }
             } finally {
@@ -34,7 +32,7 @@ export const AuthProvider = ({ children }) => {
             }
         };
         checkAuth();
-    }, []);
+    }, [fetchMe]);
 
     /* ── Re-verify auth when user navigates back/forward ── */
     useEffect(() => {
@@ -55,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
         window.addEventListener("popstate", handlePopState);
         return () => window.removeEventListener("popstate", handlePopState);
-    }, []);
+    }, [fetchMe]);
 
     const login = (userData) => setUser(userData);
 
@@ -76,4 +74,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export { useAuth } from "./useAuth";

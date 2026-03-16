@@ -12,14 +12,7 @@ import CreateShiftModal from "./CreateShiftModal";
 import EditShiftModal from "./EditShiftModal";
 
 /* ─── Helpers ────────────────────────────────────────────── */
-const now = () => new Date();
-
-const getStatus = (start, end) => {
-  const s = new Date(start), e = new Date(end), n = now();
-  if (n < s) return "upcoming";
-  if (n >= s && n <= e) return "ongoing";
-  return "completed";
-};
+import { getStatus } from "@/utils/shiftStatus";
 
 const STATUS_CONFIG = {
   upcoming: { label: "Upcoming", bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500", icon: Timer },
@@ -338,7 +331,10 @@ const ManagerShifts = () => {
   /* ── Fetch ── */
   const fetchShifts = async () => {
     try {
-      const res = await API.get("/api/manager/shifts");
+      const params = new URLSearchParams({ limit: "200" });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      const res = await API.get(`/api/manager/shifts?${params}`);
       setShifts(res.data.data || []);
     } catch {
       toast.error("Failed to load shifts");
@@ -346,7 +342,7 @@ const ManagerShifts = () => {
       setLoading(false);
     }
   };
-  useEffect(() => { fetchShifts(); }, []);
+  useEffect(() => { fetchShifts(); }, [debouncedSearch, statusFilter]);
 
   /* ── Create ── */
   const onChange = (e) => setCreateShift({ ...createShift, [e.target.name]: e.target.value });
@@ -395,13 +391,8 @@ const ManagerShifts = () => {
   const ongoingShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "ongoing").length;
   const totalEmployees = shifts.reduce((acc, s) => acc + (s.acceptedEmployees?.length || 0), 0);
 
-  /* ── Filter ── */
-  const filteredShifts = useMemo(() =>
-    shifts
-      .filter(s => s.shiftTitle?.toLowerCase().includes(debouncedSearch.toLowerCase()))
-      .filter(s => statusFilter === "all" || getStatus(s.shiftStartTime, s.shiftEndTime) === statusFilter),
-    [shifts, debouncedSearch, statusFilter]
-  );
+  /* ── Filter (server returns filtered data; client filter only for instant UI before debounce) ── */
+  const filteredShifts = shifts;
 
   const FILTER_TABS = [
     { key: "all", label: "All" },

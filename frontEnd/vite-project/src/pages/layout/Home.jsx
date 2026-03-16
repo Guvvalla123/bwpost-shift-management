@@ -1,6 +1,7 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
+/* Home page: BWPOST branding content. Placeholder for shift-management product — align copy or replace as needed. */
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -10,7 +11,7 @@ export default function Home() {
       <main className="flex-1 pt-16">
 
         {/* ================= HERO ================= */}
-        <section className="relative bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 text-white overflow-hidden">
+        <section id="about" className="relative bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 text-white overflow-hidden">
 
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_45%)]"></div>
 
@@ -183,7 +184,7 @@ export default function Home() {
         </section>
 
         {/* ================= PRODUCT OVERVIEW ================= */}
-        <section className="bg-gray-50 py-28">
+        <section id="products" className="bg-gray-50 py-28">
           <div className="max-w-7xl mx-auto px-6">
 
             <div className="text-center mb-20">

@@ -1,0 +1,456 @@
+{
+  "info": {
+    "name": "BWPost Shift Management",
+    "description": "API collection for BWPost Shift Management. Set baseUrl in environment (e.g. http://localhost:5500).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5500" },
+    { "key": "token", "value": "" },
+    { "key": "shiftId", "value": "" },
+    { "key": "employeeId", "value": "" },
+    { "key": "requestId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "Get Public Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/public"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Pass123!@#\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["var json = pm.response.json(); if (json.user) { pm.collectionVariables.set('token', json.user.id); }"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Pass123!@#\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/login"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/refresh-token"
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/me"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newname\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/profile"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Shifts",
+      "item": [
+        {
+          "name": "Get All Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts?limit=200"
+          }
+        },
+        {
+          "name": "Get Dashboard Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/dashboard/data"
+          }
+        },
+        {
+          "name": "Create Shift",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftTitle\": \"Morning Shift\",\n  \"shiftStartTime\": \"2025-03-10T09:00:00.000Z\",\n  \"shiftEndTime\": \"2025-03-10T17:00:00.000Z\",\n  \"slotsAvailable\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts"
+          }
+        },
+        {
+          "name": "Get Shift By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/{{shiftId}}"
+          }
+        },
+        {
+          "name": "Update Shift",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftTitle\": \"Updated Shift\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/{{shiftId}}"
+          }
+        },
+        {
+          "name": "Delete Shift",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/{{shiftId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Employees",
+      "item": [
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"emp1\",\n  \"email\": \"emp1@example.com\",\n  \"password\": \"Pass123!@#\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/employees"
+          }
+        },
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/employees"
+          }
+        },
+        {
+          "name": "Get Employee By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/employees/{{employeeId}}"
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/employees/{{employeeId}}"
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/shifts/employees/{{employeeId}}"
+          }
+        },
+        {
+          "name": "Assign Employee to Shift",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/shift/assign-employee"
+          }
+        },
+        {
+          "name": "Remove Employee from Shift",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/shift/remove-employee"
+          }
+        },
+        {
+          "name": "Check In",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/attendance/check-in"
+          }
+        },
+        {
+          "name": "Check Out",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/shifts/attendance/check-out"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager - Requests",
+      "item": [
+        {
+          "name": "Get All Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/manager/requests"
+          }
+        },
+        {
+          "name": "Approve Request",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"managerNote\": \"Approved\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/requests/{{requestId}}/approve"
+          }
+        },
+        {
+          "name": "Reject Request",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"managerNote\": \"Rejected\"\n}"
+            },
+            "url": "{{baseUrl}}/api/manager/requests/{{requestId}}/reject"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee",
+      "item": [
+        {
+          "name": "Get Available Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/employee/shifts/available-shifts"
+          }
+        },
+        {
+          "name": "Get My Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/employee/shifts/myshifts"
+          }
+        },
+        {
+          "name": "Apply for Shift",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/employee/shifts/applyForShift"
+          }
+        },
+        {
+          "name": "Cancel Shift",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/employee/shifts/cancelShift"
+          }
+        },
+        {
+          "name": "Submit Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"reason\": \"Sick\"\n}"
+            },
+            "url": "{{baseUrl}}/api/employee/shifts/requests/leave"
+          }
+        },
+        {
+          "name": "Submit Shift Change Request",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentShiftId\": \"{{shiftId}}\",\n  \"requestedShiftId\": \"...\",\n  \"reason\": \"...\"\n}"
+            },
+            "url": "{{baseUrl}}/api/employee/shifts/requests/shift-change"
+          }
+        },
+        {
+          "name": "Get My Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/employee/shifts/requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Check In (work session)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/attendance/checkin"
+          }
+        },
+        {
+          "name": "Check Out",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/attendance/checkout"
+          }
+        },
+        {
+          "name": "Start Break",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"type\": \"short_break\"\n}"
+            },
+            "url": "{{baseUrl}}/api/attendance/break/start"
+          }
+        },
+        {
+          "name": "End Break",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/attendance/break/end"
+          }
+        },
+        {
+          "name": "Get My Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/attendance/my/{{shiftId}}"
+          }
+        },
+        {
+          "name": "Get Shift Attendance (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/attendance/shift/{{shiftId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

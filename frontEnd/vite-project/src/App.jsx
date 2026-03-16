@@ -1,14 +1,14 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Auth (eagerly loaded — first thing users see)
-import Home from "./pages/layout/Home.jsx";
-import Register from "./pages/auth/Register";
-import Login from "./pages/auth/Login";
+// Public pages (lazy loaded — smaller initial bundle)
+const Home = lazy(() => import("./pages/layout/Home.jsx"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const Login = lazy(() => import("./pages/auth/Login"));
 
-// Layouts (eagerly loaded — shared chrome)
-import ManagerLayout from "./pages/layout/ManagerLayout.jsx";
-import EmployeeLayout from "./pages/layout/EmployeeLayout.jsx";
+// Layouts (lazy loaded — only when user navigates to manager/employee area)
+const ManagerLayout = lazy(() => import("./pages/layout/ManagerLayout.jsx"));
+const EmployeeLayout = lazy(() => import("./pages/layout/EmployeeLayout.jsx"));
 
 // Manager Pages (lazy loaded — only when a manager navigates here)
 const Dashboard = lazy(() => import("./pages/manager/Dashboard"));

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
+import { getStatus } from "@/utils/shiftStatus";
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -17,13 +18,6 @@ const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
 const fmtTime = (d) =>
   d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—";
-
-const getStatus = (start, end) => {
-  const n = Date.now();
-  if (n < new Date(start)) return "upcoming";
-  if (end && n <= new Date(end)) return "ongoing";
-  return "completed";
-};
 
 const STATUS = {
   upcoming: { label: "Upcoming", cls: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },

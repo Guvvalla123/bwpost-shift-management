@@ -12,6 +12,7 @@ exports.registerSchema = Joi.object({
       "string.min": "Password must be at least 8 characters",
       "string.pattern.base": "Password must include uppercase, lowercase, number, and special character (!@#$%^&*)",
     }),
+  role: Joi.string().valid("manager", "employee").default("employee"),
 });
 
 // login validation (email only)

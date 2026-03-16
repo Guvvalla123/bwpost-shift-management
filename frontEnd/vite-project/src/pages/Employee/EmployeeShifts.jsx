@@ -14,7 +14,7 @@ const EmployeeShifts = () => {
       const res = await API.get(
         "/api/employee/shifts/available-shifts"
       );
-      setShifts(res.data.data);
+      setShifts(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (error) {
       toast.error("Failed to load shifts");
     } finally {

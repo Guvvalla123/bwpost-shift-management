@@ -26,6 +26,7 @@ exports.getAvailableShifts = async (req, res) => {
             total, page: Number(page), pages: Math.ceil(total / limit),
         });
     } catch (error) {
+        console.error("getAvailableShifts:", error);
         return res.status(500).json({ success: false, message: "Error fetching available shifts" });
     }
 };
@@ -90,6 +91,7 @@ exports.applyForShift = async (req, res) => {
 
         return res.status(200).json({ message: "Successfully applied for the shift" });
     } catch (error) {
+        console.error("applyForShift:", error);
         return res.status(500).json({ message: "Error applying for shift" });
     }
 };
@@ -114,6 +116,7 @@ exports.cancelShiftApplication = async (req, res) => {
 
         return res.status(200).json({ message: "Successfully cancelled shift application" });
     } catch (error) {
+        console.error("cancelShiftApplication:", error);
         return res.status(500).json({ message: "Error cancelling shift application" });
     }
 };
@@ -151,6 +154,7 @@ exports.submitLeaveRequest = async (req, res) => {
 
         return res.status(201).json({ message: "Leave request submitted successfully", data: request });
     } catch (error) {
+        console.error("submitLeaveRequest:", error);
         return res.status(500).json({ message: "Error submitting leave request" });
     }
 };
@@ -197,6 +201,7 @@ exports.submitShiftChangeRequest = async (req, res) => {
 
         return res.status(201).json({ message: "Shift change request submitted successfully", data: request });
     } catch (error) {
+        console.error("submitShiftChangeRequest:", error);
         return res.status(500).json({ message: "Error submitting shift change request" });
     }
 };
@@ -226,6 +231,7 @@ exports.getMyRequests = async (req, res) => {
             total, page: Number(page), pages: Math.ceil(total / limit),
         });
     } catch (error) {
+        console.error("getMyRequests:", error);
         return res.status(500).json({ success: false, message: "Error fetching requests" });
     }
 };

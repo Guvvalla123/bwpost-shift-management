@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
+import { getStatus } from "@/utils/shiftStatus";
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -17,13 +18,6 @@ const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
 const fmtTime = (d) =>
   d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—";
-
-const getStatus = (start, end) => {
-  const n = Date.now();
-  if (n < new Date(start)) return "upcoming";
-  if (end && n <= new Date(end)) return "ongoing";
-  return "completed";
-};
 
 const STATUS = {
   upcoming: { label: "Upcoming", cls: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
@@ -364,6 +358,12 @@ const Dashboard = () => {
                 <CalendarDays className="h-10 w-10 mb-3 opacity-20" />
                 <p className="font-medium text-slate-500">No upcoming shifts scheduled</p>
                 <p className="text-sm text-slate-400 mt-1">Create a shift to get started</p>
+                <button
+                  onClick={() => navigate("/manager/shifts")}
+                  className="mt-4 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition text-sm"
+                >
+                  Create Shift
+                </button>
               </div>
             )}
           </div>

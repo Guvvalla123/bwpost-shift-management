@@ -108,7 +108,7 @@ const NotificationBell = () => {
       <button
         onClick={handleOpen}
         className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition-all duration-150"
-        title="Notifications"
+        aria-label="Notifications"
       >
         <Bell size={16} />
         {/* Badge */}
@@ -257,7 +257,7 @@ const ManagerLayout = () => {
 
           {/* Hamburger + Page title */}
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(o => !o)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition">
+            <button onClick={() => setSidebarOpen(o => !o)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition" aria-label={sidebarOpen ? "Close menu" : "Open menu"}>
               {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           <div>

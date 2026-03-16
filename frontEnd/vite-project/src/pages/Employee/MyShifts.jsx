@@ -5,17 +5,11 @@ import {
     Calendar, Clock, CheckCircle2, XCircle, Loader2,
     AlertTriangle, ChevronRight, ArrowRightLeft, LogOut as LeaveIcon,
 } from "lucide-react";
+import { getStatus } from "@/utils/shiftStatus";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 const fmtTime = (d) => new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-
-const getStatus = (start, end) => {
-    const now = Date.now();
-    if (new Date(start) > now) return "upcoming";
-    if (new Date(end) < now) return "completed";
-    return "ongoing";
-};
 
 const STATUS_CFG = {
     upcoming: { label: "Upcoming", cls: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },

@@ -22,6 +22,7 @@ exports.getAllShiftsPublic = async (req, res) => {
       data: shifts,
     });
   } catch (error) {
+    console.error("getAllShiftsPublic:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -65,6 +66,7 @@ exports.createShift = async (req, res) => {
       data: shift,
     });
   } catch (error) {
+    console.error("createShift:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -85,12 +87,14 @@ exports.getAllShiftsManager = async (req, res) => {
     };
 
     // STATUS FILTER
+    const now = new Date();
     if (status === "upcoming") {
-      query.shiftStartTime = { $gte: new Date() };
-    }
-
-    if (status === "past") {
-      query.shiftStartTime = { $lt: new Date() };
+      query.shiftStartTime = { $gte: now };
+    } else if (status === "ongoing") {
+      query.shiftStartTime = { $lte: now };
+      query.shiftEndTime = { $gte: now };
+    } else if (status === "completed" || status === "past") {
+      query.shiftEndTime = { $lt: now };
     }
 
     // SEARCH FILTER (escape special regex chars to prevent ReDoS)
@@ -120,6 +124,7 @@ exports.getAllShiftsManager = async (req, res) => {
       data: shifts,
     });
   } catch (error) {
+    console.error("getAllShiftsManager:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -158,6 +163,7 @@ exports.getShiftById = async (req, res) => {
       data: shift,
     });
   } catch (error) {
+    console.error("getShiftById:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -211,6 +217,7 @@ exports.updateShift = async (req, res) => {
       data: shift,
     });
   } catch (error) {
+    console.error("updateShift:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -249,6 +256,7 @@ exports.deleteShift = async (req, res) => {
       message: "Shift deleted successfully",
     });
   } catch (error) {
+    console.error("deleteShift:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -285,6 +293,7 @@ exports.getAllEmployees = async (req, res) => {
       total, page: Number(page), pages: Math.ceil(total / limit),
     });
   } catch (error) {
+    console.error("getAllEmployees:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -322,6 +331,7 @@ exports.getShiftAcceptedEmployees = async (req, res) => {
       data: shift.acceptedEmployees,
     });
   } catch (error) {
+    console.error("getShiftAcceptedEmployees:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -380,7 +390,7 @@ exports.markCheckIn = async (req, res) => {
       });
     }
 
-    // Use provided timestamp (manual/biometric) or fall back to current time
+    // Manual check-in only (no fingerprint/biometric). Use provided timestamp or current time.
     const checkInTime = customCheckIn ? new Date(customCheckIn) : new Date();
 
     if (isNaN(checkInTime.getTime())) {
@@ -395,6 +405,7 @@ exports.markCheckIn = async (req, res) => {
       checkIn: checkInTime,
       checkOut: checkInTime, // Set same as check-in initially, updated on check-out
       totalHours: 0,
+      status: "checked_in", // Required for dashboard aggregation
     });
 
     await shift.save();
@@ -405,6 +416,7 @@ exports.markCheckIn = async (req, res) => {
       data: { checkInTime },
     });
   } catch (error) {
+    console.error("markCheckIn:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -456,7 +468,7 @@ exports.markCheckOut = async (req, res) => {
       });
     }
 
-    // Use provided timestamp (manual/biometric) or fall back to current time
+    // Manual check-out only (no fingerprint/biometric). Use provided timestamp or current time.
     const checkOutTime = customCheckOut ? new Date(customCheckOut) : new Date();
 
     if (isNaN(checkOutTime.getTime())) {
@@ -476,6 +488,7 @@ exports.markCheckOut = async (req, res) => {
     }
 
     attendanceRecord.checkOut = checkOutTime;
+    attendanceRecord.status = "checked_out"; // Required for dashboard aggregation
     const hoursWorked = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
     attendanceRecord.totalHours = Math.round(hoursWorked * 100) / 100;
 
@@ -490,6 +503,7 @@ exports.markCheckOut = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("markCheckOut:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -531,6 +545,7 @@ exports.getShiftAttendance = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("getShiftAttendance:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -580,6 +595,7 @@ exports.createEmployee = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("createEmployee:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -613,16 +629,13 @@ exports.updateEmployee = async (req, res) => {
       });
     }
 
-    const allowedUpdates = ["username", "email", "role"];
-
-    allowedUpdates.forEach((field) => {
+    // Only username and email updatable; role changes require admin (not implemented)
+    const allowedUpdates = ["username", "email"];
+    for (const field of allowedUpdates) {
       if (req.body[field] !== undefined) {
-        if (field === "role" && !["manager", "employee"].includes(req.body[field])) {
-          return;
-        }
         employee[field] = req.body[field];
       }
-    });
+    }
 
     await employee.save();
 
@@ -637,6 +650,7 @@ exports.updateEmployee = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("updateEmployee:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -682,6 +696,7 @@ exports.deleteEmployee = async (req, res) => {
       message: "Employee deleted successfully",
     });
   } catch (error) {
+    console.error("deleteEmployee:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -711,6 +726,7 @@ exports.getEmployeeById = async (req, res) => {
       data: employee,
     });
   } catch (error) {
+    console.error("getEmployeeById:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -769,6 +785,7 @@ exports.removeEmployeeFromShift = async (req, res) => {
       message: "Employee removed from shift successfully",
     });
   } catch (error) {
+    console.error("removeEmployeeFromShift:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -836,6 +853,7 @@ exports.assignEmployeeToShift = async (req, res) => {
       message: "Employee assigned to shift successfully",
     });
   } catch (error) {
+    console.error("assignEmployeeToShift:", error);
     res.status(500).json({
       status: "N",
       error: error.message,
@@ -862,10 +880,8 @@ exports.getEmployeeAttendanceHistory = async (req, res) => {
       });
     }
 
-    const query = {
-      acceptedEmployees: employeeId,
-      "attendance.employee": employeeId,
-    };
+    // Shifts where this employee has attendance records (attendance.employee is source of truth)
+    const query = { "attendance.employee": employeeId };
 
     if (startDate || endDate) {
       query.shiftStartTime = {};
@@ -915,6 +931,7 @@ exports.getEmployeeAttendanceHistory = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("getEmployeeAttendanceHistory:", error);
     res.status(500).json({
       status: "N",
       error: error.message,

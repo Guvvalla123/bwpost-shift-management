@@ -40,7 +40,7 @@ const getCookieOptions = (maxAge) => {
  */
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -52,16 +52,19 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    const validRole = role === "manager" ? "manager" : "employee";
+
     await User.create({
       username,
       email: email.toLowerCase(),
       password,
-      role: "employee",
+      role: validRole,
     });
 
-    res.status(201).json({ message: "User registered successfully" });
+    return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("registerUser:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -92,17 +95,18 @@ const loginUser = async (req, res) => {
     res.cookie("token", accessToken, getCookieOptions(15 * 60 * 1000));
     res.cookie("refreshToken", refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
         role: user.role,
       },
     });
-
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("loginUser:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -137,10 +141,10 @@ const refreshAccessToken = async (req, res) => {
     res.cookie("token", newAccessToken, getCookieOptions(15 * 60 * 1000));
     res.cookie("refreshToken", newRefreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
-    res.status(200).json({ message: "Token refreshed" });
-
+    return res.status(200).json({ message: "Token refreshed" });
   } catch (err) {
-    res.status(401).json({ message: "Invalid refresh token" });
+    console.error("refreshAccessToken:", err);
+    return res.status(401).json({ message: "Invalid refresh token" });
   }
 };
 
@@ -172,10 +176,10 @@ const logoutUser = async (req, res) => {
     res.clearCookie("token", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
 
-    res.status(200).json({ message: "Logged out successfully" });
-
+    return res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Logout failed" });
+    console.error("logoutUser:", err);
+    return res.status(500).json({ message: "Logout failed" });
   }
 };
 
@@ -187,7 +191,7 @@ const getMe = async (req, res) => {
     const user = await User.findById(req.user.id)
       .select("username email role profileImage");
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.status(200).json({
+    return res.status(200).json({
       id: user._id,
       role: user.role,
       username: user.username,
@@ -195,7 +199,8 @@ const getMe = async (req, res) => {
       profileImage: user.profileImage || "",
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("getMe:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -235,7 +240,7 @@ const updateProfile = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       id: user._id,
       role: user.role,
       username: user.username,
@@ -243,7 +248,8 @@ const updateProfile = async (req, res) => {
       profileImage: user.profileImage || "",
     });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("updateProfile:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 

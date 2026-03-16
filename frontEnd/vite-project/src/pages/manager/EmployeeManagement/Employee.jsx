@@ -6,6 +6,7 @@ import {
     Pencil, Trash2, X, Search, Users,
     UserCheck, ShieldCheck, Clock, ChevronRight,
     Mail, Calendar, AlertTriangle, Eye, ArrowLeft,
+    UserPlus,
 } from "lucide-react";
 import EmployeeTable from "./EmployeeTable";
 
@@ -67,6 +68,7 @@ const Employee = () => {
     const debouncedSearch = useDebounce(search, 300);
 
     /* modals */
+    const [addModalOpen, setAddModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [viewTarget, setViewTarget] = useState(null);
@@ -75,6 +77,7 @@ const Employee = () => {
 
     /* form */
     const [form, setForm] = useState({ username: "", email: "", password: "" });
+    const [addForm, setAddForm] = useState({ username: "", email: "", password: "" });
     const [submitting, setSubmitting] = useState(false);
 
     /* ── Fetch ── */
@@ -127,6 +130,22 @@ const Employee = () => {
     const openEdit = (emp) => {
         setEditTarget(emp);
         setForm({ username: emp.username, email: emp.email, password: "" });
+    };
+
+    const handleAddEmployee = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            await API.post("/api/manager/shifts/employees", addForm);
+            toast.success("Employee created successfully");
+            setAddModalOpen(false);
+            setAddForm({ username: "", email: "", password: "" });
+            fetchEmployees();
+        } catch (err) {
+            toast.error(err.response?.data?.error || err.response?.data?.message || "Failed to add employee");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleEdit = async (e) => {
@@ -189,6 +208,12 @@ const Employee = () => {
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Employee Management</h1>
                         <p className="text-slate-500 text-sm mt-1">Manage and track your team members.</p>
                     </div>
+                    <button
+                        onClick={() => setAddModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:shadow-md transition text-sm shrink-0"
+                    >
+                        <UserPlus className="w-4 h-4" /> Add Employee
+                    </button>
                 </div>
 
                 {/* ── Stats ──────────────────────────────────────── */}
@@ -233,6 +258,40 @@ const Employee = () => {
                     )}
                 </div>
             </div>
+
+            {/* ══════════════════════════════════════════════════ */}
+            {/* ADD EMPLOYEE MODAL                                 */}
+            {/* ══════════════════════════════════════════════════ */}
+            {addModalOpen && (
+                <Modal title="Add New Employee" onClose={() => { setAddModalOpen(false); setAddForm({ username: "", email: "", password: "" }); }}>
+                    <form onSubmit={handleAddEmployee} className="space-y-4">
+                        <Field label="Username">
+                            <input type="text" required placeholder="Enter username"
+                                value={addForm.username}
+                                onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
+                                className={inputCls} />
+                        </Field>
+                        <Field label="Email Address">
+                            <input type="email" required placeholder="Enter email"
+                                value={addForm.email}
+                                onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                                className={inputCls} />
+                        </Field>
+                        <Field label="Password">
+                            <input type="password" required placeholder="Min 8 chars, uppercase, lowercase, number, special"
+                                value={addForm.password}
+                                onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                                className={inputCls}
+                                minLength={8} />
+                        </Field>
+                        <ModalFooter
+                            onCancel={() => { setAddModalOpen(false); setAddForm({ username: "", email: "", password: "" }); }}
+                            submitLabel="Create Employee"
+                            loading={submitting}
+                        />
+                    </form>
+                </Modal>
+            )}
 
             {/* ══════════════════════════════════════════════════ */}
             {/* EDIT MODAL                                         */}

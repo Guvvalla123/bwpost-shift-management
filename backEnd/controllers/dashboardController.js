@@ -21,6 +21,7 @@ exports.getDashboardData = async (req, res) => {
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
     const managerId = new mongoose.Types.ObjectId(req.user.id);
 
+    // totalEmployees: all employees in system (single-org scope). For multi-tenant, scope by manager.
     const [
       totalEmployees,
       totalShifts,
@@ -130,6 +131,7 @@ exports.getDashboardData = async (req, res) => {
       recentShifts,
     });
   } catch (error) {
+    console.error("getDashboardData:", error);
     res.status(500).json({ message: "Failed to load dashboard", error: error.message });
   }
 };

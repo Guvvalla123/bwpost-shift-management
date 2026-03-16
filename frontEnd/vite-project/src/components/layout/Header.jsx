@@ -26,11 +26,11 @@ export default function Header() {
         </Link>
 
         {/* NAVIGATION */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium" aria-label="Main navigation">
           <Link to="/" className={navItem}>Home</Link>
-          <span className={`${navItem} cursor-default`}>About</span>
-          <span className={`${navItem} cursor-default`}>Services</span>
-          <span className={`${navItem} cursor-default`}>Contact</span>
+          <Link to="/#about" className={navItem}>About</Link>
+          <Link to="/#products" className={navItem}>Services</Link>
+          <Link to="/#contact" className={navItem}>Contact</Link>
         </nav>
 
         {/* AUTH BUTTONS */}

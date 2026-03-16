@@ -1,5 +1,7 @@
 const Shift = require("../models/shiftModel");
 
+/* ── NOTE: Check-in/check-out are MANUAL only (no fingerprint, biometric, or hardware) ── */
+
 /* ── Helper: recalculate totals for an attendance record ───────── */
 const recalc = (att, shiftStart, shiftEnd) => {
     const now = new Date();
@@ -100,6 +102,7 @@ exports.checkIn = async (req, res) => {
 
         res.json({ status: "Y", message: "Checked in successfully", data: att });
     } catch (err) {
+        console.error("checkIn:", err);
         res.status(500).json({ status: "N", error: err.message });
     }
 };
@@ -149,6 +152,7 @@ exports.checkOut = async (req, res) => {
 
         res.json({ status: "Y", message: "Checked out successfully", data: att });
     } catch (err) {
+        console.error("checkOut:", err);
         res.status(500).json({ status: "N", error: err.message });
     }
 };
@@ -194,6 +198,7 @@ exports.startBreak = async (req, res) => {
 
         res.json({ status: "Y", message: "Break started", data: att });
     } catch (err) {
+        console.error("startBreak:", err);
         res.status(500).json({ status: "N", error: err.message });
     }
 };
@@ -234,6 +239,7 @@ exports.endBreak = async (req, res) => {
 
         res.json({ status: "Y", message: "Break ended — back to work", data: att });
     } catch (err) {
+        console.error("endBreak:", err);
         res.status(500).json({ status: "N", error: err.message });
     }
 };
@@ -274,6 +280,7 @@ exports.getShiftAttendance = async (req, res) => {
             },
         });
     } catch (err) {
+        console.error("getShiftAttendance:", err);
         res.status(500).json({ status: "N", error: err.message });
     }
 };
@@ -309,6 +316,7 @@ exports.getMyAttendance = async (req, res) => {
             },
         });
     } catch (err) {
+        console.error("getMyAttendance:", err);
         res.status(500).json({ status: "N", error: err.message });
     }
 };

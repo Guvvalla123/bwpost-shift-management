@@ -34,6 +34,7 @@ exports.getAllRequests = async (req, res) => {
             total, page: Number(page), pages: Math.ceil(total / limit),
         });
     } catch (error) {
+        console.error("getAllRequests:", error);
         return res.status(500).json({ success: false, message: "Error fetching requests" });
     }
 };
@@ -78,8 +79,8 @@ exports.approveRequest = async (req, res) => {
             current.slotsAvailable += 1;
             await current.save();
 
-            // Add to requested
-            requested.acceptedEmployees.push(request.employee);
+            // Add to requested (push ObjectId, not populated doc)
+            requested.acceptedEmployees.push(request.employee._id || request.employee);
             requested.slotsAvailable -= 1;
             await requested.save();
         }
@@ -91,6 +92,7 @@ exports.approveRequest = async (req, res) => {
 
         return res.status(200).json({ message: "Request approved successfully", data: request });
     } catch (error) {
+        console.error("approveRequest:", error);
         return res.status(500).json({ message: "Error approving request" });
     }
 };
@@ -118,6 +120,7 @@ exports.rejectRequest = async (req, res) => {
 
         return res.status(200).json({ message: "Request rejected", data: request });
     } catch (error) {
+        console.error("rejectRequest:", error);
         return res.status(500).json({ message: "Error rejecting request" });
     }
 };

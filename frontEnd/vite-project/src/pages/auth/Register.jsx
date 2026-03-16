@@ -11,6 +11,7 @@ const Register = () => {
     username: "",
     email: "",
     password: "",
+    role: "employee",
   });
 
   const [errors, setErrors] = useState({});
@@ -18,7 +19,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const { username, email, password } = formData;
+  const { username, email, password, role } = formData;
 
   const validateEmail = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -77,9 +78,18 @@ const Register = () => {
       toast.success("Account created! Redirecting to login…");
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Registration failed"
-      );
+      const data = err.response?.data;
+      if (data?.errors && Array.isArray(data.errors)) {
+        const fieldErrors = {};
+        data.errors.forEach(({ field, message }) => {
+          fieldErrors[field] = message;
+        });
+        setErrors(fieldErrors);
+        toast.error(data.message || "Please fix the errors below");
+      } else {
+        setErrors({});
+        toast.error(data?.message || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -146,6 +156,39 @@ const Register = () => {
                       {errors.username}
                     </p>
                   )}
+                </div>
+
+                {/* Role */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Register as
+                  </label>
+                  <div className="flex gap-3">
+                    <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition
+                      ${role === "employee" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 hover:border-gray-300"}`}>
+                      <input
+                        type="radio"
+                        name="role"
+                        value="employee"
+                        checked={role === "employee"}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <span className="font-medium">Employee</span>
+                    </label>
+                    <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition
+                      ${role === "manager" ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 hover:border-gray-300"}`}>
+                      <input
+                        type="radio"
+                        name="role"
+                        value="manager"
+                        checked={role === "manager"}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <span className="font-medium">Manager</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Email */}

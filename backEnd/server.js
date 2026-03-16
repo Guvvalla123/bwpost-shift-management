@@ -12,6 +12,14 @@ const connectDB = require("./config/db");
 
 dotenv.config();
 
+/* ================= ENV VALIDATION ================= */
+const required = ["MONGO_URI", "JWT_SECRET", "REFRESH_TOKEN_SECRET"];
+const missing = required.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error("Missing required env vars:", missing.join(", "));
+  process.exit(1);
+}
+
 const app = express();
 
 // Connect MongoDB
@@ -22,15 +30,25 @@ connectDB();
 // Security headers
 app.use(helmet());
 
+// Request ID for tracing
+const { randomUUID } = require("crypto");
+app.use((req, res, next) => {
+  req.id = req.get("x-request-id") || randomUUID();
+  res.setHeader("X-Request-ID", req.id);
+  next();
+});
+
 // Logging (use short format in production to avoid noisy output)
 app.use(morgan(process.env.NODE_ENV === "production" ? "short" : "dev"));
 
 /* ================= CORS ================= */
 
-const allowedOrigins = [
-  "https://bwpost-shift-management.vercel.app",
-  "http://localhost:5173"
-];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim())
+  : [
+      "https://bwpost-shift-management.vercel.app",
+      "http://localhost:5173",
+    ];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -104,6 +122,16 @@ app.use("/api/attendance", attendanceRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).send("Backend is running");
+});
+
+app.get("/health", (req, res) => {
+  const mongoose = require("mongoose");
+  const dbState = mongoose.connection.readyState;
+  const ok = dbState === 1; // 1 = connected
+  res.status(ok ? 200 : 503).json({
+    status: ok ? "ok" : "degraded",
+    db: dbState === 1 ? "connected" : dbState === 2 ? "connecting" : "disconnected",
+  });
 });
 
 /* ================= 404 ================= */

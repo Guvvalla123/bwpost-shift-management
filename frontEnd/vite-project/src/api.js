@@ -1,8 +1,64 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5500";
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL,
   withCredentials: true,
+  timeout: 10000,
 });
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (err, token = null) => {
+  failedQueue.forEach((prom) => (err ? prom.reject(err) : prom.resolve(token)));
+  failedQueue = [];
+};
+
+API.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    const original = err.config;
+
+    // Skip interceptor for /me and /refresh-token — no point retrying when these fail
+    const url = original?.url || "";
+    if (url.includes("/api/users/me") || url.includes("/refresh-token")) {
+      return Promise.reject(err);
+    }
+
+    if (err.response?.status === 401 && !original._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => API(original))
+          .catch((e) => Promise.reject(e));
+      }
+
+      original._retry = true;
+      isRefreshing = true;
+
+      return API.post("/api/users/refresh-token")
+        .then(() => {
+          processQueue(null, true);
+          return API(original);
+        })
+        .catch((refreshErr) => {
+          processQueue(refreshErr, null);
+          isRefreshing = false;
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshErr);
+        })
+        .finally(() => {
+          isRefreshing = false;
+        });
+    }
+
+    return Promise.reject(err);
+  }
+);
 
 export default API;
