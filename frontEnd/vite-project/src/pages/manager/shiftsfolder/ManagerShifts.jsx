@@ -1,5 +1,5 @@
 import API from "@/api";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   Plus, CalendarDays, Clock, Users, Trash2,
@@ -8,6 +8,7 @@ import {
   UserCheck, FileText, TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/apiError";
 import CreateShiftModal from "./CreateShiftModal";
 import EditShiftModal from "./EditShiftModal";
 
@@ -48,7 +49,7 @@ const StatCard = ({ label, value, icon: Icon, gradient }) => (
 
 /* ─── Avatar helpers ─────────────────────────────────────── */
 const GRADS = [
-  "from-blue-600 to-indigo-600", "from-violet-600 to-purple-600",
+  "from-blue-600 to-[#162d5e]", "from-violet-600 to-purple-600",
   "from-emerald-500 to-teal-600", "from-orange-500 to-amber-500",
   "from-rose-500 to-pink-600", "from-cyan-500 to-blue-600",
 ];
@@ -76,7 +77,7 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}
-        <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 p-6">
+        <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-[#162d5e] p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3 bg-white/20 text-white`}>
@@ -125,7 +126,7 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
             </div>
             <div className="bg-slate-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
-                <Clock size={13} className="text-indigo-500" />
+                <Clock size={13} className="text-[#2563EB]" />
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Duration</p>
               </div>
               <p className="text-sm font-bold text-slate-800">{duration(shift.shiftStartTime, shift.shiftEndTime)}</p>
@@ -232,7 +233,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
     >
       <td className="px-6 py-4">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-[#162d5e] flex items-center justify-center shrink-0 shadow-sm mt-0.5">
             <CalendarDays className="h-4 w-4 text-white" />
           </div>
           <div className="min-w-0">
@@ -288,7 +289,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
         <div className="flex items-center gap-1 justify-end">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(shift); }}
-            className="p-2 rounded-lg text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] transition-colors"
             title="Edit shift"
           >
             <Pencil className="w-4 h-4" />
@@ -316,6 +317,9 @@ const ManagerShifts = () => {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [shiftListTotal, setShiftListTotal] = useState(0);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
@@ -328,21 +332,37 @@ const ManagerShifts = () => {
     shiftNotes: "", slotsAvailable: "",
   });
 
+  const filterSigRef = useRef(`${debouncedSearch}|${statusFilter}`);
   /* ── Fetch ── */
-  const fetchShifts = async () => {
+  const fetchShifts = useCallback(async (pageNum) => {
     try {
-      const params = new URLSearchParams({ limit: "200" });
+      setLoading(true);
+      const params = new URLSearchParams({ page: String(pageNum), limit: "20" });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (statusFilter !== "all") params.set("status", statusFilter);
       const res = await API.get(`/api/manager/shifts?${params}`);
-      setShifts(res.data.data || []);
+      const { data, pagination } = res.data;
+      setShifts(Array.isArray(data) ? data : []);
+      setTotalPages(pagination?.totalPages ?? 1);
+      setShiftListTotal(pagination?.total ?? 0);
     } catch {
       toast.error("Failed to load shifts");
     } finally {
       setLoading(false);
     }
-  };
-  useEffect(() => { fetchShifts(); }, [debouncedSearch, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    const sig = `${debouncedSearch}|${statusFilter}`;
+    const filtersChanged = filterSigRef.current !== sig;
+    if (filtersChanged) filterSigRef.current = sig;
+    const pageToFetch = filtersChanged ? 1 : currentPage;
+    if (filtersChanged && currentPage !== 1) {
+      setCurrentPage(1);
+      return;
+    }
+    fetchShifts(pageToFetch);
+  }, [currentPage, debouncedSearch, statusFilter, fetchShifts]);
 
   /* ── Create ── */
   const onChange = (e) => setCreateShift({ ...createShift, [e.target.name]: e.target.value });
@@ -356,8 +376,8 @@ const ManagerShifts = () => {
       toast.success("Shift created successfully");
       setCreateShift({ shiftTitle: "", shiftStartTime: "", shiftEndTime: "", shiftNotes: "", slotsAvailable: "" });
       setShowCreate(false);
-      fetchShifts();
-    } catch { toast.error("Failed to create shift"); }
+      fetchShifts(currentPage);
+    } catch (err) { toast.error(getApiErrorMessage(err, "Failed to create shift")); }
   };
 
   /* ── Edit ── */
@@ -368,7 +388,7 @@ const ManagerShifts = () => {
       await API.put(`/api/manager/shifts/${editingShift._id}`, editingShift);
       toast.success("Shift updated");
       setEditingShift(null);
-      fetchShifts();
+      fetchShifts(currentPage);
     } catch { toast.error("Update failed"); }
   };
 
@@ -380,13 +400,13 @@ const ManagerShifts = () => {
       await API.delete(`/api/manager/shifts/${deleteTarget._id}`);
       toast.success("Shift deleted");
       setDeleteTarget(null);
-      fetchShifts();
-    } catch { toast.error("Delete failed"); }
+      fetchShifts(currentPage);
+    } catch (err) { toast.error(getApiErrorMessage(err, "Delete failed")); }
     finally { setDeleting(false); }
   };
 
   /* ── Stats ── */
-  const totalShifts = shifts.length;
+  const totalShifts = shiftListTotal;
   const upcomingShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "upcoming").length;
   const ongoingShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "ongoing").length;
   const totalEmployees = shifts.reduce((acc, s) => acc + (s.acceptedEmployees?.length || 0), 0);
@@ -415,18 +435,19 @@ const ManagerShifts = () => {
   }, [showCreate, editingShift, deleteTarget, selectedShift]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+    <div className="min-h-screen bg-[#f1f5f9] p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* ── Header ─────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Shift Management</h1>
             <p className="text-slate-500 text-sm mt-1">Create, schedule and manage your workforce shifts.</p>
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-200 text-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-11 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-200 text-sm"
           >
             <Plus className="h-4 w-4" />
             Create Shift
@@ -435,7 +456,7 @@ const ManagerShifts = () => {
 
         {/* ── Stats ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Shifts" value={totalShifts} icon={CalendarDays} gradient="bg-gradient-to-br from-blue-600 to-indigo-600" />
+          <StatCard label="Total Shifts" value={totalShifts} icon={CalendarDays} gradient="bg-gradient-to-br from-blue-600 to-[#162d5e]" />
           <StatCard label="Upcoming" value={upcomingShifts} icon={Timer} gradient="bg-gradient-to-br from-violet-500 to-purple-600" />
           <StatCard label="Ongoing" value={ongoingShifts} icon={CheckCircle2} gradient="bg-gradient-to-br from-emerald-500 to-teal-600" />
           <StatCard label="Assigned Employees" value={totalEmployees} icon={Users} gradient="bg-gradient-to-br from-orange-500 to-amber-500" />
@@ -444,13 +465,13 @@ const ManagerShifts = () => {
         {/* ── Table Card ─────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           {/* Toolbar */}
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl">
+            <div className="flex flex-wrap items-center gap-1 bg-slate-50 p-1 rounded-xl w-full sm:w-auto">
               {FILTER_TABS.map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setStatusFilter(tab.key)}
+                  onClick={() => { setStatusFilter(tab.key); setCurrentPage(1); }}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === tab.key
                     ? "bg-white shadow-sm text-blue-700 border border-slate-100"
                     : "text-slate-500 hover:text-slate-700"
@@ -462,14 +483,14 @@ const ManagerShifts = () => {
             </div>
 
             {/* Search */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full sm:w-64 sm:shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search shifts..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full pl-9 pr-4 py-2 min-h-11 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               />
             </div>
           </div>
@@ -488,7 +509,7 @@ const ManagerShifts = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/50">
                     <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
@@ -515,11 +536,34 @@ const ManagerShifts = () => {
 
           {/* Footer count */}
           {!loading && filteredShifts.length > 0 && (
-            <div className="px-6 py-3 border-t border-slate-50 bg-slate-50/50">
+            <div className="px-6 py-3 border-t border-slate-50 bg-slate-50/50 space-y-3">
               <p className="text-xs text-slate-400">
                 Showing <span className="font-semibold text-slate-600">{filteredShifts.length}</span> of{" "}
-                <span className="font-semibold text-slate-600">{totalShifts}</span> shifts
+                <span className="font-semibold text-slate-600">{shiftListTotal}</span> shifts · Page{" "}
+                <span className="font-semibold text-slate-600">{currentPage}</span> of{" "}
+                <span className="font-semibold text-slate-600">{totalPages}</span>
               </p>
+              <div className="flex items-center justify-between mt-4 px-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm bg-gray-100 rounded-lg disabled:opacity-40 hover:bg-gray-200 transition"
+                >
+                  ← Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm bg-gray-100 rounded-lg disabled:opacity-40 hover:bg-gray-200 transition"
+                >
+                  Next →
+                </button>
+              </div>
             </div>
           )}
         </div>

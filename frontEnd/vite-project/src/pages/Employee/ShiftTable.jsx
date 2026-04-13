@@ -1,6 +1,7 @@
+import { memo } from "react";
 import ShiftRow from "./ShiftRow";
 
-const ShiftTable = ({ shifts, onApply, onCancel }) => {
+function ShiftTable({ shifts, onApply, onCancel }) {
   if (shifts.length === 0) {
     return (
       <div className="p-12 text-center">
@@ -49,6 +50,6 @@ const ShiftTable = ({ shifts, onApply, onCancel }) => {
       </table>
     </div>
   );
-};
+}
 
-export default ShiftTable;
+export default memo(ShiftTable);

@@ -90,10 +90,10 @@ const fmtTime = (iso) =>
 /* GOOGLE SIGN-IN SCREEN                                           */
 /* ═══════════════════════════════════════════════════════════════ */
 const SignInScreen = ({ onLogin }) => (
-  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-slate-50 px-4">
+  <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-[#f1f5f9] px-4">
     <div className="w-full max-w-sm text-center space-y-6">
       <div className="flex justify-center">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg flex items-center justify-center">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-[#162d5e] shadow-lg flex items-center justify-center">
           <Calendar className="w-10 h-10 text-white" />
         </div>
       </div>
@@ -157,7 +157,7 @@ const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="h-2 w-full bg-indigo-500" />
+        <div className="h-2 w-full bg-[#2563EB]" />
 
         <div className="flex items-start justify-between px-5 pt-4 pb-2">
           <h2 className="text-lg font-semibold text-slate-900 leading-tight pr-4">
@@ -318,15 +318,39 @@ const CalendarPage = () => {
   const [appShifts, setAppShifts] = useState([]);
   const [syncing, setSyncing] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [calendarStart, setCalendarStart] = useState(null);
+  const [calendarEnd, setCalendarEnd] = useState(null);
 
   const fetchAppShifts = useCallback(async () => {
+    if (!calendarStart || !calendarEnd) return;
     try {
-      const res = await API.get("/api/manager/shifts?limit=200");
-      setAppShifts(res.data.data || []);
+      const params = new URLSearchParams({
+        startDate: calendarStart,
+        endDate: calendarEnd,
+        limit: "50",
+        page: "1",
+      });
+      const res = await API.get(`/api/manager/shifts?${params}`);
+      const { data } = res.data;
+      const list = Array.isArray(data) ? data : [];
+      const rangeStart = new Date(calendarStart).getTime();
+      const rangeEnd = new Date(calendarEnd).getTime();
+      setAppShifts(
+        list.filter((s) => {
+          const st = new Date(s.shiftStartTime).getTime();
+          const en = new Date(s.shiftEndTime).getTime();
+          return st < rangeEnd && en > rangeStart;
+        })
+      );
     } catch {
-      /* silent */
+      toast.error("Failed to load shifts for calendar");
     }
-  }, []);
+  }, [calendarStart, calendarEnd]);
+
+  const handleDatesSet = (dateInfo) => {
+    setCalendarStart(dateInfo.startStr);
+    setCalendarEnd(dateInfo.endStr);
+  };
 
   const login = useGoogleLogin({
     scope: "https://www.googleapis.com/auth/calendar",
@@ -352,8 +376,10 @@ const CalendarPage = () => {
   }, [token]);
 
   useEffect(() => {
-    fetchAppShifts();
-  }, [fetchAppShifts]);
+    if (calendarStart && calendarEnd) {
+      fetchAppShifts();
+    }
+  }, [calendarStart, calendarEnd, fetchAppShifts]);
 
   const shiftEvents = appShifts.map((s) => ({
     id: `shift-${s._id}`,
@@ -427,7 +453,7 @@ const CalendarPage = () => {
   const selectedSource = selectedEvent?.extendedProps?.source;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-50 overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] bg-[#f1f5f9] overflow-hidden">
 
       {/* ── Mobile sidebar overlay ────────────────────────────── */}
       {sidebarOpen && (
@@ -481,9 +507,9 @@ const CalendarPage = () => {
             appShifts.map((shift) => (
               <div
                 key={shift._id}
-                className="bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 rounded-xl p-3 transition-all group"
+                className="bg-slate-50 hover:bg-[#EFF6FF] border border-slate-100 hover:border-[#BFDBFE] rounded-xl p-3 transition-all group"
               >
-                <p className="text-xs font-semibold text-slate-800 truncate mb-1 group-hover:text-indigo-700">
+                <p className="text-xs font-semibold text-slate-800 truncate mb-1 group-hover:text-[#1B3F8B]">
                   {shift.shiftTitle}
                 </p>
                 <p className="text-[11px] text-slate-400 mb-0.5">
@@ -495,7 +521,7 @@ const CalendarPage = () => {
                 <button
                   onClick={() => syncShiftToGoogle(shift)}
                   disabled={syncing === shift._id}
-                  className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all font-medium disabled:opacity-50"
+                  className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-[#1B3F8B] hover:text-white hover:border-[#1B3F8B] transition-all font-medium disabled:opacity-50"
                 >
                   {syncing === shift._id ? (
                     <RefreshCw className="w-3 h-3 animate-spin" />
@@ -513,7 +539,7 @@ const CalendarPage = () => {
         <div className="p-4 border-t border-slate-100 space-y-2">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Legend</p>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-indigo-500 shrink-0" />
+            <span className="w-3 h-3 rounded-sm bg-[#2563EB] shrink-0" />
             <span className="text-xs text-slate-600">Work shifts</span>
           </div>
           <div className="flex items-center gap-2">
@@ -585,6 +611,7 @@ const CalendarPage = () => {
               center: "title",
               right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
+            datesSet={handleDatesSet}
             events={[...shiftEvents, ...events]}
             eventClick={handleEventClick}
             eventClassNames="cursor-pointer"

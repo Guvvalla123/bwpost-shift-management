@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { SkeletonCard, ErrorState } from "@/components/ui";
 import {
-  CalendarDays, Clock, CheckCircle2, Activity,
-  X, AlertTriangle, Info, ChevronRight,
-  TrendingUp, ArrowRightLeft, Zap, Bell, ArrowRight,
+  CalendarDays, CheckCircle2,
+  X, ChevronRight,
+  ArrowRightLeft, Zap, Bell,
   LogOut as LeaveIcon, ClipboardList,
 } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { getStatus } from "@/utils/shiftStatus";
+import { getDisplayName } from "@/utils/displayName";
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -20,25 +22,29 @@ const fmtTime = (d) =>
   d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—";
 
 const STATUS = {
-  upcoming: { label: "Upcoming", cls: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+  upcoming: { label: "Upcoming", cls: "bg-[#EFF6FF] text-[#1B3F8B]", dot: "bg-[#1B3F8B]" },
   ongoing: { label: "Ongoing", cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500 animate-pulse" },
   completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
 };
 
-/* ════════════════════════════════════════════════════════════
-   LIVE CLOCK
-════════════════════════════════════════════════════════════ */
-const LiveClock = React.memo(() => {
+const BannerTimeCard = React.memo(() => {
   const [t, setT] = useState(new Date());
-  useEffect(() => { const id = setInterval(() => setT(new Date()), 60_000); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    const id = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
   return (
-    <div className="text-right hidden sm:block">
-      <p className="text-2xl font-bold text-white tabular-nums tracking-tight">
-        {t.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+    <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-right backdrop-blur-sm shrink-0">
+      <p className="text-white text-xl font-bold tabular-nums tracking-tight">
+        {t.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </p>
-      <p className="text-emerald-200 text-xs mt-0.5">
-        {t.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+      <p className="text-white/40 text-xs mt-0.5">
+        {t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
       </p>
+      <div className="flex items-center justify-end gap-1.5 mt-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#93C5FD] animate-pulse" aria-hidden />
+        <span className="text-white/30 text-[10px]">Live</span>
+      </div>
     </div>
   );
 });
@@ -46,16 +52,18 @@ const LiveClock = React.memo(() => {
 /* ════════════════════════════════════════════════════════════
    KPI STAT CARD
 ════════════════════════════════════════════════════════════ */
-const KpiCard = ({ icon: Icon, label, value, sub, gradient }) => (
-  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow duration-200 group">
-    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform duration-200`}>
-      <Icon className="h-5 w-5 text-white" />
+const KpiCard = ({ icon: Icon, label, value, trend }) => (
+  <div className="bg-white rounded-xl border border-slate-200 border-t-2 border-t-[#1B3F8B] shadow-sm p-5 flex flex-col">
+    <div className="flex justify-between items-start mb-4">
+      <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center">
+        <Icon className="h-[18px] w-[18px] text-[#1B3F8B]" />
+      </div>
+      {trend != null && (
+        <span className="bg-[#EFF6FF] text-[#1B3F8B] text-[10px] font-bold px-2 py-0.5 rounded-md">{trend}</span>
+      )}
     </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 tabular-nums mt-1 leading-none">{value}</p>
-      {sub && <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-500" />{sub}</p>}
-    </div>
+    <p className="text-3xl font-extrabold text-[#0f2042] tabular-nums leading-none">{value}</p>
+    <p className="text-slate-400 text-xs font-medium mt-1">{label}</p>
   </div>
 );
 
@@ -66,36 +74,16 @@ const AlertItem = ({ message }) => {
   const low = message.toLowerCase();
   const warn = low.includes("pending") || low.includes("leave") || low.includes("change");
   const good = low.includes("approved") || low.includes("complete");
-  const Icon = warn ? AlertTriangle : good ? CheckCircle2 : Info;
-  const cls = warn ? "bg-amber-50 border-amber-200 text-amber-700"
+  const cls = warn ? "bg-amber-50 border-amber-400 text-amber-800"
     : good ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : "bg-blue-50 border-blue-200 text-blue-700";
-  const ic = warn ? "text-amber-500" : good ? "text-emerald-500" : "text-blue-500";
+      : "bg-[#EFF6FF] border-[#93C5FD] text-[#1B3F8B]";
   return (
-    <div className={`flex items-start gap-2.5 border rounded-xl px-3 py-2.5 text-sm ${cls}`}>
-      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${ic}`} />
+    <div className={`flex items-center gap-2 p-3 rounded-lg mb-2 border-l-2 last:mb-0 text-sm ${cls}`}>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${warn ? "bg-amber-400" : good ? "bg-emerald-500" : "bg-[#93C5FD]"}`} aria-hidden />
       <span className="leading-relaxed">{message}</span>
     </div>
   );
 };
-
-/* ════════════════════════════════════════════════════════════
-   SKELETON
-════════════════════════════════════════════════════════════ */
-const Sk = ({ className }) => <div className={`bg-slate-200 animate-pulse rounded-xl ${className}`} />;
-const LoadingScreen = () => (
-  <div className="min-h-screen bg-slate-50 p-8 space-y-6">
-    <Sk className="h-40 w-full rounded-3xl" />
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {[1, 2, 3, 4].map(i => <Sk key={i} className="h-28" />)}
-    </div>
-    <div className="grid lg:grid-cols-3 gap-6">
-      <Sk className="lg:col-span-2 h-44" />
-      <Sk className="h-44" />
-    </div>
-    <Sk className="h-72" />
-  </div>
-);
 
 /* ════════════════════════════════════════════════════════════
    SHIFT DETAIL MODAL (slide-in from right — same as manager)
@@ -110,7 +98,7 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
       <div className="bg-white h-full w-full sm:w-[420px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 p-6">
+        <div className="bg-gradient-to-br from-[#1B3F8B] via-[#1B3F8B] to-[#162d5e] p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3 bg-white/20 text-white">
@@ -118,7 +106,7 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
                 {st.label}
               </span>
               <h2 className="text-xl font-bold text-white leading-tight">{shift.shiftTitle}</h2>
-              <p className="text-emerald-100 text-sm mt-2">
+              <p className="text-white/70 text-sm mt-2">
                 {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}
               </p>
             </div>
@@ -176,6 +164,7 @@ const EmployeeDashboard = () => {
   const [shifts, setShifts] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -187,18 +176,30 @@ const EmployeeDashboard = () => {
     return "Good evening";
   };
 
-  useEffect(() => {
-    Promise.all([
-      API.get("/api/employee/shifts/myshifts"),
-      API.get("/api/employee/shifts/requests"),
-    ])
-      .then(([shiftRes, reqRes]) => {
-        setShifts(Array.isArray(shiftRes.data?.data) ? shiftRes.data.data : []);
-        setRequests(Array.isArray(reqRes.data?.data) ? reqRes.data.data : []);
-      })
-      .catch(() => toast.error("Failed to load dashboard"))
-      .finally(() => setLoading(false));
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    setFetchError(false);
+    try {
+      const params = new URLSearchParams({ page: "1", limit: "50" });
+      const [shiftRes, reqRes] = await Promise.all([
+        API.get(`/api/employee/shifts/myshifts?${params}`),
+        API.get(`/api/employee/shifts/requests?${params}`),
+      ]);
+      setShifts(Array.isArray(shiftRes.data?.data) ? shiftRes.data.data : []);
+      setRequests(Array.isArray(reqRes.data?.data) ? reqRes.data.data : []);
+    } catch {
+      setFetchError(true);
+      toast.error("Failed to load dashboard");
+      setShifts([]);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   useEffect(() => {
     const h = (e) => e.key === "Escape" && setSelected(null);
@@ -206,7 +207,33 @@ const EmployeeDashboard = () => {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6 bg-[#f1f5f9] min-h-full">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonCard key={i} lines={2} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SkeletonCard lines={5} />
+          <SkeletonCard lines={5} />
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="p-6 bg-[#f1f5f9] min-h-full">
+        <ErrorState
+          title="Failed to load dashboard"
+          message="Could not load your dashboard. Please refresh."
+          onRetry={fetchDashboard}
+        />
+      </div>
+    );
+  }
 
   /* KPI values */
   const totalShifts = shifts.length;
@@ -236,209 +263,133 @@ const EmployeeDashboard = () => {
     .sort((a, b) => new Date(b.shiftStartTime) - new Date(a.shiftStartTime))
     .slice(0, 6);
 
+  const todayStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
   return (
-    <div className="min-h-screen bg-slate-50">
-
-      {/* ══════════════════════════════════════════════════════
-          HERO BANNER (emerald — matches employee theme)
-      ══════════════════════════════════════════════════════ */}
-      <div className="bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-600 px-6 md:px-8 py-8 relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/5" />
-        <div className="absolute -bottom-8 right-24 w-32 h-32 rounded-full bg-white/5" />
-        <div className="absolute top-4 right-64 w-16 h-16 rounded-full bg-white/5" />
-
-        <div className="max-w-6xl mx-auto flex items-start justify-between relative">
+    <div className="min-h-full bg-[#f1f5f9]">
+      <div className="bg-[#1B3F8B] px-6 pt-6 pb-6">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-emerald-100 text-xs font-semibold uppercase tracking-wider">Live</span>
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              {greeting()}, {user?.username || "Employee"}!
-            </h1>
-            <p className="text-emerald-100 text-sm mt-1.5">
-              Here's your shift overview for today.
+            <p className="text-white/60 text-sm font-normal">{greeting()},</p>
+            <p className="text-white text-3xl font-extrabold tracking-tight leading-tight">
+              {getDisplayName(user, "Employee")} 👋
             </p>
-
-            {/* Quick action links */}
+            <p className="text-white/40 text-xs mt-2">{todayStr} · Employee Panel</p>
             <div className="flex flex-wrap gap-2 mt-5">
-              {[
-                { label: "Available Shifts", path: "/employee/AllShifts" },
-                { label: "My Shifts", path: "/employee/myshifts" },
-                { label: "My Requests", path: "/employee/requests" },
-              ].map(lnk => (
-                <button
-                  key={lnk.path}
-                  onClick={() => navigate(lnk.path)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold rounded-lg transition-colors border border-white/20"
-                >
-                  {lnk.label}
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => navigate("/employee/AllShifts")}
+                className="bg-white text-[#1B3F8B] font-bold text-xs px-5 py-2 rounded-lg hover:bg-slate-50 transition"
+              >
+                Available Shifts
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/employee/myshifts")}
+                className="bg-white/10 border border-white/15 text-white/80 text-xs px-4 py-2 rounded-lg hover:bg-white/15 transition"
+              >
+                My Shifts
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/employee/requests")}
+                className="bg-white/10 border border-white/15 text-white/80 text-xs px-4 py-2 rounded-lg hover:bg-white/15 transition"
+              >
+                My Requests
+              </button>
             </div>
           </div>
-          <LiveClock />
+          <BannerTimeCard />
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 md:px-8 py-8 space-y-7">
-
-        {/* ══════════════════════════════════════════════════════
-            KPI CARDS
-        ══════════════════════════════════════════════════════ */}
+      <div className="max-w-6xl mx-auto pt-6 px-6 pb-6 space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={CalendarDays} label="My Total Shifts" value={totalShifts} gradient="from-emerald-500 to-teal-600" sub="Accepted shifts" />
-          <KpiCard icon={Zap} label="Upcoming" value={upcomingShifts} gradient="from-blue-600 to-indigo-600" sub="Scheduled ahead" />
-          <KpiCard icon={CheckCircle2} label="Completed" value={completedShifts} gradient="from-violet-500 to-purple-600" sub="Successfully done" />
-          <KpiCard icon={ClipboardList} label="Pending Requests" value={pendingRequests} gradient="from-orange-500 to-amber-500" sub="Awaiting approval" />
+          <KpiCard icon={CalendarDays} label="My Total Shifts" value={totalShifts} trend="All" />
+          <KpiCard icon={Zap} label="Upcoming" value={upcomingShifts} trend="Live" />
+          <KpiCard icon={CheckCircle2} label="Completed" value={completedShifts} trend="Done" />
+          <KpiCard icon={ClipboardList} label="Pending Requests" value={pendingRequests} trend="Queue" />
         </div>
 
-        {/* ══════════════════════════════════════════════════════
-            NEXT SHIFT + ALERTS (2-col)
-        ══════════════════════════════════════════════════════ */}
-        <div className="grid lg:grid-cols-3 gap-6">
-
-          {/* Next Shift */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-emerald-600" />
-              <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Your Next Shift</p>
+        <div className="grid lg:grid-cols-3 gap-4 mt-4">
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+              <h2 className="font-bold text-[#0f2042] text-sm">Recent Shifts</h2>
+              <button
+                type="button"
+                onClick={() => navigate("/employee/myshifts")}
+                className="text-[#1B3F8B] text-xs font-semibold hover:underline"
+              >
+                View all
+              </button>
             </div>
-            {nextShift ? (
-              <div className="p-6 flex items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-md">
-                    <CalendarDays className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-slate-900 leading-tight">{nextShift.shiftTitle}</p>
-                    <p className="text-slate-500 text-sm mt-1.5 flex items-center gap-2">
-                      <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{fmtDate(nextShift.shiftStartTime)}</span>
-                      <span className="text-slate-300">·</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{fmtTime(nextShift.shiftStartTime)} — {fmtTime(nextShift.shiftEndTime)}</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Upcoming
-                </span>
+            {recentShifts.length > 0 ? (
+              <div className="divide-y divide-slate-50">
+                {recentShifts.map(shift => {
+                  const st = STATUS[getStatus(shift.shiftStartTime, shift.shiftEndTime)];
+                  return (
+                    <button
+                      type="button"
+                      key={shift._id}
+                      onClick={() => setSelected(shift)}
+                      className="w-full flex items-center justify-between py-3 text-left border-b border-slate-50 last:border-0 hover:bg-[#f8fafc] transition-colors rounded-lg px-1 -mx-1"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                          <CalendarDays className="h-4 w-4 text-[#1B3F8B]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#0f2042] text-sm truncate">{shift.shiftTitle}</p>
+                          <p className="text-slate-400 text-xs mt-0.5">
+                            {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${st.cls}`}>
+                          <span className={`w-1 h-1 rounded-full ${st.dot}`} />
+                          {st.label}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-6 flex flex-col items-center justify-center py-12 text-slate-400">
-                <CalendarDays className="h-10 w-10 mb-3 opacity-20" />
-                <p className="font-medium text-slate-500">No upcoming shifts</p>
-                <button onClick={() => navigate("/employee/AllShifts")} className="mt-3 text-sm text-emerald-600 font-semibold hover:underline">Browse available shifts →</button>
+              <div className="flex flex-col items-center py-12 text-slate-400">
+                <CalendarDays className="h-10 w-10 mb-2 opacity-20" />
+                <p className="text-sm font-medium text-slate-500">No shifts yet</p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/employee/AllShifts")}
+                  className="mt-3 text-xs font-semibold text-[#1B3F8B]"
+                >
+                  Browse available shifts
+                </button>
               </div>
             )}
           </div>
 
-          {/* Alerts */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-slate-500" />
-                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Alerts</p>
+                <Bell className="w-4 h-4 text-slate-400" />
+                <h2 className="font-bold text-[#0f2042] text-sm">Alerts</h2>
               </div>
               {pendingRequests > 0 && (
-                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {pendingRequests}
                 </span>
               )}
             </div>
-            <div className="p-4 space-y-2 max-h-44 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto space-y-0">
               {alerts.map((n, i) => <AlertItem key={i} message={n} />)}
             </div>
           </div>
         </div>
-
-        {/* ══════════════════════════════════════════════════════
-            MY RECENT SHIFTS TABLE
-        ══════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-800">My Shifts</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Click a row to view details or take actions</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs bg-slate-100 text-slate-500 font-semibold px-3 py-1.5 rounded-full">
-                {totalShifts} total
-              </span>
-              <button
-                onClick={() => navigate("/employee/myshifts")}
-                className="text-xs text-emerald-600 font-semibold hover:text-emerald-700 flex items-center gap-1"
-              >
-                View all <ArrowRight size={12} />
-              </button>
-            </div>
-          </div>
-
-          {recentShifts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date & Time</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider w-16" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {recentShifts.map(shift => {
-                    const st = STATUS[getStatus(shift.shiftStartTime, shift.shiftEndTime)];
-                    return (
-                      <tr
-                        key={shift._id}
-                        onClick={() => setSelected(shift)}
-                        className="hover:bg-emerald-50/30 cursor-pointer transition-colors group"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-sm">
-                              <CalendarDays className="h-4 w-4 text-white" />
-                            </div>
-                            <p className="text-sm font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                              {shift.shiftTitle}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="text-sm text-slate-700">{fmtDate(shift.shiftStartTime)}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}</p>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${st.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                            {st.label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-emerald-500 ml-auto transition-colors" />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="px-6 py-16 flex flex-col items-center text-center text-slate-400">
-              <CalendarDays className="h-12 w-12 mb-3 opacity-20" />
-              <p className="font-medium text-slate-500">No shifts yet</p>
-              <button onClick={() => navigate("/employee/AllShifts")} className="mt-3 text-sm text-emerald-600 font-semibold hover:underline">
-                Browse available shifts →
-              </button>
-            </div>
-          )}
-        </div>
-
       </div>
 
-      {/* Shift Detail Drawer */}
       <ShiftModal
         shift={selected}
         onClose={() => setSelected(null)}

@@ -4,6 +4,7 @@ const validate = require('../middlewares/validate');
 const {
   createShiftSchema,
   updateShiftSchema,
+  getShiftsQuerySchema,
 } = require('../validators/shiftValidators');
 const {
   createEmployeeSchema,
@@ -12,8 +13,6 @@ const {
 const {
   assignEmployeeSchema,
   removeEmployeeSchema,
-  managerCheckInSchema,
-  managerCheckOutSchema,
 } = require('../validators/attendanceValidators');
 const router = express.Router();
 
@@ -27,10 +26,6 @@ const {
     getAllShiftsPublic,
     getAllEmployees,
     getShiftAcceptedEmployees,
-    getDashboardData,
-    markCheckIn,
-    markCheckOut,
-    getShiftAttendance,
     createEmployee,
     updateEmployee,
     deleteEmployee,
@@ -40,36 +35,33 @@ const {
     getEmployeeAttendanceHistory,
 } = require('../controllers/managerController');
 
-// PUBLIC (NO AUTH)
-router.get("/public", getAllShiftsPublic);
+// Authenticated (any role): limited upcoming shifts for internal use
+router.get("/public", auth, getAllShiftsPublic);
 
-// MANAGER ROUTES - Shifts
-router.post('/', auth, authorize('manager'), validate(createShiftSchema), createShift);
-router.get('/', auth, authorize('manager'), getAllShiftsManager);
-router.get('/dashboard/data', auth, authorize('manager'), require('../controllers/dashboardController').getDashboardData);
+// MANAGER ROUTES - Shifts (admin can also access)
+router.post('/', auth, authorize('admin', 'manager'), validate(createShiftSchema), createShift);
+router.get('/', auth, authorize('admin', 'manager'), validate.validateQuery(getShiftsQuerySchema), getAllShiftsManager);
+router.get('/dashboard/data', auth, authorize('admin', 'manager'), require('../controllers/dashboardController').getDashboardData);
 
-// MANAGER ROUTES - Employees
-router.post('/employees', auth, authorize('manager'), validate(createEmployeeSchema), createEmployee);
-router.get('/employees', auth, authorize('manager'), getAllEmployees);
-router.get('/employees/:employeeId', auth, authorize('manager'), getEmployeeById);
-router.put('/employees/:employeeId', auth, authorize('manager'), validate(updateEmployeeSchema), updateEmployee);
-router.delete('/employees/:employeeId', auth, authorize('manager'), deleteEmployee);
-router.get('/employees/:employeeId/attendance', auth, authorize('manager'), getEmployeeAttendanceHistory);
+// MANAGER ROUTES - Employees (admin can also access)
+router.post('/employees', auth, authorize('admin', 'manager'), validate(createEmployeeSchema), createEmployee);
+router.get('/employees', auth, authorize('admin', 'manager'), getAllEmployees);
+router.get('/employees/:employeeId', auth, authorize('admin', 'manager'), getEmployeeById);
+router.put('/employees/:employeeId', auth, authorize('admin', 'manager'), validate(updateEmployeeSchema), updateEmployee);
+router.delete('/employees/:employeeId', auth, authorize('admin', 'manager'), deleteEmployee);
+router.get('/employees/:employeeId/attendance', auth, authorize('admin', 'manager'), getEmployeeAttendanceHistory);
 
 // MANAGER ROUTES - Shift Employees
-router.get('/shift-accepted-employees/:shiftId', auth, authorize('manager'), getShiftAcceptedEmployees);
-router.post('/shift/assign-employee', auth, authorize('manager'), validate(assignEmployeeSchema), assignEmployeeToShift);
-router.post('/shift/remove-employee', auth, authorize('manager'), validate(removeEmployeeSchema), removeEmployeeFromShift);
+router.get('/shift-accepted-employees/:shiftId', auth, authorize('admin', 'manager'), getShiftAcceptedEmployees);
+router.post('/shift/assign-employee', auth, authorize('admin', 'manager'), validate(assignEmployeeSchema), assignEmployeeToShift);
+router.post('/shift/remove-employee', auth, authorize('admin', 'manager'), validate(removeEmployeeSchema), removeEmployeeFromShift);
 
-// MANAGER ROUTES - Attendance
-router.post('/attendance/check-in', auth, authorize('manager'), validate(managerCheckInSchema), markCheckIn);
-router.post('/attendance/check-out', auth, authorize('manager'), validate(managerCheckOutSchema), markCheckOut);
-router.get('/attendance/shift/:shiftId', auth, authorize('manager'), getShiftAttendance);
+// Attendance: use /api/attendance only (checkin, checkout, break/*, shift/:shiftId, my/:shiftId)
 
 // Dynamic Routes - Shifts
-router.get('/:shiftId', auth, authorize('manager'), getShiftById);
-router.put('/:shiftId', auth, authorize('manager'), validate(updateShiftSchema), updateShift);
-router.delete('/:shiftId', auth, authorize('manager'), deleteShift);
+router.get('/:shiftId', auth, authorize('admin', 'manager'), getShiftById);
+router.put('/:shiftId', auth, authorize('admin', 'manager'), validate(updateShiftSchema), updateShift);
+router.delete('/:shiftId', auth, authorize('admin', 'manager'), deleteShift);
 
 
 

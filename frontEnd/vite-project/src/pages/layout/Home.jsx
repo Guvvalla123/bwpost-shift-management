@@ -1,265 +1,187 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import { Link } from "react-router-dom";
+import { LogIn, CalendarDays, Clock, FileText } from "lucide-react";
 
-/* Home page: BWPOST branding content. Placeholder for shift-management product — align copy or replace as needed. */
+function scrollToSection(e, id) {
+  e.preventDefault();
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+}
+
+const features = [
+  {
+    icon: CalendarDays,
+    title: "Shift Scheduling",
+    desc: "Create and manage shifts with capacity control and real-time slot tracking.",
+  },
+  {
+    icon: Clock,
+    title: "Attendance Tracking",
+    desc: "Check-in, check-out and break management tied directly to each shift.",
+  },
+  {
+    icon: FileText,
+    title: "Request Management",
+    desc: "Leave and shift-change requests with full manager approval workflow.",
+  },
+];
+
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white text-[#0f2042] antialiased">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm shadow-slate-900/5">
+        <div className="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-baseline gap-0.5 shrink-0">
+            <span className="font-extrabold text-[#1B3F8B] text-xl">BW</span>
+            <span className="font-light text-slate-400 text-xl">POST</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-8">
+            <a
+              href="#home"
+              onClick={(e) => scrollToSection(e, "home")}
+              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+            >
+              Home
+            </a>
+            <a
+              href="#about"
+              onClick={(e) => scrollToSection(e, "about")}
+              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+            >
+              About
+            </a>
+            <a
+              href="#services"
+              onClick={(e) => scrollToSection(e, "services")}
+              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+            >
+              Services
+            </a>
+            <a
+              href="#contact"
+              onClick={(e) => scrollToSection(e, "contact")}
+              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+            >
+              Contact
+            </a>
+          </nav>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 bg-[#1B3F8B] text-white font-bold px-6 py-2.5 rounded-lg text-sm hover:bg-[#162d5e] transition shrink-0"
+          >
+            Login
+            <LogIn className="w-4 h-4" aria-hidden />
+          </Link>
+        </div>
+      </header>
 
-      <Header />
+      <main className="flex-1 flex flex-col pt-16">
+        <section
+          id="home"
+          className="relative w-full min-h-screen bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url(/images/bwpost_hero.jpg)" }}
+        >
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-[#0f2042]/92 via-[#1B3F8B]/75 to-[#0f2042]/30 pointer-events-none"
+            aria-hidden
+          />
+          <div className="relative z-10 max-w-7xl mx-auto px-8 flex flex-col justify-center min-h-screen pb-16">
+            <div className="max-w-xl">
+              <h1 className="text-white text-5xl sm:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
+                <span className="block">Shift Management System</span>
 
-      <main className="flex-1 pt-16">
-
-        {/* ================= HERO ================= */}
-        <section id="about" className="relative bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 text-white overflow-hidden">
-
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_45%)]"></div>
-
-          <div className="relative max-w-7xl mx-auto px-6 min-h-[80vh] grid md:grid-cols-2 gap-20 items-center">
-
-            {/* LEFT */}
-            <div>
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
-                Arrives.
               </h1>
-
-              <p className="text-xl text-blue-100 mb-10 max-w-lg leading-relaxed">
-                90 million shipments a year all over the world.
+              <p className="text-white/60 text-base leading-relaxed mb-10 max-w-md">
+                Schedule shifts, track attendance and manage requests for 2,200+ delivery staff — all in one place.
               </p>
-
-              <div className="flex gap-5">
-                <button className="px-7 py-3 bg-white text-blue-700 font-semibold rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02] transition duration-300">
-                  Our Advantages
-                </button>
-
-                <button className="px-7 py-3 border border-white/40 rounded-lg hover:bg-white/10 transition duration-300">
-                  Learn More
-                </button>
-              </div>
             </div>
-
-            {/* RIGHT IMAGE */}
-            <div className="relative">
-              <div className="absolute -inset-8 bg-white/10 blur-3xl rounded-3xl"></div>
-
-              <img
-                src="/bwpost_wn_kampagne_7113_berab.jpg"
-                alt="BWPOST Campaign"
-                className="relative rounded-3xl shadow-2xl w-full object-cover"
-              />
-            </div>
-
           </div>
         </section>
 
-        {/* ================= STATS ================= */}
-        <section className="bg-gray-50 py-28">
-          <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16 text-center">
-
+        <section id="about" className="bg-[#162d5e] border-t-2 border-[#2563EB] py-6 px-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: "3,600+", label: "Business Customers" },
-              { value: "90M+", label: "Shipments Per Year" },
-              { value: "20+", label: "Years in the Market" },
-            ].map((stat, index) => (
-              <div key={index}>
-                <h2 className="text-4xl font-bold text-blue-700 tracking-tight">
-                  {stat.value}
-                </h2>
-                <p className="mt-4 text-gray-600 text-base">{stat.label}</p>
+              { v: "2,200+", l: "Delivery staff" },
+              { v: "3", l: "Daily shift types" },
+              { v: "160+", l: "Admin & office team" },
+              { v: "100%", l: "Internal use only" },
+            ].map((s) => (
+              <div key={s.l}>
+                <p className="text-white text-2xl font-extrabold tabular-nums">{s.v}</p>
+                <p className="text-white/40 text-xs uppercase tracking-wider mt-1">{s.l}</p>
               </div>
             ))}
-
           </div>
         </section>
 
-        {/* ================= NEWS + CONTACT ================= */}
-        <section id="contact" className="bg-white py-28">
-          <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-3 gap-16">
-
-            {/* NEWS */}
-            <div className="lg:col-span-2 space-y-12">
-
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-blue-600 font-semibold uppercase tracking-wider text-sm">
-                    Latest Updates
-                  </p>
-                  <h2 className="text-3xl font-bold text-gray-900 tracking-tight mt-2">
-                    News
-                  </h2>
-                </div>
-
-                <button className="text-blue-600 font-medium hover:text-blue-800 transition">
-                  News Archive →
-                </button>
-              </div>
-
-              {[{
-                img: "/azubis-gesucht.png",
-                title: "Trainees wanted - Office management clerk (m/f/d)",
-                desc: "Your playing field: Office & Logistics. Your training: organization & teamwork."
-              },
-              {
-                img: "/jubilogo_final_pfade.png",
-                title: "20 Years of BWPOST",
-                desc: "2005 - 2025: A little look back."
-              }].map((item, index) => (
+        <section id="services" className="py-20 px-8 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-14">
+              <p className="text-[#1B3F8B] text-xs font-bold tracking-widest uppercase mb-3">What we offer</p>
+              <h2 className="text-[#0f2042] text-4xl font-extrabold">Everything your team needs</h2>
+              <p className="text-slate-400 text-base mt-3 max-w-xl mx-auto">
+                Built for BWPost&apos;s internal HR and operations teams.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {features.map((f) => (
                 <div
-                  key={index}
-                  className="group flex flex-col sm:flex-row gap-8 bg-gray-50 p-8 rounded-2xl border border-gray-100 hover:shadow-lg hover:border-blue-200 transition duration-300"
+                  key={f.title}
+                  className="p-8 rounded-2xl border border-slate-200 hover:border-[#1B3F8B]/30 hover:shadow-lg hover:shadow-slate-100 transition-all duration-200"
                 >
-
-                  <div className="w-full sm:w-44 h-32 flex-shrink-0 overflow-hidden rounded-xl bg-gray-200">
-                    <img
-                      src={item.img}
-                      alt="News"
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    />
+                  <div className="w-12 h-12 bg-[#EFF6FF] rounded-xl flex items-center justify-center mb-5">
+                    <f.icon className="w-[22px] h-[22px] text-[#1B3F8B]" aria-hidden />
                   </div>
-
-                  <div className="flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition">
-                        {item.title}
-                      </h3>
-                      <p className="text-gray-600 mt-3 text-sm leading-relaxed">
-                        {item.desc}
-                      </p>
-                    </div>
-
-                    <button className="mt-6 text-blue-600 font-medium hover:text-blue-800 transition text-sm">
-                      Read more →
-                    </button>
-                  </div>
-
+                  <h3 className="font-bold text-[#0f2042] text-lg mb-2">{f.title}</h3>
+                  <p className="text-slate-500 leading-relaxed text-sm">{f.desc}</p>
                 </div>
               ))}
-
-            </div>
-
-            {/* CONTACT CARD */}
-            <div>
-              <div className="bg-gray-50 rounded-2xl p-10 border border-gray-100 sticky top-24 shadow-sm">
-
-                <h3 className="text-2xl font-bold text-gray-900 mb-8 tracking-tight">
-                  Contact Us
-                </h3>
-
-                <div className="space-y-8 text-sm">
-
-                  <div>
-                    <p className="text-gray-500 uppercase text-xs mb-2 tracking-wide">
-                      Phone
-                    </p>
-                    <p className="font-medium text-gray-900 text-base">
-                      0711 2526 7800
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-gray-500 uppercase text-xs mb-2 tracking-wide">
-                      Business Hours
-                    </p>
-                    <p className="text-gray-900 text-base">
-                      Mon-Fri <br />
-                      08:00 - 17:00
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-gray-500 uppercase text-xs mb-2 tracking-wide">
-                      E-mail
-                    </p>
-                    <p className="font-medium text-blue-700 text-base">
-                      info@bwpost.de
-                    </p>
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        {/* ================= PRODUCT OVERVIEW ================= */}
-        <section id="products" className="bg-gray-50 py-28">
-          <div className="max-w-7xl mx-auto px-6">
-
-            <div className="text-center mb-20">
-              <p className="text-blue-600 font-semibold uppercase tracking-wider text-sm">
-                Product Overview
-              </p>
-              <h2 className="text-4xl font-bold text-gray-900 tracking-tight mt-4">
-                BWPOST Products You Can Benefit From
-              </h2>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-10">
-
-              {[
-                "Daily Mail",
-                "Info Post",
-                "Packages & Express",
-                "Registered Mail + PZA",
-                "Digital Shipping",
-                "Fulfillment Solutions",
-              ].map((product, index) => (
-                <div
-                  key={index}
-                  className="bg-white p-10 rounded-2xl border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition duration-300"
-                >
-                  <h3 className="text-lg font-semibold text-blue-700">
-                    {product}
-                  </h3>
-                  <p className="text-gray-500 text-sm mt-4 leading-relaxed">
-                    Enterprise-grade shipping solutions tailored for business operations.
-                  </p>
-                </div>
-              ))}
-
             </div>
           </div>
         </section>
 
-        {/* ================= BUY STAMPS CTA ================= */}
-        <section className="bg-gradient-to-r from-blue-700 to-indigo-600 text-white py-28">
-          <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-20 items-center">
-
+        <footer id="contact" className="bg-[#0f2042] text-white py-12 px-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-8">
             <div>
-              <p className="text-blue-200 font-medium mb-4 uppercase tracking-wide text-sm">
-                Local Advantage
+              <p className="text-xl tracking-tight">
+                <span className="font-extrabold text-white/90">BW</span>
+                <span className="font-light text-[#93C5FD]">POST</span>
               </p>
-
-              <h2 className="text-4xl font-bold mb-6 tracking-tight">
-                Buy stamps online
-              </h2>
-
-              <p className="text-blue-100 mb-10 max-w-lg leading-relaxed">
-                Send your mail throughout Germany with the regional stamp motifs
-                of BWPOST — reliable, affordable, and efficient.
-              </p>
-
-              <button className="px-7 py-3 bg-white text-blue-700 font-semibold rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02] transition duration-300">
-                Buy Stamps
-              </button>
+              <p className="text-white/40 text-sm mt-2">Internal Shift Management System</p>
+              <p className="text-white/30 text-xs mt-1">Stuttgart, Baden-Württemberg, Germany</p>
             </div>
-
             <div>
-              <img
-                src="/stuttgart_stage_januar2022.png"
-                alt="Buy Stamps"
-                className="rounded-3xl shadow-2xl"
-              />
+              <p className="font-bold text-xs uppercase tracking-wider text-white/40 mb-4">Navigation</p>
+              <ul className="space-y-2">
+                {[
+                  ["Home", "home"],
+                  ["About", "about"],
+                  ["Services", "services"],
+                  ["Contact", "contact"],
+                ].map(([label, id]) => (
+                  <li key={id}>
+                    <a
+                      href={`#${id}`}
+                      onClick={(e) => scrollToSection(e, id)}
+                      className="text-white/60 text-sm hover:text-white transition cursor-pointer"
+                    >
+                      {label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
-
+            <div>
+              <p className="font-bold text-xs uppercase tracking-wider text-white/40 mb-4">Contact</p>
+              <p className="text-white/60 text-sm">info@bwpost.de</p>
+              <p className="text-white/40 text-xs mt-1">Mo.–Fr.: 08:00–17:00 Uhr</p>
+              <p className="text-white/60 text-sm mt-2">0711 2526 7800</p>
+            </div>
           </div>
-        </section>
-
+          <div className="max-w-7xl mx-auto border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-white/30 text-xs">
+            <span>© {new Date().getFullYear()} BWPost — Internal shift management.</span>
+            <span>Not for public use.</span>
+          </div>
+        </footer>
       </main>
-
-      <Footer />
     </div>
   );
 }

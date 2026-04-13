@@ -21,7 +21,9 @@ API.interceptors.response.use(
   async (err) => {
     const original = err.config;
 
-    // Skip interceptor for /me and /refresh-token — no point retrying when these fail
+    // Expected 401 when not logged in — pass through without refresh-queue logic.
+    // Callers (AuthContext) use .catch(() => null) so these are not unhandled rejections.
+    // Chrome may still log the network request; DevTools Console stays clean if caught.
     const url = original?.url || "";
     if (url.includes("/api/users/me") || url.includes("/refresh-token")) {
       return Promise.reject(err);
@@ -48,7 +50,7 @@ API.interceptors.response.use(
           processQueue(refreshErr, null);
           isRefreshing = false;
           if (typeof window !== "undefined") {
-            window.location.href = "/login";
+            window.dispatchEvent(new CustomEvent("auth:logout"));
           }
           return Promise.reject(refreshErr);
         })

@@ -1,8 +1,8 @@
-import React from "react";
+import React, { memo } from "react";
 import ShiftRow from "./ShiftRow";
 import { Users } from "lucide-react";
 
-const EmployeeTable = ({ employees, onEdit, onDelete, onView }) => {
+function EmployeeTable({ employees, onEdit, onDelete, onView }) {
   if (employees.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -49,6 +49,6 @@ const EmployeeTable = ({ employees, onEdit, onDelete, onView }) => {
       </table>
     </div>
   );
-};
+}
 
-export default EmployeeTable;
+export default memo(EmployeeTable);

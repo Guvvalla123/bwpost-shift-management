@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { Pencil, Trash2, Eye } from "lucide-react";
 
 /* Deterministic pastel gradient per employee initial */
 const AVATAR_GRADIENTS = [
-  "from-blue-600 to-indigo-600",
+  "from-blue-600 to-[#162d5e]",
   "from-violet-600 to-purple-600",
   "from-emerald-500 to-teal-600",
   "from-orange-500 to-amber-500",
@@ -21,7 +22,7 @@ const formatJoinDate = (iso) => {
   });
 };
 
-const ShiftRow = ({ employee, onEdit, onDelete, onView }) => {
+function ShiftRow({ employee, onEdit, onDelete, onView }) {
   const initials = (employee.username || "?")
     .split(" ")
     .map((w) => w[0])
@@ -84,13 +85,13 @@ const ShiftRow = ({ employee, onEdit, onDelete, onView }) => {
           <button
             onClick={() => onEdit(employee)}
             title="Edit Employee"
-            className="p-2 rounded-lg text-slate-400 hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] transition-colors"
           >
             <Pencil className="h-4 w-4" />
           </button>
           <button
             onClick={() => onDelete(employee)}
-            title="Delete Employee"
+            title="Deactivate Employee"
             className="p-2 rounded-lg text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors"
           >
             <Trash2 className="h-4 w-4" />
@@ -99,6 +100,6 @@ const ShiftRow = ({ employee, onEdit, onDelete, onView }) => {
       </td>
     </tr>
   );
-};
+}
 
-export default ShiftRow;
+export default memo(ShiftRow);

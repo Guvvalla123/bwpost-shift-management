@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 const Spinner = () => (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-slate-200 border-t-[#1B3F8B] rounded-full animate-spin" />
             <p className="text-sm text-slate-500 font-medium">Verifying session…</p>
         </div>
     </div>
@@ -14,10 +14,13 @@ const Spinner = () => (
 
 /* ── Protected Route ──────────────────────────────────────── */
 /**
- * requiredRole: "manager" | "employee"
- * redirectTo:  where to send unauthenticated users (default /login)
+ * requiredRole: "admin" | "manager" | "employee" (single role)
+ * requiredRoles: ["admin", "manager"] (multiple allowed roles)
+ * redirectTo: where to send unauthenticated users (default /login)
+ *
+ * Role-route consistency: Admin stays in /admin/*, Manager in /manager/*, Employee in /employee/*
  */
-const ProtectedRoute = ({ requiredRole, redirectTo = "/login" }) => {
+const ProtectedRoute = ({ requiredRole, requiredRoles, redirectTo = "/login" }) => {
     const { user, loading } = useAuth();
 
     if (loading) return <Spinner />;
@@ -25,9 +28,16 @@ const ProtectedRoute = ({ requiredRole, redirectTo = "/login" }) => {
     // Not logged in → go to login, replace so back-button can't return
     if (!user) return <Navigate to={redirectTo} replace />;
 
-    // Wrong role → send to correct dashboard
-    if (requiredRole && user.role !== requiredRole) {
-        const fallback = user.role === "manager" ? "/manager/dashboard" : "/employee/dashboard";
+    // Check role access
+    const hasAccess = requiredRoles
+        ? requiredRoles.includes(user.role)
+        : requiredRole
+            ? user.role === requiredRole
+            : true;
+
+    // Wrong role → send to correct dashboard (strict role-route separation)
+    if (!hasAccess) {
+        const fallback = user.role === "admin" ? "/admin/dashboard" : user.role === "manager" ? "/manager/dashboard" : "/employee/dashboard";
         return <Navigate to={fallback} replace />;
     }
 
@@ -47,7 +57,7 @@ export const PublicRoute = ({ children }) => {
 
     // Already authenticated → send to their dashboard
     if (user) {
-        const dest = user.role === "manager" ? "/manager/dashboard" : "/employee/dashboard";
+        const dest = user.role === "admin" ? "/admin/dashboard" : user.role === "manager" ? "/manager/dashboard" : "/employee/dashboard";
         return <Navigate to={dest} replace />;
     }
 

@@ -4,6 +4,7 @@ import { LogOut, Settings, User, Bell, ChevronDown, CheckCheck, AlertTriangle, I
 import Managersidebar from "./Managersidebar";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
+import { getDisplayName } from "@/utils/displayName";
 
 /* Sharp Cloudinary avatar URL (96×96 face-crop) */
 const avatarUrl = (url) => {
@@ -32,7 +33,7 @@ const notifIcon = (text = "") => {
     return { Icon: Zap, color: "text-blue-500", bg: "bg-blue-50" };
   if (t.includes("complete") || t.includes("full"))
     return { Icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50" };
-  return { Icon: Info, color: "text-indigo-500", bg: "bg-indigo-50" };
+  return { Icon: Info, color: "text-[#2563EB]", bg: "bg-[#EFF6FF]" };
 };
 
 /* ══════════════════════════════════════════════════════════════════
@@ -59,7 +60,7 @@ const NotificationBell = () => {
     setLoading(true);
     try {
       const res = await API.get("/api/manager/shifts/dashboard/data");
-      const msgs = res.data?.notifications || [];
+      const msgs = res.data?.data?.notifications || [];
 
       // Build rich notification objects
       const built = msgs.map((msg, i) => ({
@@ -78,18 +79,33 @@ const NotificationBell = () => {
       }
 
       setNotifs(built);
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.warn("Notification fetch failed:", err?.message);
+      setNotifs([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /* Fetch on mount + every 60 seconds */
+  /* Fetch on mount + every 60s while tab visible; refresh when tab becomes visible */
   useEffect(() => {
     fetchNotifs();
-    const id = setInterval(fetchNotifs, 60_000);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchNotifs();
+      }
+    }, 60_000);
     return () => clearInterval(id);
+  }, [fetchNotifs]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifs();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchNotifs]);
 
   const unread = notifications.filter(n => !readIds.has(n.id)).length;
@@ -106,16 +122,14 @@ const NotificationBell = () => {
     <div className="relative" ref={bellRef}>
       {/* Bell button */}
       <button
+        type="button"
         onClick={handleOpen}
-        className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-600 transition-all duration-150"
+        className="relative w-9 h-9 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-center cursor-pointer text-[#1B3F8B] hover:bg-[#dbeafe] transition"
         aria-label="Notifications"
       >
         <Bell size={16} />
-        {/* Badge */}
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" aria-hidden />
         )}
       </button>
 
@@ -126,7 +140,7 @@ const NotificationBell = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
             <div className="flex items-center gap-2">
-              <Bell size={14} className="text-indigo-500" />
+              <Bell size={14} className="text-[#1B3F8B]" />
               <p className="text-sm font-bold text-slate-800">Notifications</p>
               {unread > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
@@ -137,7 +151,7 @@ const NotificationBell = () => {
             {unread > 0 && (
               <button
                 onClick={markAllRead}
-                className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                className="flex items-center gap-1 text-xs text-[#1B3F8B] hover:text-[#162d5e] font-semibold transition-colors"
               >
                 <CheckCheck size={12} />
                 Mark all read
@@ -149,7 +163,7 @@ const NotificationBell = () => {
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-slate-200 border-t-[#1B3F8B] rounded-full animate-spin" />
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-slate-400">
@@ -180,7 +194,7 @@ const NotificationBell = () => {
                     </div>
                     {/* Unread dot */}
                     {!isRead && (
-                      <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0 mt-2" />
+                      <span className="w-2 h-2 rounded-full bg-[#2563EB] shrink-0 mt-2" />
                     )}
                   </div>
                 );
@@ -230,89 +244,98 @@ const ManagerLayout = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogout = async () => {
-    try { await API.post("/api/users/logout"); } catch { }
+  const handleLogout = () => {
     logout();
-    navigate("/login", { replace: true });
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
 
       {/* ── Mobile sidebar overlay ── */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* ── Sidebar ─────────────────────────────────────────────── */}
-      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <Managersidebar />
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-30 w-64 flex flex-col h-full shrink-0
+          transform transition-transform duration-200 ease-in-out
+          lg:relative lg:translate-x-0
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+      >
+        <Managersidebar onNavigate={() => setSidebarOpen(false)} />
       </div>
 
       {/* ── Main area ───────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* ── Top Navbar ──────────────────────────────────────── */}
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 md:px-8 shadow-sm shrink-0 sticky top-0 z-30">
+        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-10">
 
           {/* Hamburger + Page title */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(o => !o)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition" aria-label={sidebarOpen ? "Close menu" : "Open menu"}>
-              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((o) => !o)}
+              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0"
+              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-          <div>
-            <h2 className="text-base font-bold text-slate-900 leading-tight">{pageTitle}</h2>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Manager Panel &nbsp;/&nbsp; {pageTitle}
+          <div className="min-w-0">
+            <h2 className="font-bold text-[#0f2042] text-sm truncate">{pageTitle}</h2>
+            <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
+              Manager Panel / {pageTitle}
             </p>
           </div>
           </div>
 
           {/* Right side controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
 
             {/* Notification bell */}
             <NotificationBell />
 
             {/* Divider */}
-            <div className="w-px h-6 bg-slate-200" />
+            <div className="w-px h-6 bg-slate-200 hidden sm:block" />
 
             {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
+                type="button"
                 onClick={() => setProfileOpen((p) => !p)}
-                className="flex items-center gap-2.5 focus:outline-none group"
+                className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-1.5 cursor-pointer hover:bg-[#dbeafe] transition focus:outline-none"
               >
-                {/* Avatar */}
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-blue-200 shrink-0 group-hover:ring-blue-400 transition-all duration-200">
+                <div className="w-6 h-6 rounded-full bg-[#1B3F8B] flex items-center justify-center text-white text-[9px] font-bold overflow-hidden shrink-0">
                   {user?.profileImage
-                    ? <img src={avatarUrl(user.profileImage)} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                    ? <img src={avatarUrl(user.profileImage)} alt="avatar" className="w-full h-full object-cover" />
                     : initials
                   }
                 </div>
-                {/* Name + role */}
-                <div className="hidden md:block text-left leading-tight">
-                  <p className="text-sm font-semibold text-slate-800">{user?.username || "Manager"}</p>
-                  <p className="text-xs text-slate-400 capitalize">{user?.role || "Manager"}</p>
+                <div className="hidden md:block text-left leading-tight min-w-0">
+                  <p className="text-[#1B3F8B] text-xs font-semibold truncate max-w-[120px]">{getDisplayName(user, "Manager")}</p>
                 </div>
                 <ChevronDown
                   size={14}
-                  className={`text-slate-400 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+                  className={`text-[#64748b] transition-transform duration-200 shrink-0 ${profileOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
               {/* Dropdown menu */}
               {profileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
 
                   {/* Mini profile header */}
                   <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-bold text-slate-900">{user?.username || "Manager"}</p>
-                    <p className="text-xs text-slate-400">{user?.email || ""}</p>
+                    <p className="text-sm font-bold text-[#0f2042]">{getDisplayName(user, "Manager")}</p>
+                    <p className="text-xs text-slate-500">{user?.email || ""}</p>
                   </div>
 
                   <div className="py-1">
                     <button
+                      type="button"
                       onClick={() => { navigate("/manager/settings"); setProfileOpen(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
@@ -321,6 +344,7 @@ const ManagerLayout = () => {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => { navigate("/manager/settings"); setProfileOpen(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
@@ -331,6 +355,7 @@ const ManagerLayout = () => {
 
                   <div className="border-t border-slate-100 pt-1">
                     <button
+                      type="button"
                       onClick={handleLogout}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -345,7 +370,7 @@ const ManagerLayout = () => {
         </header>
 
         {/* ── Page content ────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto min-h-0">
           <Outlet />
         </main>
 

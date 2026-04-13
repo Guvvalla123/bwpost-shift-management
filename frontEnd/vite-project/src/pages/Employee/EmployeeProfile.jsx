@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
     User, Bell, Camera, Save, Clock,
     Loader2, Trash2, CheckCircle2, Shield,
@@ -7,6 +7,8 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
+import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
+import { SkeletonCard } from "@/components/ui";
 
 /* ─── Cloudinary config ──────────────────────────────────── */
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -74,16 +76,16 @@ const Toggle = ({ label, description, checked, onChange }) => (
    EMPLOYEE PROFILE PAGE
 ══════════════════════════════════════════════════════════ */
 const EmployeeProfile = () => {
-    const { user, updateUser } = useAuth();
+    const { user, loading: authLoading, updateUser } = useAuth();
 
     const [profile, setProfile] = useState({
-        displayName: user?.username || "",
-        email: user?.email || "",
+        displayName: "",
+        email: "",
         phone: "",
         timezone: "Asia/Kolkata",
     });
 
-    const [imagePreview, setImagePreview] = useState(transformCloudinaryUrl(user?.profileImage || ""));
+    const [imagePreview, setImagePreview] = useState("");
     const [imageUploading, setImageUploading] = useState(false);
     const [imageSuccess, setImageSuccess] = useState(false);
     const fileInputRef = useRef();
@@ -95,6 +97,17 @@ const EmployeeProfile = () => {
     });
 
     const [saving, setSaving] = useState(false);
+    const [updateError, setUpdateError] = useState("");
+
+    useEffect(() => {
+        if (!user) return;
+        setProfile(p => ({
+            ...p,
+            displayName: user.username || "",
+            email: user.email || "",
+        }));
+        setImagePreview(transformCloudinaryUrl(user.profileImage || ""));
+    }, [user]);
 
     const handleProfileChange = (e) =>
         setProfile(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -151,18 +164,30 @@ const EmployeeProfile = () => {
 
     const handleSave = async () => {
         setSaving(true);
+        setUpdateError("");
         try {
             const res = await API.put("/api/users/profile", { username: profile.displayName });
-            updateUser({ username: res.data.username });
+            const updated = unwrapSuccessData(res);
+            updateUser({ username: updated?.username ?? profile.displayName });
             toast.success("Profile saved!");
-        } catch {
-            toast.error("Failed to save profile");
+        } catch (err) {
+            const msg = getApiErrorMessage(err, "Failed to save profile");
+            setUpdateError(msg);
+            toast.error(msg);
         } finally {
             setSaving(false);
         }
     };
 
     const initials = (user?.username || "E").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+    if (authLoading) {
+        return (
+            <div className="p-6">
+                <SkeletonCard lines={4} />
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 md:p-8 space-y-6 max-w-3xl">
@@ -274,7 +299,10 @@ const EmployeeProfile = () => {
             </Section>
 
             {/* ── Save ────────────────────────────────────────────── */}
-            <div className="flex justify-end pt-2">
+            <div className="flex flex-col items-end pt-2">
+                {updateError && (
+                    <p className="text-sm text-red-600 mb-2 max-w-md text-right">{updateError}</p>
+                )}
                 <button
                     onClick={handleSave}
                     disabled={saving}

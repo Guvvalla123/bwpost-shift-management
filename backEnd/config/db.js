@@ -5,6 +5,11 @@ const RETRY_DELAY_MS = 3000;
 
 const connectDB = async (attempt = 1) => {
   try {
+    // NOTE: MongoDB transactions (used in approveRequest)
+    // require a replica set. Atlas M2+ supports this.
+    // Atlas M0 (free tier) does NOT support transactions.
+    // For development: use Atlas M2+ or a local replica set.
+    // For production: ensure Atlas cluster tier is M2 or higher.
     await mongoose.connect(process.env.MONGO_URI, {});
     console.log('MongoDB connected successfully');
   } catch (error) {

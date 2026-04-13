@@ -25,8 +25,8 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["manager", "employee"],
-      default: "employee", // prevent role abuse
+      enum: ["admin", "manager", "employee"],
+      default: "employee",
     },
 
     refreshToken: {
@@ -34,10 +34,34 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    passwordResetTokenHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
     profileImage: {
       type: String,
       default: "", // Cloudinary URL
     },
+
+    // Reporting relationship: employee's assigned manager (employees only)
+    managerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    // Soft delete: maintain historical integrity
+    isActive: { type: Boolean, default: true },
+    deactivatedAt: { type: Date, default: null },
+    deactivatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },
   {
     timestamps: true,
@@ -48,11 +72,38 @@ const userSchema = new mongoose.Schema(
 /* ── Indexes for query performance at scale ── */
 userSchema.index({ role: 1 });
 userSchema.index({ refreshToken: 1 });
+userSchema.index({ managerId: 1 });
+userSchema.index({ isActive: 1 });
+userSchema.index({ email: 1, isActive: 1 });
+userSchema.index({ passwordResetTokenHash: 1 }, { sparse: true });
 
-// Hash password before saving
+/* ── Employees must have managerId (reporting hierarchy) ── */
+userSchema.pre("save", function (next) {
+  if (this.role === "employee" && !this.managerId) {
+    return next(new Error("Employees must be assigned to a manager"));
+  }
+  next();
+});
+
+/* ── Exclude inactive users by default; use _includeInactive: true to bypass ── */
+userSchema.pre(/^find/, function (next) {
+  const q = this.getQuery();
+  if (q._includeInactive) {
+    delete q._includeInactive;
+    return next();
+  }
+  if (q.isActive !== undefined) return next();
+  this.where({ isActive: { $ne: false } });
+  next();
+});
+
+// Hash password before saving; clear password-reset artifacts when password changes
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
+  if (!this.isNew) {
+    this.passwordResetTokenHash = null;
+    this.passwordResetExpires = null;
+  }
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

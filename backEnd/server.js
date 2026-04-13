@@ -5,10 +5,11 @@ const cors = require("cors");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const rateLimit = require("express-rate-limit");
-const xss = require("xss-clean");
+const xss = require("xss");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
+const AppError = require("./utils/AppError");
 
 dotenv.config();
 
@@ -21,6 +22,9 @@ if (missing.length) {
 }
 
 const app = express();
+
+// Trust Render's reverse proxy
+app.set("trust proxy", 1);
 
 // Connect MongoDB
 connectDB();
@@ -78,7 +82,7 @@ const csrfProtect = (req, res, next) => {
   const origin = req.get("origin");
   if (!origin) return next();
   if (!allowedOrigins.includes(origin)) {
-    return res.status(403).json({ message: "Forbidden: origin not allowed" });
+    return next(new AppError("Forbidden: origin not allowed", 403));
   }
   next();
 };
@@ -92,14 +96,31 @@ app.use(cookieParser());
 /* ================= SECURITY PROTECTION ================= */
 
 app.use(mongoSanitize());
-app.use(xss());
+
+// XSS sanitization — replaces unmaintained xss-clean
+app.use((req, res, next) => {
+  if (req.body) {
+    req.body = JSON.parse(xss(JSON.stringify(req.body)));
+  }
+  if (req.query) {
+    req.query = JSON.parse(xss(JSON.stringify(req.query)));
+  }
+  if (req.params) {
+    req.params = JSON.parse(xss(JSON.stringify(req.params)));
+  }
+  next();
+});
 
 // Global rate limiter (production only — dev has hot-reload + StrictMode double-mounts)
 if (process.env.NODE_ENV === "production") {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
-    message: "Too many requests, try again later",
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res, next, options) => {
+      next(new AppError("Too many requests, try again later", options.statusCode));
+    },
   });
   app.use(limiter);
 }
@@ -107,12 +128,16 @@ if (process.env.NODE_ENV === "production") {
 /* ================= ROUTES ================= */
 
 const userRoutes = require("./routes/userRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const managerShiftRoutes = require("./routes/managerRoutes");
 const employeeShiftRoutes = require("./routes/employeeRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
+const inviteRoutes = require("./routes/inviteRoutes");
 
 app.use("/api/users", userRoutes);
+app.use("/api/invites", inviteRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/manager/shifts", managerShiftRoutes);
 app.use("/api/employee/shifts", employeeShiftRoutes);
 app.use("/api/manager/requests", requestRoutes);
@@ -121,31 +146,48 @@ app.use("/api/attendance", attendanceRoutes);
 /* ================= HEALTH CHECK ================= */
 
 app.get("/", (req, res) => {
-  res.status(200).send("Backend is running");
+  res.status(200).json({
+    success: true,
+    message: "Backend is running",
+  });
 });
 
 app.get("/health", (req, res) => {
+  // Only allow health checks from same server
+  // or when a secret header is provided
+  const healthToken = process.env.HEALTH_CHECK_SECRET;
+  if (healthToken) {
+    const provided = req.headers["x-health-token"];
+    if (provided !== healthToken) {
+      return res.status(401).json({ status: "unauthorized" });
+    }
+  }
+  // Return health status
   const mongoose = require("mongoose");
   const dbState = mongoose.connection.readyState;
-  const ok = dbState === 1; // 1 = connected
-  res.status(ok ? 200 : 503).json({
-    status: ok ? "ok" : "degraded",
-    db: dbState === 1 ? "connected" : dbState === 2 ? "connecting" : "disconnected",
+  const dbStatus = {
+    0: "disconnected",
+    1: "connected",
+    2: "connecting",
+    3: "disconnecting",
+  };
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    db: dbStatus[dbState] || "unknown",
   });
 });
 
 /* ================= 404 ================= */
 
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+app.use((req, res, next) => {
+  next(new AppError("Route not found", 404));
 });
 
 /* ================= GLOBAL ERROR ================= */
 
-app.use((err, req, res, next) => {
-  console.error("Server Error:", err);
-  res.status(500).json({ message: "Internal Server Error" });
-});
+const errorHandler = require("./middlewares/errorHandler");
+app.use(errorHandler);
 
 /* ================= START SERVER ================= */
 

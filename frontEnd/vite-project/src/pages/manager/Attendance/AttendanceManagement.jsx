@@ -1,12 +1,16 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/apiError";
 import {
   Clock, CheckCircle2, XCircle, ChevronDown, Users, CalendarDays,
   Timer, BarChart2, Download, Search, UserCheck,
   ClipboardList, TrendingUp, RefreshCw,
   LogIn, LogOut, FlaskConical, Calendar, Loader2,
+  Briefcase, FileText,
 } from "lucide-react";
+import { SkeletonTable, ErrorState } from "@/components/ui";
 
 
 /* ════════════════════════════════════════════════════════════
@@ -18,7 +22,7 @@ const fmtTime = (d) =>
   d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—";
 
 const GRADS = [
-  "from-blue-500 to-indigo-600", "from-violet-500 to-purple-600",
+  "from-blue-500 to-[#162d5e]", "from-violet-500 to-purple-600",
   "from-emerald-500 to-teal-600", "from-orange-500 to-amber-500",
   "from-rose-500 to-pink-600", "from-cyan-500 to-blue-600",
 ];
@@ -79,7 +83,7 @@ const ShiftSelect = ({ shifts, value, onChange }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 transition-all shadow-sm"
       >
         <span className="flex items-center gap-2 truncate">
           <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
@@ -102,13 +106,13 @@ const ShiftSelect = ({ shifts, value, onChange }) => {
               <button
                 key={s._id}
                 onClick={() => { onChange(s._id); setOpen(false); }}
-                className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-0 ${value === s._id ? "bg-indigo-50" : ""}`}
+                className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-[#EFF6FF] transition-colors border-b border-slate-50 last:border-0 ${value === s._id ? "bg-[#EFF6FF]" : ""}`}
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563EB] to-blue-600 flex items-center justify-center shrink-0 mt-0.5">
                   <CalendarDays className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-sm font-semibold truncate ${value === s._id ? "text-indigo-700" : "text-slate-800"}`}>{s.shiftTitle}</p>
+                  <p className={`text-sm font-semibold truncate ${value === s._id ? "text-[#1B3F8B]" : "text-slate-800"}`}>{s.shiftTitle}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{fmtDate(s.shiftStartTime)} · {fmtTime(s.shiftStartTime)} — {fmtTime(s.shiftEndTime)}</p>
                 </div>
               </button>
@@ -136,7 +140,7 @@ const EmployeeSelect = ({ employees, value, onChange }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 transition-all shadow-sm"
       >
         <span className="flex items-center gap-2 truncate">
           {selected ? (
@@ -168,12 +172,12 @@ const EmployeeSelect = ({ employees, value, onChange }) => {
                 ? <p className="px-4 py-3 text-sm text-slate-400 text-center">No employees found</p>
                 : filtered.map((e) => (
                   <button key={e._id} onClick={() => { onChange(e._id); setOpen(false); setSearch(""); }}
-                    className={`w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-0 ${value === e._id ? "bg-indigo-50" : ""}`}>
+                    className={`w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-[#EFF6FF] transition-colors border-b border-slate-50 last:border-0 ${value === e._id ? "bg-[#EFF6FF]" : ""}`}>
                     <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${grad(e.username)} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
                       {initials(e.username)}
                     </div>
                     <div className="min-w-0">
-                      <p className={`text-sm font-semibold truncate ${value === e._id ? "text-indigo-700" : "text-slate-800"}`}>{e.username}</p>
+                      <p className={`text-sm font-semibold truncate ${value === e._id ? "text-[#1B3F8B]" : "text-slate-800"}`}>{e.username}</p>
                       <p className="text-xs text-slate-400 truncate">{e.email}</p>
                     </div>
                   </button>
@@ -229,7 +233,7 @@ const TimePickerModal = ({ mode, employeeName, defaultTime, onConfirm, onClose }
               type="datetime-local"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition bg-slate-50 text-slate-800 font-medium"
+              className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] transition bg-slate-50 text-slate-800 font-medium"
             />
           </div>
 
@@ -314,7 +318,7 @@ const Sk = ({ className }) => <div className={`bg-slate-200 animate-pulse rounde
 /* ════════════════════════════════════════════════════════════
    ATTENDANCE TAB
 ════════════════════════════════════════════════════════════ */
-const AttendanceTab = ({ shifts }) => {
+const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
   const [selectedShiftId, setSelectedShiftId] = useState("");
   const [attendanceData, setAttendanceData] = useState({ shift: null, attendance: [] });
   const [loading, setLoading] = useState(false);
@@ -344,7 +348,7 @@ const AttendanceTab = ({ shifts }) => {
     try {
       await API.post(endpoint, { shiftId: selectedShiftId, employeeId: empId, ...extra });
       await fetchAttendance(true);
-    } catch (e) { toast.error(e.response?.data?.error || "Action failed"); }
+    } catch (e) { toast.error(getApiErrorMessage(e, "Action failed")); }
     finally { setActionBusy(null); }
   };
 
@@ -353,7 +357,8 @@ const AttendanceTab = ({ shifts }) => {
   const handleStartBreak = (empId, type) => doAction("/api/attendance/break/start", empId, { type });
   const handleEndBreak = (empId) => doAction("/api/attendance/break/end", empId);
 
-  const selectedShift = shifts.find((s) => s._id === selectedShiftId);
+  const shiftFromApi = attendanceData.shift;
+  const selectedShift = shiftFromApi || shifts.find((s) => s._id === selectedShiftId);
   const records = attendanceData.attendance || [];
 
   const filtered = useMemo(() => records.filter((r) => {
@@ -377,6 +382,16 @@ const AttendanceTab = ({ shifts }) => {
       {/* ── Shift selector ── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Select Shift</p>
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search shifts..."
+            value={shiftSearch}
+            onChange={(e) => setShiftSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-[#1B3F8B] transition"
+          />
+        </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <ShiftSelect shifts={shifts} value={selectedShiftId} onChange={setSelectedShiftId} />
@@ -402,10 +417,92 @@ const AttendanceTab = ({ shifts }) => {
         </div>
       </div>
 
+      {/* ── Shift Details card (full context when shift selected) ── */}
+      {selectedShiftId && loading && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-slate-100 px-6 py-5 animate-pulse">
+            <Sk className="h-5 w-32" />
+            <Sk className="h-3 w-48 mt-2" />
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-2">
+                <Sk className="h-3 w-20" />
+                <Sk className="h-4 w-full" />
+                <Sk className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {selectedShiftId && !loading && shiftFromApi && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-[#1B3F8B] via-[#2563EB] to-blue-600 px-6 py-5">
+            <h2 className="text-lg font-bold text-white">Shift Details</h2>
+            <p className="text-indigo-100 text-sm mt-0.5">Complete overview of the selected shift</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Shift name & timing */}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5" /> Shift
+                </p>
+                <p className="text-base font-bold text-slate-900">{shiftFromApi.shiftTitle}</p>
+                <p className="text-sm text-slate-600">
+                  {fmtTime(shiftFromApi.shiftStartTime)} – {fmtTime(shiftFromApi.shiftEndTime)}
+                </p>
+              </div>
+              {/* Date */}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Date
+                </p>
+                <p className="text-base font-semibold text-slate-800">{fmtDate(shiftFromApi.shiftStartTime)}</p>
+              </div>
+              {/* Manager */}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Briefcase className="w-3.5 h-3.5" /> Manager
+                </p>
+                {shiftFromApi.manager ? (
+                  <>
+                    <p className="text-base font-semibold text-slate-800">{shiftFromApi.manager.username}</p>
+                    <p className="text-xs text-slate-500 truncate">{shiftFromApi.manager.email}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400">—</p>
+                )}
+              </div>
+              {/* Employees assigned */}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" /> Employees Assigned
+                </p>
+                <p className="text-base font-bold text-slate-900">{records.length}</p>
+                <p className="text-xs text-slate-500">
+                  {records.filter(r => r.status !== "not_started").length} present · {records.filter(r => r.status === "not_started").length} not started
+                </p>
+              </div>
+            </div>
+            {shiftFromApi.shiftNotes && (
+              <div className="mt-5 pt-5 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <FileText className="w-3.5 h-3.5" /> Notes
+                </p>
+                <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                  {shiftFromApi.shiftNotes}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── KPI strip ── */}
       {selectedShiftId && !loading && (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <StatPill icon={Users} label="Assigned" value={records.length} color="bg-indigo-500" />
+          <StatPill icon={Users} label="Assigned" value={records.length} color="bg-[#2563EB]" />
           <StatPill icon={CheckCircle2} label="Present" value={present} color="bg-emerald-500" />
           <StatPill icon={XCircle} label="Absent" value={absent} color="bg-rose-500" />
           <StatPill icon={Timer} label="On Break" value={onBreak} color="bg-amber-500" />
@@ -430,7 +527,7 @@ const AttendanceTab = ({ shifts }) => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input type="text" placeholder="Search employees…" value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition" />
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] transition" />
             </div>
           </div>
 
@@ -498,7 +595,7 @@ const AttendanceTab = ({ shifts }) => {
                         {/* Work time */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           {rec.totalWorkMinutes > 0
-                            ? <span className="inline-flex items-center gap-1 text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">
+                            ? <span className="inline-flex items-center gap-1 text-sm font-bold text-[#1B3F8B] bg-[#EFF6FF] px-2 py-0.5 rounded-lg">
                               <Timer className="w-3 h-3" />{fmtMins(rec.totalWorkMinutes)}
                             </span>
                             : <span className="text-slate-300 text-sm">—</span>}
@@ -600,8 +697,10 @@ const AttendanceTab = ({ shifts }) => {
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
             <CalendarDays className="h-7 w-7 text-slate-300" />
           </div>
-          <p className="text-base font-bold text-slate-600">No shift selected</p>
-          <p className="text-sm text-slate-400 mt-1">Choose a shift above to view and manage attendance.</p>
+          <p className="text-base font-bold text-slate-600">Please select a shift to view details</p>
+          <p className="text-sm text-slate-400 mt-1 max-w-sm text-center">
+            Choose a shift from the dropdown above to see shift details, assigned manager, employees, and attendance status.
+          </p>
         </div>
       )}
     </div>
@@ -619,18 +718,25 @@ const TimesheetTab = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [empLoading, setEmpLoading] = useState(true);
+  const [empSearch, setEmpSearch] = useState("");
+  const debouncedEmpSearch = useDebounce(empSearch, 400);
+  const [timesheetFetchError, setTimesheetFetchError] = useState(false);
 
   useEffect(() => {
-    API.get("/api/manager/shifts/employees")
+    setEmpLoading(true);
+    const params = new URLSearchParams({ limit: "20", page: "1" });
+    if (debouncedEmpSearch) params.set("search", debouncedEmpSearch);
+    API.get(`/api/manager/shifts/employees?${params}`)
       .then((r) => setEmployees(r.data.data || []))
       .catch(() => toast.error("Failed to load employees"))
       .finally(() => setEmpLoading(false));
-  }, []);
+  }, [debouncedEmpSearch]);
 
-  const generate = async () => {
+  const fetchTimesheet = useCallback(async () => {
     if (!selectedEmpId) return toast.error("Select an employee first");
     try {
       setLoading(true);
+      setTimesheetFetchError(false);
       const params = new URLSearchParams();
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
@@ -638,9 +744,12 @@ const TimesheetTab = () => {
         `/api/manager/shifts/employees/${selectedEmpId}/attendance?${params}`
       );
       setData(res.data.data || null);
-    } catch { toast.error("Failed to load timesheet"); }
-    finally { setLoading(false); }
-  };
+    } catch {
+      setTimesheetFetchError(true);
+      setData(null);
+      toast.error("Failed to load timesheet");
+    } finally { setLoading(false); }
+  }, [selectedEmpId, startDate, endDate]);
 
   const history = data?.attendanceHistory || [];
   const totalHours = history.reduce((s, r) => s + (r.totalHours || 0), 0);
@@ -653,7 +762,17 @@ const TimesheetTab = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Timesheet Filters</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search employees to load…"
+                value={empSearch}
+                onChange={(e) => setEmpSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-slate-700 transition"
+              />
+            </div>
             {empLoading
               ? <Sk className="h-11 w-full" />
               : <EmployeeSelect employees={employees} value={selectedEmpId} onChange={setSelectedEmpId} />}
@@ -661,17 +780,17 @@ const TimesheetTab = () => {
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">From</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white text-slate-700 transition" />
+              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-slate-700 transition" />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">To</label>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 bg-white text-slate-700 transition" />
+              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-slate-700 transition" />
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={generate} disabled={!selectedEmpId || loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+          <button onClick={fetchTimesheet} disabled={!selectedEmpId || loading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#1B3F8B] rounded-xl hover:bg-[#162d5e] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
             {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             {loading ? "Generating…" : "Generate Timesheet"}
           </button>
@@ -684,10 +803,26 @@ const TimesheetTab = () => {
         </div>
       </div>
 
+      {timesheetFetchError && !loading && (
+        <div className="p-6">
+          <ErrorState
+            title="Failed to load timesheet"
+            message="Could not fetch attendance data."
+            onRetry={fetchTimesheet}
+          />
+        </div>
+      )}
+
+      {loading && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <SkeletonTable rows={5} cols={6} />
+        </div>
+      )}
+
       {/* ── KPI strip ────────────────────────────────────────── */}
-      {data && (
+      {data && !loading && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatPill icon={CalendarDays} label="Shifts Worked" value={history.length} color="bg-indigo-500" />
+          <StatPill icon={CalendarDays} label="Shifts Worked" value={history.length} color="bg-[#2563EB]" />
           <StatPill icon={Timer} label="Total Hours" value={`${Math.round(totalHours * 10) / 10}h`} color="bg-emerald-500" />
           <StatPill icon={TrendingUp} label="Avg / Shift" value={`${Math.round(avgHours * 10) / 10}h`} color="bg-violet-500" />
           <StatPill icon={UserCheck} label="Employee" value={data.employee?.username ?? "—"} color="bg-amber-500" />
@@ -695,7 +830,7 @@ const TimesheetTab = () => {
       )}
 
       {/* ── Timesheet table ────────────────────────────────────── */}
-      {data && (
+      {data && !loading && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>
@@ -738,10 +873,10 @@ const TimesheetTab = () => {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563EB] to-blue-600 flex items-center justify-center shrink-0">
                               <CalendarDays className="w-3.5 h-3.5 text-white" />
                             </div>
-                            <p className="text-sm font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">{rec.shiftTitle}</p>
+                            <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1B3F8B] transition-colors">{rec.shiftTitle}</p>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
@@ -757,7 +892,7 @@ const TimesheetTab = () => {
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           {rec.totalHours
-                            ? <span className="inline-flex items-center gap-1 text-sm font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg"><Timer className="w-3 h-3" />{rec.totalHours}h</span>
+                            ? <span className="inline-flex items-center gap-1 text-sm font-bold text-[#1B3F8B] bg-[#EFF6FF] px-2.5 py-1 rounded-lg"><Timer className="w-3 h-3" />{rec.totalHours}h</span>
                             : <span className="text-slate-300 text-sm">—</span>}
                         </td>
                       </tr>
@@ -766,9 +901,9 @@ const TimesheetTab = () => {
                 </tbody>
                 {/* Total row */}
                 <tfoot>
-                  <tr className="bg-indigo-50 border-t-2 border-indigo-100">
+                  <tr className="bg-[#EFF6FF] border-t-2 border-indigo-100">
                     <td colSpan={5} className="px-5 py-3.5">
-                      <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Grand Total</span>
+                      <span className="text-xs font-bold text-[#2563EB] uppercase tracking-widest">Grand Total</span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="inline-flex items-center gap-1.5 text-sm font-black text-indigo-800 bg-indigo-100 px-3 py-1.5 rounded-xl">
@@ -784,7 +919,7 @@ const TimesheetTab = () => {
       )}
 
       {/* empty prompt */}
-      {!data && !loading && (
+      {!data && !loading && !timesheetFetchError && (
         <div className="bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center py-24">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
             <ClipboardList className="h-7 w-7 text-slate-300" />
@@ -809,18 +944,26 @@ const AttendanceManagement = () => {
   const [activeTab, setActiveTab] = useState("attendance");
   const [shifts, setShifts] = useState([]);
   const [shiftsLoading, setShiftsLoading] = useState(true);
+  const [shiftSearch, setShiftSearch] = useState("");
+  const debouncedShift = useDebounce(shiftSearch, 400);
 
   useEffect(() => {
-    API.get("/api/manager/shifts?limit=200")
-      .then((r) => setShifts(r.data.data || []))
+    setShiftsLoading(true);
+    const params = new URLSearchParams({ limit: "20", page: "1" });
+    if (debouncedShift) params.set("search", debouncedShift);
+    API.get(`/api/manager/shifts?${params}`)
+      .then((r) => {
+        const { data } = r.data;
+        setShifts(Array.isArray(data) ? data : []);
+      })
       .catch(() => toast.error("Failed to load shifts"))
       .finally(() => setShiftsLoading(false));
-  }, []);
+  }, [debouncedShift]);
 
   const activeTabCfg = TABS.find((t) => t.key === activeTab);
 
   return (
-    <div className="min-h-full bg-slate-50">
+    <div className="min-h-full bg-[#f1f5f9]">
 
       {/* ── Page header ─────────────────────────────────────────
           Clean white header — no gradient, no colour clash
@@ -832,7 +975,7 @@ const AttendanceManagement = () => {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
             <div>
               <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-[#1B3F8B] flex items-center justify-center shadow-sm">
                   <UserCheck className="w-4 h-4 text-white" />
                 </div>
                 <h1 className="text-xl font-black text-slate-900 tracking-tight">Attendance & Timesheet</h1>
@@ -856,7 +999,7 @@ const AttendanceManagement = () => {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-t-xl border border-b-0 transition-all duration-150 ${activeTab === tab.key
-                  ? "bg-slate-50 border-slate-200 text-indigo-700 border-b-slate-50"
+                  ? "bg-slate-50 border-slate-200 text-[#1B3F8B] border-b-slate-50"
                   : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/60"
                   }`}
               >
@@ -884,7 +1027,7 @@ const AttendanceManagement = () => {
             <Sk className="h-64 w-full" />
           </div>
         ) : activeTab === "attendance"
-          ? <AttendanceTab shifts={shifts} />
+          ? <AttendanceTab shifts={shifts} shiftSearch={shiftSearch} setShiftSearch={setShiftSearch} />
           : <TimesheetTab />}
       </div>
     </div>

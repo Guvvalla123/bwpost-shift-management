@@ -1,25 +1,33 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/userModel");
+const AppError = require("../utils/AppError");
 
 /**
  * AUTH MIDDLEWARE (COOKIE BASED)
- * Reads JWT from HTTP-only cookie
+ * Reads JWT from HTTP-only cookie, rejects deactivated users
  */
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
 
     if (!token) {
-      return res.status(401).json({
-        message: "Not authenticated, token missing",
-      });
+      return next(new AppError("Not authenticated, token missing", 401));
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded?.id || !decoded?.role) {
-      return res.status(401).json({
-        message: "Invalid token payload",
-      });
+      return next(new AppError("Invalid token payload", 401));
+    }
+
+    const user = await User.findOne({ _id: decoded.id, _includeInactive: true })
+      .select("isActive")
+      .lean();
+    if (!user) {
+      return next(new AppError("User not found", 401));
+    }
+    if (user.isActive === false) {
+      return next(new AppError("Account has been deactivated", 403));
     }
 
     req.user = {
@@ -30,9 +38,7 @@ const auth = (req, res, next) => {
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error.message);
-    return res.status(401).json({
-      message: "Invalid or expired token",
-    });
+    next(error);
   }
 };
 
@@ -43,15 +49,11 @@ const auth = (req, res, next) => {
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        message: "Not authenticated",
-      });
+      return next(new AppError("Not authenticated", 401));
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: "Access denied",
-      });
+      return next(new AppError("Access denied", 403));
     }
 
     next();

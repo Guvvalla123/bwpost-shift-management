@@ -1,70 +1,165 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useState, useEffect, useCallback, useRef } from "react";
 import API from "@/api";
+import { unwrapSuccessData } from "@/utils/apiError";
+import { toast } from "sonner";
 
 export const AuthContext = createContext(null);
 
+/** UX hint only — not security. Skips /me + refresh calls when no prior login this browser. */
+const SESSION_HINT_KEY = "bwpost_has_session";
+
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
+const WARN_BEFORE_MS = 2 * 60 * 1000;
+
 export const AuthProvider = ({ children }) => {
-    // user shape: { id, role, username, email, profileImage }
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const idleTimerRef = useRef(null);
+    const warnTimerRef = useRef(null);
+    const userRef = useRef(null);
 
-    const fetchMe = useCallback(async () => {
-        const res = await API.get("/api/users/me");
-        setUser(res.data);
-        return res.data;
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
+
+    /** GET /me with silent failure — avoids unhandled rejections when not authenticated. */
+    const tryLoadSessionUser = useCallback(async () => {
+        const res = await API.get("/api/users/me").catch(() => null);
+        if (!res) return false;
+        const payload = unwrapSuccessData(res);
+        setUser(payload);
+        return true;
     }, []);
+
+    const checkAuth = useCallback(async () => {
+        if (!localStorage.getItem(SESSION_HINT_KEY)) {
+            setUser(null);
+            return;
+        }
+
+        if (await tryLoadSessionUser()) return;
+
+        const refreshed = await API.post("/api/users/refresh-token").catch(() => null);
+        if (!refreshed) {
+            setUser(null);
+            localStorage.removeItem(SESSION_HINT_KEY);
+            return;
+        }
+        if (!(await tryLoadSessionUser())) {
+            setUser(null);
+            localStorage.removeItem(SESSION_HINT_KEY);
+        }
+    }, [tryLoadSessionUser]);
+
+    const logout = useCallback(async () => {
+        try {
+            setUser(null);
+            await API.post("/api/users/logout");
+        } catch (err) {
+            console.debug("Logout API failed:", err?.message);
+        } finally {
+            localStorage.removeItem(SESSION_HINT_KEY);
+            localStorage.clear();
+            sessionStorage.clear();
+            setTimeout(() => {
+                window.location.replace("/");
+            }, 100);
+        }
+    }, []);
+
+    const resetIdleTimer = useCallback(() => {
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+        if (warnTimerRef.current) {
+            clearTimeout(warnTimerRef.current);
+        }
+
+        warnTimerRef.current = setTimeout(() => {
+            if (userRef.current) {
+                toast.warning(
+                    "Your session will expire in 2 minutes due to inactivity.",
+                    { duration: 10000, id: "idle-warning" }
+                );
+            }
+        }, IDLE_TIMEOUT_MS - WARN_BEFORE_MS);
+
+        idleTimerRef.current = setTimeout(() => {
+            if (userRef.current) {
+                toast.dismiss("idle-warning");
+                logout();
+            }
+        }, IDLE_TIMEOUT_MS);
+    }, [logout]);
 
     /* ── Initial session check (runs once on mount) ── */
     useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                await fetchMe();
-            } catch {
-                // Try refresh once (handles expired token; when no cookies both fail)
-                try {
-                    await API.post("/api/users/refresh-token");
-                    await fetchMe();
-                } catch {
-                    setUser(null);
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkAuth();
-    }, [fetchMe]);
+        let cancelled = false;
+        (async () => {
+            await checkAuth();
+            if (!cancelled) setLoading(false);
+        })();
+        return () => { cancelled = true; };
+    }, [checkAuth]);
 
-    /* ── Re-verify auth when user navigates back/forward ── */
+    /* ── Re-verify auth on history navigation only if session appears lost ── */
     useEffect(() => {
-        const handlePopState = async () => {
-            // On any browser history nav, re-check the session immediately
-            try {
-                await fetchMe();
-            } catch {
-                try {
-                    await API.post("/api/users/refresh-token");
-                    await fetchMe();
-                } catch {
-                    // Session invalid — clear user state so ProtectedRoute kicks in
-                    setUser(null);
-                }
+        const handlePop = () => {
+            if (!user) {
+                checkAuth();
             }
         };
+        window.addEventListener("popstate", handlePop);
+        return () => window.removeEventListener("popstate", handlePop);
+    }, [user, checkAuth]);
 
-        window.addEventListener("popstate", handlePopState);
-        return () => window.removeEventListener("popstate", handlePopState);
-    }, [fetchMe]);
+    useEffect(() => {
+        const handleAuthLogout = () => {
+            setUser(null);
+            localStorage.removeItem(SESSION_HINT_KEY);
+            localStorage.clear();
+            sessionStorage.clear();
+            setTimeout(() => {
+                window.location.replace("/");
+            }, 100);
+        };
+        window.addEventListener("auth:logout", handleAuthLogout);
+        return () => window.removeEventListener("auth:logout", handleAuthLogout);
+    }, []);
 
-    const login = (userData) => setUser(userData);
+    /* ── Idle auto-logout (15 min, warn at 13 min) ── */
+    useEffect(() => {
+        if (!user) return;
 
-    /* ── Logout — clears state immediately ── */
-    const logout = () => {
-        setUser(null);
-        // Best-effort cookie clear — even if the API call fails user state is gone
-        API.post("/api/users/logout").catch(() => { });
+        const events = [
+            "mousemove",
+            "mousedown",
+            "keydown",
+            "touchstart",
+            "scroll",
+            "visibilitychange",
+        ];
+
+        events.forEach((ev) =>
+            window.addEventListener(ev, resetIdleTimer, { passive: true })
+        );
+
+        resetIdleTimer();
+
+        return () => {
+            events.forEach((ev) =>
+                window.removeEventListener(ev, resetIdleTimer)
+            );
+            clearTimeout(idleTimerRef.current);
+            clearTimeout(warnTimerRef.current);
+        };
+    }, [user, resetIdleTimer]);
+
+    const login = (userData) => {
+        localStorage.setItem(SESSION_HINT_KEY, "1");
+        setUser(userData);
     };
 
-    // Merge partial updates (e.g. profileImage, username) into user state
     const updateUser = (partial) => setUser(prev => ({ ...prev, ...partial }));
 
     return (

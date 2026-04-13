@@ -1,18 +1,20 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
 import {
     Pencil, Trash2, X, Search, Users,
     UserCheck, ShieldCheck, Clock, ChevronRight,
     Mail, Calendar, AlertTriangle, Eye, ArrowLeft,
-    UserPlus,
+    UserPlus, Copy,
 } from "lucide-react";
 import EmployeeTable from "./EmployeeTable";
 
 /* ─── Helpers ────────────────────────────────────────────── */
 const AVATAR_GRADIENTS = [
-    "from-blue-600 to-indigo-600",
+    "from-blue-600 to-[#162d5e]",
     "from-violet-600 to-purple-600",
     "from-emerald-500 to-teal-600",
     "from-orange-500 to-amber-500",
@@ -62,13 +64,18 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
 /* ─── Main Component ─────────────────────────────────────── */
 const Employee = () => {
     const [employees, setEmployees] = useState([]);
-    const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [fetchError, setFetchError] = useState(false);
 
     /* modals */
     const [addModalOpen, setAddModalOpen] = useState(false);
+    const [inviteModalOpen, setInviteModalOpen] = useState(false);
+    const [inviteLink, setInviteLink] = useState(null);
     const [editTarget, setEditTarget] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [viewTarget, setViewTarget] = useState(null);
@@ -78,38 +85,38 @@ const Employee = () => {
     /* form */
     const [form, setForm] = useState({ username: "", email: "", password: "" });
     const [addForm, setAddForm] = useState({ username: "", email: "", password: "" });
+    const [inviteEmail, setInviteEmail] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
     /* ── Fetch ── */
-    const fetchEmployees = async () => {
+    const fetchEmployees = useCallback(async () => {
+        setLoading(true);
+        setFetchError(false);
         try {
-            const res = await API.get(
-                "/api/manager/shifts/employees"
-            );
-            setEmployees(res.data.data || []);
+            const params = new URLSearchParams();
+            params.set("page", String(currentPage));
+            params.set("limit", "20");
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            const res = await API.get(`/api/manager/shifts/employees?${params}`);
+            const { data, pagination } = res.data;
+            setEmployees(Array.isArray(data) ? data : []);
+            setTotalPages(pagination?.totalPages ?? 1);
+            setTotalItems(pagination?.total ?? 0);
         } catch {
-            toast.error("Failed to load employees");
+            setFetchError(true);
+            setEmployees([]);
+            setTotalPages(1);
+            setTotalItems(0);
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage, debouncedSearch]);
 
-    useEffect(() => { fetchEmployees(); }, []);
-
-    /* ── Live search filter (debounced) ── */
-    useEffect(() => {
-        const q = debouncedSearch.toLowerCase();
-        setFiltered(
-            employees.filter(
-                (e) =>
-                    e.username?.toLowerCase().includes(q) ||
-                    e.email?.toLowerCase().includes(q)
-            )
-        );
-    }, [debouncedSearch, employees]);
+    useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
 
     /* ── Fetch attendance for drawer ── */
-    const openDrawer = async (emp) => {
+    const openDrawer = useCallback(async (emp) => {
         setViewTarget(emp);
         setAttendanceHistory([]);
         setAttendanceLoading(true);
@@ -124,13 +131,17 @@ const Employee = () => {
         } finally {
             setAttendanceLoading(false);
         }
-    };
+    }, []);
 
     /* ── Edit ── */
-    const openEdit = (emp) => {
+    const openEdit = useCallback((emp) => {
         setEditTarget(emp);
         setForm({ username: emp.username, email: emp.email, password: "" });
-    };
+    }, []);
+
+    const requestDeleteEmployee = useCallback((emp) => {
+        setDeleteTarget(emp);
+    }, []);
 
     const handleAddEmployee = async (e) => {
         e.preventDefault();
@@ -142,9 +153,26 @@ const Employee = () => {
             setAddForm({ username: "", email: "", password: "" });
             fetchEmployees();
         } catch (err) {
-            toast.error(err.response?.data?.error || err.response?.data?.message || "Failed to add employee");
+            toast.error(getApiErrorMessage(err, "Failed to add employee"));
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleInviteEmployee = async (e) => {
+        e.preventDefault();
+        setInviteSubmitting(true);
+        setInviteLink(null);
+        try {
+            const res = await API.post("/api/invites", { email: inviteEmail, role: "employee" });
+            const link = res.data?.data?.inviteLink;
+            setInviteLink(link);
+            toast.success("Invite created");
+            if (link) navigator.clipboard?.writeText(link).then(() => toast.success("Invite link copied"));
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, "Failed to create invite"));
+        } finally {
+            setInviteSubmitting(false);
         }
     };
 
@@ -161,7 +189,7 @@ const Employee = () => {
             setForm({ username: "", email: "", password: "" });
             fetchEmployees();
         } catch (err) {
-            toast.error(err.response?.data?.error || "Failed to update employee");
+            toast.error(getApiErrorMessage(err, "Failed to update employee"));
         } finally {
             setSubmitting(false);
         }
@@ -175,11 +203,11 @@ const Employee = () => {
             await API.delete(
                 `/api/manager/shifts/employees/${deleteTarget._id}`
             );
-            toast.success("Employee deleted successfully");
+            toast.success("Employee deactivated successfully");
             setDeleteTarget(null);
             fetchEmployees();
         } catch (err) {
-            toast.error(err.response?.data?.error || "Failed to delete employee");
+            toast.error(getApiErrorMessage(err, "Failed to delete employee"));
         } finally {
             setSubmitting(false);
         }
@@ -199,7 +227,7 @@ const Employee = () => {
 
     /* ─────────────────────────────────────────────────────── */
     return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+        <div className="min-h-screen bg-[#f1f5f9] p-6 md:p-8">
             <div className="max-w-6xl mx-auto space-y-6">
 
                 {/* ── Page header ────────────────────────────────── */}
@@ -208,18 +236,26 @@ const Employee = () => {
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Employee Management</h1>
                         <p className="text-slate-500 text-sm mt-1">Manage and track your team members.</p>
                     </div>
-                    <button
-                        onClick={() => setAddModalOpen(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:shadow-md transition text-sm shrink-0"
-                    >
-                        <UserPlus className="w-4 h-4" /> Add Employee
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { setInviteModalOpen(true); setInviteLink(null); setInviteEmail(""); }}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition text-sm shrink-0"
+                        >
+                            <Mail className="w-4 h-4" /> Invite Employee
+                        </button>
+                        <button
+                            onClick={() => setAddModalOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md transition text-sm shrink-0"
+                        >
+                            <UserPlus className="w-4 h-4" /> Add Employee
+                        </button>
+                    </div>
                 </div>
 
                 {/* ── Stats ──────────────────────────────────────── */}
                 <div className="grid grid-cols-2 gap-4">
-                    <StatCard icon={Users} label="Total Employees" value={employees.length} color="bg-gradient-to-br from-blue-600 to-indigo-600" />
-                    <StatCard icon={UserCheck} label="Active" value={employees.length} color="bg-gradient-to-br from-emerald-500 to-teal-600" />
+                    <StatCard icon={Users} label="Total Employees" value={totalItems} color="bg-gradient-to-br from-blue-600 to-[#162d5e]" />
+                    <StatCard icon={UserCheck} label="Active" value={employees.filter((e) => e.isActive !== false).length} color="bg-gradient-to-br from-emerald-500 to-teal-600" />
                 </div>
 
                 {/* ── Table card ─────────────────────────────────── */}
@@ -228,7 +264,7 @@ const Employee = () => {
                     <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <h2 className="text-base font-semibold text-slate-900">
                             All Employees
-                            <span className="ml-2 text-xs font-medium text-slate-400">({filtered.length})</span>
+                            <span className="ml-2 text-xs font-medium text-slate-400">({totalItems})</span>
                         </h2>
                         <div className="relative w-full sm:w-72">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -236,7 +272,7 @@ const Employee = () => {
                                 type="text"
                                 placeholder="Search by name or email…"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                                 className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                             />
                         </div>
@@ -244,17 +280,46 @@ const Employee = () => {
 
                     {/* table body */}
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3">
-                            <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-                            <p className="text-sm text-slate-400">Loading employees…</p>
+                        <div className="p-6">
+                            <SkeletonTable rows={8} cols={5} />
+                        </div>
+                    ) : fetchError ? (
+                        <div className="p-6">
+                            <ErrorState
+                                title="Failed to load employees"
+                                message="Could not fetch employee list."
+                                onRetry={fetchEmployees}
+                            />
                         </div>
                     ) : (
-                        <EmployeeTable
-                            employees={filtered}
-                            onEdit={openEdit}
-                            onDelete={(emp) => setDeleteTarget(emp)}
-                            onView={openDrawer}
-                        />
+                        <>
+                            {employees.length === 0 ? (
+                                <EmptyState
+                                    icon={Users}
+                                    title="No employees found"
+                                    message="No employees match your search."
+                                    action={{
+                                        label: "Add Employee",
+                                        onClick: () => setAddModalOpen(true),
+                                    }}
+                                />
+                            ) : (
+                                <EmployeeTable
+                                    employees={employees}
+                                    onEdit={openEdit}
+                                    onDelete={requestDeleteEmployee}
+                                    onView={openDrawer}
+                                />
+                            )}
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                pageSize={20}
+                                onPageChange={setCurrentPage}
+                                isLoading={loading}
+                            />
+                        </>
                     )}
                 </div>
             </div>
@@ -262,6 +327,42 @@ const Employee = () => {
             {/* ══════════════════════════════════════════════════ */}
             {/* ADD EMPLOYEE MODAL                                 */}
             {/* ══════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════ */}
+            {/* INVITE EMPLOYEE MODAL                              */}
+            {/* ══════════════════════════════════════════════════ */}
+            {inviteModalOpen && (
+                <Modal title="Invite Employee" onClose={() => { setInviteModalOpen(false); setInviteLink(null); setInviteEmail(""); }}>
+                    {inviteLink ? (
+                        <div className="space-y-4">
+                            <p className="text-sm text-slate-600">Invite created. Share this link with the employee:</p>
+                            <div className="flex gap-2">
+                                <input type="text" readOnly value={inviteLink} className={`${inputCls} flex-1 bg-slate-50`} />
+                                <button type="button" onClick={() => { navigator.clipboard?.writeText(inviteLink); toast.success("Copied"); }}
+                                    className="px-4 py-2.5 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 flex items-center gap-2 shrink-0">
+                                    <Copy size={16} /> Copy
+                                </button>
+                            </div>
+                            <button type="button" onClick={() => { setInviteModalOpen(false); setInviteLink(null); setInviteEmail(""); }}
+                                className="w-full py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200">Close</button>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleInviteEmployee} className="space-y-4">
+                            <Field label="Email Address">
+                                <input type="email" required placeholder="Enter employee email"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    className={inputCls} />
+                            </Field>
+                            <ModalFooter
+                                onCancel={() => { setInviteModalOpen(false); setInviteLink(null); setInviteEmail(""); }}
+                                submitLabel="Create Invite"
+                                loading={inviteSubmitting}
+                            />
+                        </form>
+                    )}
+                </Modal>
+            )}
+
             {addModalOpen && (
                 <Modal title="Add New Employee" onClose={() => { setAddModalOpen(false); setAddForm({ username: "", email: "", password: "" }); }}>
                     <form onSubmit={handleAddEmployee} className="space-y-4">
@@ -336,11 +437,11 @@ const Employee = () => {
                             <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
                                 <AlertTriangle className="h-7 w-7 text-red-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900">Delete Employee?</h3>
+                            <h3 className="text-lg font-bold text-slate-900">Deactivate Employee?</h3>
                             <p className="text-sm text-slate-500 mt-2 mb-6">
-                                Are you sure you want to delete{" "}
+                                Are you sure you want to deactivate{" "}
                                 <span className="font-semibold text-slate-800">{deleteTarget.username}</span>?
-                                This action cannot be undone.
+                                They will no longer be able to log in.
                             </p>
                             <div className="flex gap-3 w-full">
                                 <button
@@ -354,7 +455,7 @@ const Employee = () => {
                                     disabled={submitting}
                                     className="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition text-sm disabled:opacity-60"
                                 >
-                                    {submitting ? "Deleting…" : "Yes, Delete"}
+                                    {submitting ? "Deactivating…" : "Yes, Deactivate"}
                                 </button>
                             </div>
                         </div>
@@ -375,7 +476,7 @@ const Employee = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Drawer header — uses auth gradient */}
-                        <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 px-6 pt-8 pb-10">
+                        <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-[#162d5e] px-6 pt-8 pb-10">
                             <button
                                 onClick={() => setViewTarget(null)}
                                 className="flex items-center gap-1.5 text-blue-100 hover:text-white text-sm mb-6 transition"
@@ -446,7 +547,7 @@ const Employee = () => {
                         <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
                             <button
                                 onClick={() => { setViewTarget(null); openEdit(viewTarget); }}
-                                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl text-sm hover:shadow-md transition"
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl text-sm hover:shadow-md transition"
                             >
                                 <Pencil className="h-4 w-4" /> Edit Employee
                             </button>
@@ -475,7 +576,7 @@ const Modal = ({ title, onClose, children }) => (
             onClick={(e) => e.stopPropagation()}
         >
             {/* Modal gradient header */}
-            <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-[#162d5e] px-6 py-5 rounded-t-2xl flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white">{title}</h2>
                 <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/20 transition text-white">
                     <X className="h-4 w-4" />
@@ -499,7 +600,7 @@ const ModalFooter = ({ onCancel, submitLabel, loading }) => (
         <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-200 text-sm disabled:opacity-60"
+            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-200 text-sm disabled:opacity-60"
         >
             {loading ? "Saving…" : submitLabel}
         </button>

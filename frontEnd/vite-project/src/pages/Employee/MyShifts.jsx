@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "@/api";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
 import {
-    Calendar, Clock, CheckCircle2, XCircle, Loader2,
-    AlertTriangle, ChevronRight, ArrowRightLeft, LogOut as LeaveIcon,
+    Calendar, Clock, Loader2,
+    ArrowRightLeft, LogOut as LeaveIcon,
+    CalendarX,
 } from "lucide-react";
 import { getStatus } from "@/utils/shiftStatus";
 
@@ -44,7 +48,7 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
             onSuccess();
             onClose();
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to submit request");
+            toast.error(getApiErrorMessage(err, "Failed to submit request"));
         } finally {
             setSubmitting(false);
         }
@@ -104,7 +108,7 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
                             onChange={e => setReason(e.target.value)}
                             rows={3}
                             placeholder="Briefly explain why..."
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 bg-slate-50"
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] bg-slate-50"
                         />
                     </div>
 
@@ -136,28 +140,46 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
    MY SHIFTS PAGE
 ══════════════════════════════════════════════════════════════ */
 const MyShifts = () => {
+    const navigate = useNavigate();
     const [shifts, setShifts] = useState([]);
     const [allShifts, setAllShifts] = useState([]); // for shift-change dropdown
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const [filter, setFilter] = useState("all");
     const [modal, setModal] = useState(null); // { shift, type }
 
-    const fetchShifts = async () => {
+    const fetchMyShifts = useCallback(async () => {
+        setLoading(true);
+        setFetchError(false);
         try {
+            const myParams = new URLSearchParams();
+            myParams.set("page", String(currentPage));
+            myParams.set("limit", "20");
+            const allParams = new URLSearchParams({ limit: "50", page: "1" });
             const [myRes, allRes] = await Promise.all([
-                API.get("/api/employee/shifts/myshifts"),
-                API.get("/api/employee/shifts/available-shifts"),
+                API.get(`/api/employee/shifts/myshifts?${myParams}`),
+                API.get(`/api/employee/shifts/available-shifts?${allParams}`),
             ]);
-            setShifts(Array.isArray(myRes.data?.data) ? myRes.data.data : []);
+            const { data, pagination } = myRes.data;
+            setShifts(Array.isArray(data) ? data : []);
+            setTotalPages(pagination?.totalPages ?? 1);
+            setTotalItems(pagination?.total ?? 0);
             setAllShifts(Array.isArray(allRes.data?.data) ? allRes.data.data : []);
         } catch {
-            toast.error("Failed to load shifts");
+            setFetchError(true);
+            setShifts([]);
+            setAllShifts([]);
+            setTotalPages(1);
+            setTotalItems(0);
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage]);
 
-    useEffect(() => { fetchShifts(); }, []);
+    useEffect(() => { fetchMyShifts(); }, [fetchMyShifts]);
 
     const filtered = filter === "all"
         ? shifts
@@ -171,8 +193,18 @@ const MyShifts = () => {
     };
 
     if (loading) return (
-        <div className="flex items-center justify-center min-h-[400px]">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
+        <div className="p-6">
+            <SkeletonTable rows={5} cols={5} />
+        </div>
+    );
+
+    if (fetchError) return (
+        <div className="p-6">
+            <ErrorState
+                title="Failed to load your shifts"
+                message="Could not load your shift history. Please try again."
+                onRetry={fetchMyShifts}
+            />
         </div>
     );
 
@@ -195,7 +227,7 @@ const MyShifts = () => {
                 ].map(tab => (
                     <button
                         key={tab.key}
-                        onClick={() => setFilter(tab.key)}
+                        onClick={() => { setFilter(tab.key); setCurrentPage(1); }}
                         className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all
             ${filter === tab.key
                                 ? "bg-emerald-600 text-white shadow-md"
@@ -212,10 +244,20 @@ const MyShifts = () => {
             </div>
 
             {/* Shifts list */}
-            {filtered.length === 0 ? (
+            {shifts.length === 0 ? (
+                <EmptyState
+                    icon={CalendarX}
+                    title="No shifts assigned"
+                    message="You have no upcoming or past shifts. Apply for available shifts."
+                    action={{
+                        label: "Browse Shifts",
+                        onClick: () => navigate("/employee/AllShifts"),
+                    }}
+                />
+            ) : filtered.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center py-16">
                     <Calendar size={40} className="text-slate-300 mb-3" />
-                    <p className="text-slate-500 font-medium">No {filter !== "all" ? filter : ""} shifts found</p>
+                    <p className="text-slate-500 font-medium">No {filter !== "all" ? filter : ""} shifts on this page</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -278,6 +320,17 @@ const MyShifts = () => {
                 </div>
             )}
 
+            {!loading && !fetchError && shifts.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    pageSize={20}
+                    onPageChange={setCurrentPage}
+                    isLoading={loading}
+                />
+            )}
+
             {/* Modal */}
             {modal && (
                 <RequestModal
@@ -285,7 +338,7 @@ const MyShifts = () => {
                     allShifts={allShifts}
                     type={modal.type}
                     onClose={() => setModal(null)}
-                    onSuccess={fetchShifts}
+                    onSuccess={fetchMyShifts}
                 />
             )}
         </div>

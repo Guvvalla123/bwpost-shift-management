@@ -18,7 +18,7 @@ const Field = ({ label, icon: Icon, hint, children }) => (
 const inputCls =
   "w-full px-4 py-2.5 rounded-xl text-sm text-slate-700 bg-slate-50 border border-slate-200 " +
   "hover:border-slate-300 hover:bg-white " +
-  "focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 focus:bg-white " +
+  "focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] focus:bg-white " +
   "transition-all duration-150 placeholder:text-slate-400";
 
 const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) => {
@@ -37,11 +37,11 @@ const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) =>
       >
         {/* Header */}
         <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 py-5 overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl" />
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-[#2563EB]/10 rounded-full blur-2xl" />
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/20 flex items-center justify-center shrink-0">
-                <Sparkles size={16} className="text-indigo-400" />
+              <div className="w-9 h-9 rounded-xl bg-[#2563EB]/20 border border-[#93C5FD]/20 flex items-center justify-center shrink-0">
+                <Sparkles size={16} className="text-[#93C5FD]" />
               </div>
               <div>
                 <p className="text-base font-bold text-white">Create New Shift</p>
@@ -121,7 +121,7 @@ const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) =>
                 Cancel
               </button>
               <button type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md shadow-indigo-500/30 hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] transition-all duration-200">
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md shadow-[#2563EB]/25 hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] transition-all duration-200">
                 <CalendarDays size={14} />
                 Create Shift
               </button>

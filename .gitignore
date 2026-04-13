@@ -6,6 +6,9 @@ node_modules/
 .env.*
 !.env.example
 
+# Credentials (keep local only)
+ADMIN_CREDENTIALS.txt
+
 # Build output
 dist/
 dist-ssr/
@@ -18,4 +21,3 @@ npm-debug.log*
 # OS / Editor
 .DS_Store
 .idea
-.vscode/

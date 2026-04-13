@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Settings, User, Bell, ChevronDown, CheckCircle2, ClipboardList, Menu, X } from "lucide-react";
+import { LogOut, Settings, User, ChevronDown, ClipboardList, Menu, X } from "lucide-react";
 import EmployeeSidebar from "./Employeesidebar";
 import { useAuth } from "@/context/AuthContext";
-import API from "@/api";
+import { getDisplayName } from "@/utils/displayName";
 
 /* ── Sharp Cloudinary avatar ─────────────────────────────── */
 const avatarUrl = (url) => {
@@ -14,6 +14,7 @@ const avatarUrl = (url) => {
 /* ── Page titles ─────────────────────────────────────────── */
 const PAGE_TITLES = {
   "/employee/dashboard": "Dashboard",
+  "/employee/checkin": "Check In",
   "/employee/AllShifts": "Available Shifts",
   "/employee/myshifts": "My Shifts",
   "/employee/requests": "My Requests",
@@ -50,112 +51,114 @@ const EmployeeLayout = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogout = async () => {
-    try { await API.post("/api/users/logout"); } catch { }
+  const handleLogout = () => {
     logout();
-    navigate("/login", { replace: true });
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <EmployeeSidebar />
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-30 w-64 flex flex-col h-full shrink-0
+          transform transition-transform duration-200 ease-in-out
+          lg:relative lg:translate-x-0
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+      >
+        <EmployeeSidebar onNavigate={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* ── Top Navbar ── */}
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 md:px-8 shadow-sm shrink-0 sticky top-0 z-30">
+        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-10">
 
           {/* Hamburger + Page title */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(o => !o)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition">
-              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((s) => !s)}
+              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0"
+              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+            >
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 leading-tight">{pageTitle}</h2>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                Employee Portal &nbsp;/&nbsp; {pageTitle}
+            <div className="min-w-0">
+              <h2 className="font-bold text-[#0f2042] text-sm truncate">{pageTitle}</h2>
+              <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
+                Employee Portal / {pageTitle}
               </p>
             </div>
           </div>
 
           {/* Right side controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
 
-            {/* Requests bell — links to My Requests */}
             <button
+              type="button"
               onClick={() => navigate("/employee/requests")}
-              className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-all duration-150"
+              className="relative w-9 h-9 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-center text-[#1B3F8B] hover:bg-[#dbeafe] transition"
               title="My Requests"
             >
               <ClipboardList size={16} />
             </button>
 
-            {/* Divider */}
-            <div className="w-px h-6 bg-slate-200" />
+            <div className="w-px h-6 bg-slate-200 hidden sm:block" />
 
-            {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
+                type="button"
                 onClick={() => setProfileOpen(p => !p)}
-                className="flex items-center gap-2.5 focus:outline-none group"
+                className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-1.5 cursor-pointer hover:bg-[#dbeafe] transition focus:outline-none"
               >
-                {/* Avatar */}
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-emerald-200 shrink-0 group-hover:ring-emerald-400 transition-all duration-200 overflow-hidden">
+                <div className="w-6 h-6 rounded-full bg-[#1B3F8B] flex items-center justify-center text-white text-[9px] font-bold overflow-hidden shrink-0">
                   {user?.profileImage
-                    ? <img src={avatarUrl(user.profileImage)} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                    ? <img src={avatarUrl(user.profileImage)} alt="avatar" className="w-full h-full object-cover" />
                     : initials
                   }
                 </div>
-
-                {/* Name + role */}
-                <div className="hidden md:block text-left leading-tight">
-                  <p className="text-sm font-semibold text-slate-800">{user?.username || "Employee"}</p>
-                  <p className="text-xs text-slate-400 capitalize">{user?.role || "Employee"}</p>
+                <div className="hidden md:block text-left leading-tight min-w-0">
+                  <p className="text-[#1B3F8B] text-xs font-semibold truncate max-w-[120px]">{getDisplayName(user, "Employee")}</p>
                 </div>
-
                 <ChevronDown
                   size={14}
-                  className={`text-slate-400 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+                  className={`text-[#64748b] transition-transform duration-200 shrink-0 ${profileOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
               {/* Dropdown menu */}
               {profileOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
 
-                  {/* Mini profile header */}
                   <div className="px-4 py-3 border-b border-slate-100">
                     <div className="flex items-center gap-3 mb-1">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-[#1B3F8B] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border-2 border-[#BFDBFE]">
                         {user?.profileImage
                           ? <img src={avatarUrl(user.profileImage)} alt="avatar" className="w-full h-full object-cover" />
                           : initials
                         }
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{user?.username || "Employee"}</p>
-                        <p className="text-xs text-slate-400 truncate">{user?.email || ""}</p>
+                        <p className="text-sm font-bold text-[#0f2042] truncate">{getDisplayName(user, "Employee")}</p>
+                        <p className="text-xs text-slate-500 truncate">{user?.email || ""}</p>
                       </div>
                     </div>
-                    {/* Role badge */}
-                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#EFF6FF] text-[#1B3F8B]">
                       Employee
                     </span>
                   </div>
 
                   <div className="py-1">
                     <button
+                      type="button"
                       onClick={() => { navigate("/employee/myshifts"); setProfileOpen(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
@@ -164,6 +167,7 @@ const EmployeeLayout = () => {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => { navigate("/employee/requests"); setProfileOpen(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
@@ -174,6 +178,7 @@ const EmployeeLayout = () => {
 
                   <div className="border-t border-slate-100 pt-1">
                     <button
+                      type="button"
                       onClick={handleLogout}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -188,7 +193,7 @@ const EmployeeLayout = () => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto min-h-0">
           <Outlet />
         </main>
       </div>

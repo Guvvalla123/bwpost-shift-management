@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
+import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
 
 /* ─── Cloudinary config ──────────────────────────────────────────── */
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -26,7 +27,7 @@ const Section = ({ icon: Icon, title, description, children }) => (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
             <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                <Icon size={15} className="text-indigo-600" />
+                <Icon size={15} className="text-[#1B3F8B]" />
             </div>
             <div>
                 <h3 className="text-sm font-bold text-slate-800">{title}</h3>
@@ -50,7 +51,7 @@ const Field = ({ label, name, value, onChange, type = "text", placeholder, disab
             disabled={disabled}
             className="w-full px-4 py-2.5 rounded-xl text-sm text-slate-700 bg-slate-50 border border-slate-200
       hover:border-slate-300 hover:bg-white
-      focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 focus:bg-white
+      focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] focus:bg-white
       disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed
       transition-all duration-150 placeholder:text-slate-400"
         />
@@ -67,8 +68,8 @@ const Toggle = ({ label, description, checked, onChange }) => (
         <button
             type="button"
             onClick={() => onChange(!checked)}
-            className={`relative w-11 h-6 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30
-      ${checked ? "bg-indigo-600" : "bg-slate-200"}`}
+            className={`relative w-11 h-6 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50
+      ${checked ? "bg-[#1B3F8B]" : "bg-slate-200"}`}
         >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200
       ${checked ? "translate-x-5" : "translate-x-0"}`}
@@ -189,10 +190,11 @@ const Settings = () => {
             const res = await API.put("/api/users/profile", {
                 username: profile.displayName,
             });
-            updateUser({ username: res.data.username });
+            const updated = unwrapSuccessData(res);
+            updateUser({ username: updated?.username ?? profile.displayName });
             toast.success("Settings saved successfully!");
-        } catch {
-            toast.error("Failed to save settings");
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, "Failed to save settings"));
         } finally {
             setSaving(false);
         }
@@ -215,7 +217,7 @@ const Settings = () => {
                 <div className="flex items-center gap-6">
                     {/* Avatar preview */}
                     <div className="relative shrink-0">
-                        <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg ring-4 ring-indigo-100">
+                        <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-[#2563EB] to-purple-600 shadow-lg ring-4 ring-indigo-100">
                             {imagePreview ? (
                                 <img
                                     src={imagePreview}
@@ -259,7 +261,7 @@ const Settings = () => {
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200
               ${imageUploading
                                     ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                    : "bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:shadow-md hover:scale-[1.02]"
+                                    : "bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white hover:shadow-md hover:scale-[1.02]"
                                 }`}
                         >
                             {imageUploading ? (
@@ -332,7 +334,7 @@ const Settings = () => {
                         value={profile.timezone}
                         onChange={handleProfileChange}
                         className="w-full px-4 py-2.5 rounded-xl text-sm text-slate-700 bg-slate-50 border border-slate-200
-            hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500
+            hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B]
             transition-all duration-150"
                     >
                         <option value="Europe/Berlin">Europe/Berlin (CET)</option>
@@ -382,7 +384,7 @@ const Settings = () => {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
+                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
                 >
                     {saving ? (
                         <Loader2 size={15} className="animate-spin" />

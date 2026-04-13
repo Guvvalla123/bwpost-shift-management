@@ -252,7 +252,7 @@
               "mode": "raw",
               "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/manager/shifts/attendance/check-in"
+            "url": "{{baseUrl}}/api/attendance/checkin"
           }
         },
         {
@@ -264,7 +264,7 @@
               "mode": "raw",
               "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\"\n}"
             },
-            "url": "{{baseUrl}}/api/manager/shifts/attendance/check-out"
+            "url": "{{baseUrl}}/api/attendance/checkout"
           }
         }
       ]

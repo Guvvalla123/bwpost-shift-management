@@ -106,7 +106,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
     /* Accent colours */
     const acc = accentColor === "amber"
         ? { sel: "bg-amber-500 text-white", ring: "focus:ring-amber-500/30 focus:border-amber-500" }
-        : { sel: "bg-indigo-600 text-white", ring: "focus:ring-indigo-500/30 focus:border-indigo-500" };
+        : { sel: "bg-[#1B3F8B] text-white", ring: "focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B]" };
 
     const label = parsed
         ? `${MONTHS[parsed.month].slice(0, 3)} ${pad(parsed.day)}, ${parsed.year}  ·  ${pad(parsed.hour)}:${pad(parsed.min)}`
@@ -129,7 +129,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
           ${label ? "border-slate-200 text-slate-800 font-medium" : "border-slate-200 text-slate-400"}
         `}
             >
-                <CalendarDays size={15} className={label ? "text-indigo-500 shrink-0" : "text-slate-400 shrink-0"} />
+                <CalendarDays size={15} className={label ? "text-[#2563EB] shrink-0" : "text-slate-400 shrink-0"} />
                 <span className="flex-1 truncate">{label ?? placeholder}</span>
                 {label && (
                     <span
@@ -192,7 +192,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                                     className={`
                     mx-auto flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all duration-100
                     ${isSelected ? acc.sel + " shadow-sm"
-                                            : isToday ? "text-indigo-600 font-bold ring-2 ring-indigo-400 ring-offset-1"
+                                            : isToday ? "text-[#1B3F8B] font-bold ring-2 ring-[#93C5FD] ring-offset-1"
                                                 : "text-slate-700 hover:bg-slate-100"}
                   `}
                                 >
@@ -214,7 +214,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                                     value={pad(hour)}
                                     onChange={(e) => applyHour(parseInt(e.target.value))}
                                     onBlur={(e) => applyHour(parseInt(e.target.value))}
-                                    className="w-full text-center px-2 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
+                                    className="w-full text-center px-2 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] transition"
                                 />
                             </div>
                             <span className="text-slate-400 font-bold text-xl mt-3">:</span>
@@ -226,7 +226,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                                     value={pad(min)}
                                     onChange={(e) => applyMin(parseInt(e.target.value))}
                                     onBlur={(e) => applyMin(parseInt(e.target.value))}
-                                    className="w-full text-center px-2 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
+                                    className="w-full text-center px-2 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] transition"
                                 />
                             </div>
                             {/* Done */}

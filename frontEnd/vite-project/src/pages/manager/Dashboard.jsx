@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { SkeletonCard, ErrorState } from "@/components/ui";
 import {
-  Users, CalendarDays, Clock, Activity,
-  X, AlertTriangle, Info, CheckCircle2,
-  ChevronRight, TrendingUp, UserCheck,
-  BarChart2, Zap, Bell, ArrowRight,
+  Users, CalendarDays,
+  X, CheckCircle2,
+  TrendingUp, UserCheck,
+  Zap,
 } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
+import { getApiErrorMessage } from "@/utils/apiError";
 import { getStatus } from "@/utils/shiftStatus";
+import { getDisplayName } from "@/utils/displayName";
 
 /* ════════════════════════════════════════════════════════════
    HELPERS
@@ -20,34 +23,38 @@ const fmtTime = (d) =>
   d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—";
 
 const STATUS = {
-  upcoming: { label: "Upcoming", cls: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+  upcoming: { label: "Upcoming", cls: "bg-[#EFF6FF] text-[#1B3F8B]", dot: "bg-[#1B3F8B]" },
   ongoing: { label: "Ongoing", cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
   completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
 };
 
 /* Avatar gradient by name */
 const GRADS = [
-  "from-blue-600 to-indigo-600", "from-violet-600 to-purple-600",
+  "from-[#1B3F8B] to-[#162d5e]", "from-[#2563EB] to-[#1B3F8B]",
   "from-emerald-500 to-teal-600", "from-orange-500 to-amber-500",
-  "from-rose-500 to-pink-600", "from-cyan-500 to-blue-600",
+  "from-rose-500 to-pink-600", "from-cyan-500 to-[#2563EB]",
 ];
 const grad = (n = "") => GRADS[(n.charCodeAt(0) || 0) % GRADS.length];
 const initials = (n = "") => n.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
 
-/* ════════════════════════════════════════════════════════════
-   LIVE CLOCK
-════════════════════════════════════════════════════════════ */
-const LiveClock = React.memo(() => {
+const BannerTimeCard = React.memo(() => {
   const [t, setT] = useState(new Date());
-  useEffect(() => { const id = setInterval(() => setT(new Date()), 60_000); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    const id = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
   return (
-    <div className="text-right hidden sm:block">
-      <p className="text-2xl font-bold text-white tabular-nums tracking-tight">
-        {t.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+    <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-right backdrop-blur-sm shrink-0">
+      <p className="text-white text-xl font-bold tabular-nums tracking-tight">
+        {t.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </p>
-      <p className="text-blue-200 text-xs mt-0.5">
-        {t.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+      <p className="text-white/40 text-xs mt-0.5">
+        {t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
       </p>
+      <div className="flex items-center justify-end gap-1.5 mt-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#93C5FD] animate-pulse" aria-hidden />
+        <span className="text-white/30 text-[10px]">Live</span>
+      </div>
     </div>
   );
 });
@@ -55,34 +62,20 @@ const LiveClock = React.memo(() => {
 /* ════════════════════════════════════════════════════════════
    KPI STAT CARD(KEY PERFORMANCE INDICATOR CARDS) 
 ════════════════════════════════════════════════════════════ */
-const KpiCard = ({ icon: Icon, label, value, sub, gradient }) => (
-  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow duration-200 group">
-    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform duration-200`}>
-      <Icon className="h-5 w-5 text-white" />
+const KpiCard = ({ icon: Icon, label, value, trend }) => (
+  <div className="bg-white rounded-xl border border-slate-200 border-t-2 border-t-[#1B3F8B] shadow-sm p-5 flex flex-col">
+    <div className="flex justify-between items-start mb-4">
+      <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center">
+        <Icon className="h-[18px] w-[18px] text-[#1B3F8B]" />
+      </div>
+      {trend != null && (
+        <span className="bg-[#EFF6FF] text-[#1B3F8B] text-[10px] font-bold px-2 py-0.5 rounded-md">{trend}</span>
+      )}
     </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 tabular-nums mt-1 leading-none">{value}</p>
-      {sub && <p className="text-xs text-slate-400 mt-1.5 flex items-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-500" />{sub}</p>}
-    </div>
+    <p className="text-3xl font-extrabold text-[#0f2042] tabular-nums leading-none">{value}</p>
+    <p className="text-slate-400 text-xs font-medium mt-1">{label}</p>
   </div>
 );
-
-/* ════════════════════════════════════════════════════════════
-   SLOT PROGRESS
-════════════════════════════════════════════════════════════ */
-const SlotBar = ({ filled, total }) => {
-  const pct = total > 0 ? Math.min(Math.round((filled / total) * 100), 100) : 0;
-  const color = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-blue-500" : "bg-amber-400";
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs font-medium text-slate-500 tabular-nums whitespace-nowrap">{filled}/{total}</span>
-    </div>
-  );
-};
 
 /* ════════════════════════════════════════════════════════════
    ALERT ITEM
@@ -91,38 +84,18 @@ const AlertItem = ({ message }) => {
   const low = message.toLowerCase();
   const warn = low.includes("low") || low.includes("miss") || low.includes("short");
   const good = low.includes("full") || low.includes("complete");
-  const Icon = warn ? AlertTriangle : good ? CheckCircle2 : Info;
   const cls = warn
-    ? "bg-amber-50 border-amber-200 text-amber-700"
+    ? "bg-amber-50 border-amber-400 text-amber-800"
     : good
       ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : "bg-blue-50 border-blue-200 text-blue-700";
-  const ic = warn ? "text-amber-500" : good ? "text-emerald-500" : "text-blue-500";
+      : "bg-[#EFF6FF] border-[#93C5FD] text-[#1B3F8B]";
   return (
-    <div className={`flex items-start gap-2.5 border rounded-xl px-3 py-2.5 text-sm ${cls}`}>
-      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${ic}`} />
+    <div className={`flex items-center gap-2 p-3 rounded-lg mb-2 border-l-2 last:mb-0 text-sm ${cls}`}>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${warn ? "bg-amber-400" : good ? "bg-emerald-500" : "bg-[#93C5FD]"}`} aria-hidden />
       <span className="leading-relaxed">{message}</span>
     </div>
   );
 };
-
-/* ════════════════════════════════════════════════════════════
-   SKELETON
-════════════════════════════════════════════════════════════ */
-const Sk = ({ className }) => <div className={`bg-slate-200 animate-pulse rounded-xl ${className}`} />;
-const LoadingScreen = () => (
-  <div className="min-h-screen bg-slate-50 p-8 space-y-6">
-    <Sk className="h-40 w-full rounded-3xl" />
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {[1, 2, 3, 4].map(i => <Sk key={i} className="h-28" />)}
-    </div>
-    <div className="grid lg:grid-cols-3 gap-6">
-      <Sk className="lg:col-span-2 h-44" />
-      <Sk className="h-44" />
-    </div>
-    <Sk className="h-72" />
-  </div>
-);
 
 /* ════════════════════════════════════════════════════════════
    SHIFT DETAIL MODAL (right-aligned panel style)
@@ -134,7 +107,7 @@ const ShiftModal = ({ shift, onClose }) => {
   const pct = total > 0 ? Math.min(Math.round((filled / total) * 100), 100) : 0;
   const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
   const st = STATUS[status];
-  const bar = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-blue-500" : "bg-amber-400";
+  const bar = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-[#1B3F8B]" : "bg-amber-400";
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0"
@@ -143,7 +116,7 @@ const ShiftModal = ({ shift, onClose }) => {
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 p-6">
+        <div className="bg-gradient-to-br from-[#1B3F8B] via-[#1B3F8B] to-[#162d5e] p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3 bg-white/20 text-white`}>
@@ -151,7 +124,7 @@ const ShiftModal = ({ shift, onClose }) => {
                 {st.label}
               </span>
               <h2 className="text-xl font-bold text-white leading-tight truncate">{shift.shiftTitle}</h2>
-              <p className="text-blue-200 text-sm mt-2">
+              <p className="text-white/70 text-sm mt-2">
                 {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}
               </p>
             </div>
@@ -170,7 +143,7 @@ const ShiftModal = ({ shift, onClose }) => {
               <span className="text-3xl font-bold text-slate-900 tabular-nums">{filled}</span>
               <span className="text-slate-400 text-lg font-medium">/{total}</span>
             </div>
-            <span className="text-2xl font-bold tabular-nums" style={{ color: pct >= 80 ? "#10b981" : pct >= 40 ? "#3b82f6" : "#f59e0b" }}>
+            <span className="text-2xl font-bold tabular-nums" style={{ color: pct >= 80 ? "#10b981" : pct >= 40 ? "#1B3F8B" : "#f59e0b" }}>
               {pct}%
             </span>
           </div>
@@ -228,6 +201,7 @@ const ShiftModal = ({ shift, onClose }) => {
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -239,18 +213,28 @@ const Dashboard = () => {
     return "Good evening";
   };
 
-  useEffect(() => {
-    API.get("/api/manager/shifts/dashboard/data")
-      .then(res => setData(res.data))
-      .catch(err => {
-        if (err.response?.status === 401) {
-          navigate("/login");
-        } else {
-          toast.error("Failed to load dashboard");
-        }
-      })
-      .finally(() => setLoading(false));
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    setFetchError(false);
+    try {
+      const res = await API.get("/api/manager/shifts/dashboard/data");
+      setData(res.data?.data ?? res.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        navigate("/login");
+      } else {
+        setFetchError(true);
+        toast.error(getApiErrorMessage(err, "Failed to load dashboard"));
+        setData(null);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [navigate]);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   useEffect(() => {
     const h = (e) => e.key === "Escape" && setSelected(null);
@@ -258,130 +242,166 @@ const Dashboard = () => {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  if (loading) return <LoadingScreen />;
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonCard key={i} lines={2} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <SkeletonCard lines={5} />
+          <SkeletonCard lines={5} />
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="p-6">
+        <ErrorState
+          title="Failed to load dashboard"
+          message="Could not load dashboard data. Please refresh."
+          onRetry={fetchDashboard}
+        />
+      </div>
+    );
+  }
 
   const { stats, capacity, attendance, notifications, recentShifts } = data || {};
-  const nextShift = stats?.nextShift;
+
+  const todayStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-full bg-[#f1f5f9]">
 
-      {/* ══════════════════════════════════════════════════════
-          HERO BANNER
-      ══════════════════════════════════════════════════════ */}
-      <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 px-6 md:px-8 py-8 relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/5" />
-        <div className="absolute -bottom-8 right-24 w-32 h-32 rounded-full bg-white/5" />
-        <div className="absolute top-4 right-64 w-16 h-16 rounded-full bg-white/5" />
-
-        <div className="max-w-6xl mx-auto flex items-start justify-between relative">
+      <div className="bg-[#1B3F8B] px-6 pt-6 pb-6">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-blue-200 text-xs font-semibold uppercase tracking-wider">Live</span>
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              {greeting()}, {user?.username || "Manager"}!
-            </h1>
-            <p className="text-blue-200 text-sm mt-1.5">
-              Here's your shift overview for today.
+            <p className="text-white/60 text-sm font-normal">{greeting()},</p>
+            <p className="text-white text-3xl font-extrabold tracking-tight leading-tight">
+              {getDisplayName(user, "Manager")} 👋
             </p>
-
-            {/* Quick action links */}
+            <p className="text-white/40 text-xs mt-2">{todayStr} · Manager Panel</p>
             <div className="flex flex-wrap gap-2 mt-5">
-              {[
-                { label: "Shift Management", path: "/manager/shifts" },
-                { label: "Employees", path: "/manager/employees" },
-                { label: "Calendar", path: "/manager/calender" },
-              ].map(lnk => (
-                <button
-                  key={lnk.path}
-                  onClick={() => navigate(lnk.path)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold rounded-lg transition-colors border border-white/20"
-                >
-                  {lnk.label}
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => navigate("/manager/shifts")}
+                className="bg-white text-[#1B3F8B] font-bold text-xs px-5 py-2 rounded-lg hover:bg-slate-50 transition"
+              >
+                Shift Management
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/manager/employees")}
+                className="bg-white/10 border border-white/15 text-white/80 text-xs px-4 py-2 rounded-lg hover:bg-white/15 transition"
+              >
+                Employees
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/manager/calender")}
+                className="bg-white/10 border border-white/15 text-white/80 text-xs px-4 py-2 rounded-lg hover:bg-white/15 transition"
+              >
+                Calendar
+              </button>
             </div>
           </div>
-          <LiveClock />
+          <BannerTimeCard />
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 md:px-8 py-8 space-y-7">
+      <div className="max-w-6xl mx-auto pt-6 px-6 pb-6 space-y-6">
 
-        {/* ══════════════════════════════════════════════════════
-            KPI CARDS
-        ══════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={Users} label="Total Employees" value={stats?.totalEmployees ?? 0} gradient="from-blue-600 to-indigo-600" sub="Registered staff" />
-          <KpiCard icon={CalendarDays} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} gradient="from-violet-500 to-purple-600" sub="Scheduled ahead" />
-          <KpiCard icon={BarChart2} label="Capacity" value={`${capacity ?? 0}%`} gradient="from-emerald-500 to-teal-600" sub="Slot fill rate" />
-          <KpiCard icon={Activity} label="Attendance Rate" value={`${attendance?.rate ?? 0}%`} gradient="from-orange-500 to-amber-500" sub="This period" />
+          <KpiCard icon={Users} label="Total Employees" value={stats?.totalEmployees ?? 0} trend="Staff" />
+          <KpiCard icon={CalendarDays} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} trend="Live" />
+          <KpiCard icon={Zap} label="Capacity" value={`${capacity ?? 0}%`} trend="Fill" />
+          <KpiCard icon={TrendingUp} label="Attendance Rate" value={`${attendance?.rate ?? 0}%`} trend="Period" />
         </div>
 
-        {/* ══════════════════════════════════════════════════════
-            NEXT SHIFT + ALERTS (2-col)
-        ══════════════════════════════════════════════════════ */}
-        <div className="grid lg:grid-cols-3 gap-6">
-
-          {/* Next Shift — prominent card */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-600" />
-              <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Next Scheduled Shift</p>
+        <div className="grid lg:grid-cols-3 gap-4 mt-4">
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+              <h2 className="font-bold text-[#0f2042] text-sm">Recent Shifts</h2>
+              <button
+                type="button"
+                onClick={() => navigate("/manager/shifts")}
+                className="text-[#1B3F8B] text-xs font-semibold hover:underline"
+              >
+                View all
+              </button>
             </div>
-            {nextShift ? (
-              <div className="p-6 flex items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">
-                    <CalendarDays className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-slate-900 leading-tight">{nextShift.label}</p>
-                    <p className="text-slate-500 text-sm mt-1.5 flex items-center gap-2">
-                      <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{fmtDate(nextShift.date)}</span>
-                      <span className="text-slate-300">·</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{fmtTime(nextShift.date)}</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  Upcoming
-                </span>
+            {recentShifts?.length > 0 ? (
+              <div className="divide-y divide-slate-50">
+                {recentShifts.map(shift => {
+                  const filled = shift.acceptedEmployees?.length || 0;
+                  const total = shift.slotsAvailable || 0;
+                  const st = STATUS[getStatus(shift.shiftStartTime, shift.shiftEndTime)];
+                  return (
+                    <button
+                      type="button"
+                      key={shift._id}
+                      onClick={() => setSelected(shift)}
+                      className="w-full flex items-center justify-between py-3 text-left border-b border-slate-50 last:border-0 hover:bg-[#f8fafc] transition-colors rounded-lg px-1 -mx-1"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                          <CalendarDays className="h-4 w-4 text-[#1B3F8B]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#0f2042] text-sm truncate">{shift.shiftTitle}</p>
+                          <p className="text-slate-400 text-xs mt-0.5">
+                            {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${st.cls}`}>
+                          <span className={`w-1 h-1 rounded-full ${st.dot}`} />
+                          {st.label}
+                        </span>
+                        <div className="w-16 mt-1">
+                          <div className="bg-slate-100 rounded-full h-1 overflow-hidden">
+                            <div
+                              className="bg-[#1B3F8B] h-1 rounded-full transition-all"
+                              style={{ width: `${total > 0 ? Math.min((filled / total) * 100, 100) : 0}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-400 tabular-nums">{filled}/{total}</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-6 flex flex-col items-center justify-center py-12 text-slate-400">
-                <CalendarDays className="h-10 w-10 mb-3 opacity-20" />
-                <p className="font-medium text-slate-500">No upcoming shifts scheduled</p>
-                <p className="text-sm text-slate-400 mt-1">Create a shift to get started</p>
+              <div className="flex flex-col items-center py-12 text-slate-400">
+                <CalendarDays className="h-10 w-10 mb-2 opacity-20" />
+                <p className="text-sm font-medium text-slate-500">No shifts recorded yet</p>
                 <button
+                  type="button"
                   onClick={() => navigate("/manager/shifts")}
-                  className="mt-4 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition text-sm"
+                  className="mt-3 text-xs font-semibold text-[#1B3F8B]"
                 >
-                  Create Shift
+                  Create a shift
                 </button>
               </div>
             )}
           </div>
 
-          {/* Alerts */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-slate-500" />
-                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Alerts</p>
-              </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+              <h2 className="font-bold text-[#0f2042] text-sm">Alerts</h2>
               {notifications?.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {notifications.length}
                 </span>
               )}
             </div>
-            <div className="p-4 space-y-2 max-h-44 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto">
               {notifications?.length > 0 ? (
                 notifications.map((n, i) => <AlertItem key={i} message={n} />)
               ) : (
@@ -393,85 +413,6 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════
-            RECENT SHIFTS TABLE
-        ══════════════════════════════════════════════════════ */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-bold text-slate-800">Recent Shifts</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Click on a row to view employees</p>
-            </div>
-            <span className="text-xs bg-slate-100 text-slate-500 font-semibold px-3 py-1.5 rounded-full">
-              {recentShifts?.length ?? 0} total
-            </span>
-          </div>
-
-          {/* Table */}
-          {recentShifts?.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-44">Fill Rate</th>
-                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider w-16" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {recentShifts.map(shift => {
-                    const filled = shift.acceptedEmployees?.length || 0;
-                    const total = shift.slotsAvailable || 0;
-                    const st = STATUS[getStatus(shift.shiftStartTime, shift.shiftEndTime)];
-                    return (
-                      <tr
-                        key={shift._id}
-                        onClick={() => setSelected(shift)}
-                        className="hover:bg-blue-50/30 cursor-pointer transition-colors group"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-                              <CalendarDays className="h-4 w-4 text-white" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
-                                {shift.shiftTitle}
-                              </p>
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${st.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                            {st.label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <SlotBar filled={filled} total={total} />
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 ml-auto transition-colors" />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="px-6 py-16 flex flex-col items-center text-center text-slate-400">
-              <CalendarDays className="h-12 w-12 mb-3 opacity-20" />
-              <p className="font-medium text-slate-500">No shifts recorded yet</p>
-              <p className="text-sm mt-1">Create your first shift to see it here.</p>
-            </div>
-          )}
         </div>
 
       </div>

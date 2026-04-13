@@ -17,3 +17,26 @@ exports.updateEmployeeSchema = Joi.object({
   username: Joi.string().min(3).max(30).trim().optional(),
   email: Joi.string().email().optional(),
 }).min(1);
+
+const mongoObjectId = Joi.string()
+  .pattern(/^[0-9a-fA-F]{24}$/)
+  .messages({ "string.pattern.base": "Invalid ID format" });
+
+exports.applyForShiftSchema = Joi.object({
+  shiftId: mongoObjectId.required(),
+});
+
+exports.cancelShiftSchema = Joi.object({
+  shiftId: mongoObjectId.required(),
+});
+
+exports.leaveRequestSchema = Joi.object({
+  shiftId: mongoObjectId.required(),
+  reason: Joi.string().min(10).max(500).trim().required(),
+});
+
+exports.shiftChangeRequestSchema = Joi.object({
+  currentShiftId: mongoObjectId.required(),
+  requestedShiftId: mongoObjectId.required(),
+  reason: Joi.string().min(10).max(500).trim().required(),
+});
