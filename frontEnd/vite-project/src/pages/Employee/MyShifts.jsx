@@ -236,7 +236,7 @@ const MyShifts = () => {
             <ErrorState
                 title="Failed to load your shifts"
                 message="Could not load your shift history. Please try again."
-                onRetry={fetchMyShifts}
+                onRetry={() => fetchMyShifts(false)}
             />
         </div>
     );
