@@ -322,6 +322,7 @@ const ManagerShifts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [shiftListTotal, setShiftListTotal] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
@@ -336,9 +337,9 @@ const ManagerShifts = () => {
 
   const filterSigRef = useRef(`${debouncedSearch}|${statusFilter}`);
   /* ── Fetch ── */
-  const fetchShifts = useCallback(async (pageNum) => {
+  const fetchShifts = useCallback(async (pageNum, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params = new URLSearchParams({ page: String(pageNum), limit: "20" });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (statusFilter !== "all") params.set("status", statusFilter);
@@ -347,10 +348,12 @@ const ManagerShifts = () => {
       setShifts(Array.isArray(data) ? data : []);
       setTotalPages(pagination?.totalPages ?? 1);
       setShiftListTotal(pagination?.total ?? 0);
-    } catch {
-      toast.error("Failed to load shifts");
+      setLastUpdated(new Date());
+    } catch (err) {
+      if (!silent) toast.error("Failed to load shifts");
+      if (import.meta.env.DEV) console.error("Refresh error:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [debouncedSearch, statusFilter]);
 
@@ -363,8 +366,23 @@ const ManagerShifts = () => {
       setCurrentPage(1);
       return;
     }
-    fetchShifts(pageToFetch);
+    fetchShifts(pageToFetch, false);
   }, [currentPage, debouncedSearch, statusFilter, fetchShifts]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchShifts(currentPage, true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [currentPage, fetchShifts]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchShifts(currentPage, true);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [currentPage, fetchShifts]);
 
   /* ── Create ── */
   const onChange = (e) => {
@@ -404,7 +422,7 @@ const ManagerShifts = () => {
       toast.success("Shift created successfully");
       setCreateShift({ shiftTitle: "", shiftStartTime: "", shiftEndTime: "", shiftNotes: "", slotsAvailable: "" });
       setShowCreate(false);
-      fetchShifts(currentPage);
+      fetchShifts(currentPage, false);
     } catch (err) { toast.error(getApiErrorMessage(err, "Failed to create shift")); }
   };
 
@@ -443,7 +461,7 @@ const ManagerShifts = () => {
       await API.put(`/api/manager/shifts/${editingShift._id}`, editingShift);
       toast.success("Shift updated");
       setEditingShift(null);
-      fetchShifts(currentPage);
+      fetchShifts(currentPage, false);
     } catch { toast.error("Update failed"); }
   };
 
@@ -455,7 +473,7 @@ const ManagerShifts = () => {
       await API.delete(`/api/manager/shifts/${deleteTarget._id}`);
       toast.success("Shift deleted");
       setDeleteTarget(null);
-      fetchShifts(currentPage);
+      fetchShifts(currentPage, false);
     } catch (err) { toast.error(getApiErrorMessage(err, "Delete failed")); }
     finally { setDeleting(false); }
   };
@@ -690,6 +708,13 @@ const ManagerShifts = () => {
                   Next →
                 </button>
               </div>
+              <p className="text-xs text-gray-400 text-center pt-2 md:hidden">
+                Updated{" "}
+                {lastUpdated.toLocaleTimeString("en-DE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
           )}
         </div>

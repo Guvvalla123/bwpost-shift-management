@@ -13,10 +13,13 @@ const EmployeeShifts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [fetchError, setFetchError] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
 
-  const fetchShifts = useCallback(async () => {
-    setLoading(true);
-    setFetchError(false);
+  const fetchShifts = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setFetchError(false);
+    }
     try {
       const params = new URLSearchParams();
       params.set("page", String(currentPage));
@@ -26,18 +29,39 @@ const EmployeeShifts = () => {
       setShifts(Array.isArray(data) ? data : []);
       setTotalPages(pagination?.totalPages ?? 1);
       setTotalItems(pagination?.total ?? 0);
-    } catch {
-      setFetchError(true);
-      setShifts([]);
-      setTotalPages(1);
-      setTotalItems(0);
+      setLastUpdated(new Date());
+    } catch (err) {
+      if (!silent) {
+        setFetchError(true);
+        setShifts([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      }
+      if (import.meta.env.DEV) console.error("Refresh error:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage]);
 
   useEffect(() => {
-    fetchShifts();
+    fetchShifts(false);
+  }, [fetchShifts]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchShifts(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchShifts]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchShifts(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [fetchShifts]);
 
   const handleApply = useCallback(async (shiftId) => {
@@ -47,7 +71,7 @@ const EmployeeShifts = () => {
         { shiftId }
       );
       toast.success("Applied successfully");
-      fetchShifts();
+      fetchShifts(true);
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Apply failed"));
     }
@@ -60,7 +84,7 @@ const EmployeeShifts = () => {
         { shiftId }
       );
       toast.success("Application withdrawn");
-      fetchShifts();
+      fetchShifts(true);
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Cancel failed"));
     }
@@ -76,7 +100,6 @@ const EmployeeShifts = () => {
               <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Browse and apply for available shifts</p>
             </div>
           </div>
-          <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none mt-2">Scroll down to refresh</p>
         </div>
 
         {loading ? (
@@ -88,7 +111,7 @@ const EmployeeShifts = () => {
             <ErrorState
               title="Failed to load shifts"
               message="Could not load available shifts. Please try again."
-              onRetry={fetchShifts}
+              onRetry={() => fetchShifts(false)}
             />
           </div>
         ) : shifts.length === 0 ? (
@@ -112,6 +135,13 @@ const EmployeeShifts = () => {
               onPageChange={setCurrentPage}
               isLoading={loading}
             />
+            <p className="text-xs text-gray-400 text-center py-3 md:hidden">
+              Updated{" "}
+              {lastUpdated.toLocaleTimeString("en-DE", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
           </div>
         )}
       </div>

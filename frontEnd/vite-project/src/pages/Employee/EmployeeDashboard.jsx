@@ -273,36 +273,13 @@ const EmployeeDashboard = () => {
   return (
     <div className="min-h-full bg-[#f1f5f9]">
       <div className="bg-[#1B3F8B] px-4 md:px-6 pt-6 pb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="min-w-0">
-            <p className="text-white/60 text-sm font-normal">{greeting()},</p>
-            <p className="text-white text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
+            <p className="text-white/80 text-sm">{greeting()},</p>
+            <h1 className="text-white font-bold text-2xl sm:text-3xl mt-1">
               {getDisplayName(user, "Employee")}
-            </p>
+            </h1>
             <p className="text-white/40 text-xs mt-2 hidden sm:block">{todayStr} · Employee Panel</p>
-            <div className="flex flex-col sm:flex-row gap-2 overflow-x-auto pb-2 mt-5 scrollbar-hide sm:flex-wrap sm:overflow-visible">
-              <button
-                type="button"
-                onClick={() => navigate("/employee/AllShifts")}
-                className="w-full sm:w-auto h-11 px-6 text-sm font-semibold rounded-xl border-2 border-white text-white hover:bg-white hover:text-[#1B3F8B] transition-colors flex-shrink-0 whitespace-nowrap"
-              >
-                Available Shifts
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/employee/myshifts")}
-                className="bg-white/10 border border-white/15 text-white/80 text-sm px-4 py-2 rounded-lg hover:bg-white/15 transition flex-shrink-0 whitespace-nowrap"
-              >
-                My Shifts
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/employee/requests")}
-                className="bg-white/10 border border-white/15 text-white/80 text-sm px-4 py-2 rounded-lg hover:bg-white/15 transition flex-shrink-0 whitespace-nowrap"
-              >
-                My Requests
-              </button>
-            </div>
           </div>
           <div className="w-full sm:w-auto sm:shrink-0 flex justify-end">
             <BannerTimeCard />

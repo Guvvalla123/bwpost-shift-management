@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { X, CalendarDays, Users, FileText, Pencil } from "lucide-react";
 import DateTimePicker from "@/components/DateTimePicker";
 
@@ -21,17 +21,46 @@ const inputCls =
   "focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:bg-white " +
   "transition-all duration-150 placeholder:text-slate-400";
 
+const nativeDatetimeCls =
+  "w-full h-12 px-4 text-base border border-gray-300 rounded-xl bg-white text-gray-900 " +
+  "focus:outline-none focus:ring-2 focus:ring-[#1B3F8B] focus:border-transparent";
+
+const toDatetimeLocalValue = (val) => {
+  if (!val) return "";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
 const EditShiftModal = ({ editingShift, setEditingShift, onEditChange, onUpdateHandler }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const q = () => setIsMobile(typeof window !== "undefined" && window.innerWidth < 768);
+    q();
+    window.addEventListener("resize", q);
+    return () => window.removeEventListener("resize", q);
+  }, []);
+
   if (!editingShift) return null;
 
-  const startVal = editingShift.shiftStartTime?.slice(0, 16) ?? "";
-  const endVal = editingShift.shiftEndTime?.slice(0, 16) ?? "";
+  const startLocal = toDatetimeLocalValue(editingShift.shiftStartTime);
+  const endLocal = toDatetimeLocalValue(editingShift.shiftEndTime);
   const handleDT = (name) => (val) => onEditChange({ target: { name, value: val } });
 
   const isEndBeforeStart =
-    endVal &&
-    startVal &&
-    new Date(endVal) <= new Date(startVal);
+    endLocal &&
+    startLocal &&
+    new Date(endLocal) <= new Date(startLocal);
+
+  const handleMobileStartChange = (e) => {
+    const v = e.target.value;
+    onEditChange({ target: { name: "shiftStartTime", value: v } });
+    if (editingShift.shiftEndTime && v && new Date(editingShift.shiftEndTime) <= new Date(v)) {
+      onEditChange({ target: { name: "shiftEndTime", value: "" } });
+    }
+  };
 
   return (
     <div
@@ -80,31 +109,62 @@ const EditShiftModal = ({ editingShift, setEditingShift, onEditChange, onUpdateH
             />
           </Field>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Start Date & Time">
-              <DateTimePicker
-                value={startVal}
-                onChange={handleDT("shiftStartTime")}
-                placeholder="Pick start"
-                accentColor="amber"
-              />
-            </Field>
-            <Field label="End Date & Time">
-              <div className={`rounded-xl ${isEndBeforeStart ? "ring-2 ring-red-500/40" : ""}`}>
-                <DateTimePicker
-                  value={endVal}
-                  onChange={handleDT("shiftEndTime")}
-                  placeholder="Pick end"
-                  accentColor="amber"
+          {isMobile ? (
+            <div className="space-y-4">
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date and Time</label>
+                <input
+                  type="datetime-local"
+                  value={startLocal}
+                  onChange={handleMobileStartChange}
+                  className={nativeDatetimeCls}
                 />
               </div>
-              {isEndBeforeStart && (
-                <p className="text-xs text-red-500 mt-1">
-                  End time must be after start time
-                </p>
-              )}
-            </Field>
-          </div>
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-2">End Date and Time</label>
+                <input
+                  type="datetime-local"
+                  value={endLocal}
+                  onChange={(e) => onEditChange({ target: { name: "shiftEndTime", value: e.target.value } })}
+                  min={startLocal || undefined}
+                  disabled={!editingShift.shiftStartTime}
+                  className={`${nativeDatetimeCls} disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isEndBeforeStart ? "ring-2 ring-red-500/40 rounded-xl" : ""
+                  }`}
+                />
+                {!editingShift.shiftStartTime && (
+                  <p className="text-xs text-gray-400 mt-1 px-1">Select start time first</p>
+                )}
+                {isEndBeforeStart && (
+                  <p className="text-xs text-red-500 mt-1">End time must be after start time</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Start Date & Time">
+                <DateTimePicker
+                  value={startLocal}
+                  onChange={handleDT("shiftStartTime")}
+                  placeholder="Pick start"
+                  accentColor="amber"
+                />
+              </Field>
+              <Field label="End Date & Time">
+                <div className={`rounded-xl ${isEndBeforeStart ? "ring-2 ring-red-500/40" : ""}`}>
+                  <DateTimePicker
+                    value={endLocal}
+                    onChange={handleDT("shiftEndTime")}
+                    placeholder="Pick end"
+                    accentColor="amber"
+                  />
+                </div>
+                {isEndBeforeStart && (
+                  <p className="text-xs text-red-500 mt-1">End time must be after start time</p>
+                )}
+              </Field>
+            </div>
+          )}
 
           <Field label="Available Slots" icon={Users} hint="Max staff for this shift">
             <input

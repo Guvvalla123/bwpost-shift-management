@@ -51,7 +51,17 @@ const PageLoader = () => (
 function App() {
   return (
     <>
-      <Sonner position="top-right" richColors />
+      <Sonner
+        position="top-center"
+        duration={3000}
+        richColors
+        closeButton={false}
+        swipeDirection="right"
+        toastOptions={{
+          duration: 3000,
+          style: { maxWidth: "90vw" },
+        }}
+      />
 
       <Suspense fallback={<PageLoader />}>
         <Routes>

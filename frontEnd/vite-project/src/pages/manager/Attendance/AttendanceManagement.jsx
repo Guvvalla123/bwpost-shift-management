@@ -323,24 +323,38 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
   const [attendanceData, setAttendanceData] = useState({ shift: null, attendance: [] });
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [actionBusy, setActionBusy] = useState(null); // employeeId of the row being actioned
+  const [actionBusy, setActionBusy] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
 
-  /* ── Auto-refresh every 30s ── */
-  useEffect(() => {
+  const fetchAttendance = useCallback(async (silent = false) => {
     if (!selectedShiftId) return;
-    fetchAttendance();
-    const id = setInterval(() => fetchAttendance(true), 30_000);
-    return () => clearInterval(id);
-  }, [selectedShiftId]);
-
-  const fetchAttendance = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       const res = await API.get(`/api/attendance/shift/${selectedShiftId}`);
       setAttendanceData(res.data.data || { shift: null, attendance: [] });
-    } catch { toast.error("Failed to load attendance"); }
-    finally { setLoading(false); }
-  };
+      setLastUpdated(new Date());
+    } catch (err) {
+      if (!silent) toast.error("Failed to load attendance");
+      if (import.meta.env.DEV) console.error("Refresh error:", err);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [selectedShiftId]);
+
+  useEffect(() => {
+    if (!selectedShiftId) return;
+    fetchAttendance(false);
+    const id = setInterval(() => fetchAttendance(true), 30_000);
+    return () => clearInterval(id);
+  }, [selectedShiftId, fetchAttendance]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && selectedShiftId) fetchAttendance(true);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [selectedShiftId, fetchAttendance]);
 
   /* ── Action helpers ── */
   const doAction = async (endpoint, empId, extra = {}) => {
@@ -780,16 +794,25 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
           )}
 
           {!loading && filtered.length > 0 && (
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <p className="text-xs text-slate-400">
-                <span className="font-semibold text-slate-600">{filtered.length}</span> employees · auto-refreshes every 30s
+            <>
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
+                <p className="text-xs text-slate-400">
+                  <span className="font-semibold text-slate-600">{filtered.length}</span> employees · auto-refreshes every 30s
+                </p>
+                <p className="text-xs text-slate-400">
+                  <span className="font-semibold text-emerald-600">{completed}</span> completed ·{" "}
+                  <span className="font-semibold text-amber-500">{onBreak}</span> on break ·{" "}
+                  <span className="font-semibold text-rose-500">{absent}</span> not started
+                </p>
+              </div>
+              <p className="text-xs text-gray-400 text-center py-3 md:hidden px-5">
+                Updated{" "}
+                {lastUpdated.toLocaleTimeString("en-DE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </p>
-              <p className="text-xs text-slate-400">
-                <span className="font-semibold text-emerald-600">{completed}</span> completed ·{" "}
-                <span className="font-semibold text-amber-500">{onBreak}</span> on break ·{" "}
-                <span className="font-semibold text-rose-500">{absent}</span> not started
-              </p>
-            </div>
+            </>
           )}
         </div>
       )}

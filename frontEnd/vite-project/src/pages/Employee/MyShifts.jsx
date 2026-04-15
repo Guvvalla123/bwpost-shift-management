@@ -144,21 +144,32 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
 /* ══════════════════════════════════════════════════════════════
    MY SHIFTS PAGE
 ══════════════════════════════════════════════════════════════ */
+const formatCardDateTime = (iso) =>
+    new Date(iso).toLocaleString("en-DE", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
 const MyShifts = () => {
     const navigate = useNavigate();
     const [shifts, setShifts] = useState([]);
-    const [allShifts, setAllShifts] = useState([]); // for shift-change dropdown
+    const [allShifts, setAllShifts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [filter, setFilter] = useState("all");
-    const [modal, setModal] = useState(null); // { shift, type }
+    const [modal, setModal] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(() => new Date());
 
-    const fetchMyShifts = useCallback(async () => {
-        setLoading(true);
-        setFetchError(false);
+    const fetchMyShifts = useCallback(async (silent = false) => {
+        if (!silent) {
+            setLoading(true);
+            setFetchError(false);
+        }
         try {
             const myParams = new URLSearchParams();
             myParams.set("page", String(currentPage));
@@ -173,18 +184,35 @@ const MyShifts = () => {
             setTotalPages(pagination?.totalPages ?? 1);
             setTotalItems(pagination?.total ?? 0);
             setAllShifts(Array.isArray(allRes.data?.data) ? allRes.data.data : []);
-        } catch {
-            setFetchError(true);
-            setShifts([]);
-            setAllShifts([]);
-            setTotalPages(1);
-            setTotalItems(0);
+            setLastUpdated(new Date());
+        } catch (err) {
+            if (!silent) {
+                setFetchError(true);
+                setShifts([]);
+                setAllShifts([]);
+                setTotalPages(1);
+                setTotalItems(0);
+            }
+            if (import.meta.env.DEV) console.error("Refresh error:", err);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [currentPage]);
 
-    useEffect(() => { fetchMyShifts(); }, [fetchMyShifts]);
+    useEffect(() => { fetchMyShifts(false); }, [fetchMyShifts]);
+
+    useEffect(() => {
+        const interval = setInterval(() => fetchMyShifts(true), 30000);
+        return () => clearInterval(interval);
+    }, [fetchMyShifts]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") fetchMyShifts(true);
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, [fetchMyShifts]);
 
     const filtered = filter === "all"
         ? shifts
@@ -230,8 +258,6 @@ const MyShifts = () => {
                     <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">All shifts you are assigned to</p>
                 </div>
             </div>
-            <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
-
             {/* Filter tabs */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                 {[
@@ -289,53 +315,45 @@ const MyShifts = () => {
                                     ? "bg-blue-50 text-blue-700 border border-blue-100"
                                     : timelineStatus === "Ongoing"
                                         ? "bg-green-50 text-green-700 border border-green-100"
-                                        : "bg-gray-100 text-gray-600";
+                                        : "bg-gray-100 text-gray-600 border border-gray-200";
                             const apiStatus = getStatus(shift.shiftStartTime, shift.shiftEndTime);
                             return (
                                 <div
                                     key={shift._id}
-                                    className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+                                    className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
                                 >
-                                    <div className="flex justify-between items-start mb-3">
-                                        <p className="font-semibold text-gray-900 text-sm flex-1 pr-3 leading-tight">
-                                            {shift.shiftTitle}
-                                        </p>
-                                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${badgeCls}`}>
-                                            {timelineStatus}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-1.5 text-xs text-gray-600">
-                                        <div className="flex gap-2">
-                                            <span className="text-gray-400 w-10">Start</span>
-                                            <span className="font-medium">
-                                                {start.toLocaleString("en-DE", {
-                                                    day: "2-digit",
-                                                    month: "short",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
+                                    <div className="p-4 pb-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                                                    {shift.shiftTitle}
+                                                </h3>
+                                            </div>
+                                            <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${badgeCls}`}>
+                                                {timelineStatus}
                                             </span>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <span className="text-gray-400 w-10">End</span>
-                                            <span className="font-medium">
-                                                {end.toLocaleString("en-DE", {
-                                                    day: "2-digit",
-                                                    month: "short",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </span>
+                                        <div className="mt-3 space-y-1.5">
+                                            <div className="flex items-center gap-3 text-xs text-gray-600">
+                                                <span className="text-gray-400 w-8 flex-shrink-0 font-medium">Start</span>
+                                                <span className="font-medium text-gray-800">{formatCardDateTime(shift.shiftStartTime)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-xs text-gray-600">
+                                                <span className="text-gray-400 w-8 flex-shrink-0 font-medium">End</span>
+                                                <span className="font-medium text-gray-800">{formatCardDateTime(shift.shiftEndTime)}</span>
+                                            </div>
                                         </div>
                                         {managerLabel(shift) && (
-                                            <p className="text-gray-500 pt-1">
-                                                Manager:{" "}
-                                                <span className="font-medium text-gray-800">{managerLabel(shift)}</span>
+                                            <p className="mt-2 text-xs text-gray-500">
+                                                Manager: <span className="font-medium text-gray-800">{managerLabel(shift)}</span>
                                             </p>
+                                        )}
+                                        {shift.shiftNotes && (
+                                            <p className="mt-2 text-xs text-gray-500 leading-relaxed line-clamp-2">{shift.shiftNotes}</p>
                                         )}
                                     </div>
                                     {apiStatus === "upcoming" && (
-                                        <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
+                                        <div className="px-4 pb-4 pt-3 border-t border-gray-100 flex flex-col gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => setModal({ shift, type: "shift_change" })}
@@ -432,14 +450,23 @@ const MyShifts = () => {
             )}
 
             {!loading && !fetchError && shifts.length > 0 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    pageSize={20}
-                    onPageChange={setCurrentPage}
-                    isLoading={loading}
-                />
+                <>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        pageSize={20}
+                        onPageChange={setCurrentPage}
+                        isLoading={loading}
+                    />
+                    <p className="text-xs text-gray-400 text-center py-3 md:hidden">
+                        Updated{" "}
+                        {lastUpdated.toLocaleTimeString("en-DE", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        })}
+                    </p>
+                </>
             )}
 
             {/* Modal */}
