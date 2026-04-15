@@ -541,7 +541,108 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="md:hidden space-y-3 px-4 pb-4">
+                {filtered.map((rec) => {
+                  const emp = rec.employee || {};
+                  const busy = actionBusy === emp._id;
+                  const firstIn = rec.workSessions?.[0]?.checkIn;
+                  const lastOut = rec.workSessions?.[rec.workSessions.length - 1]?.checkOut;
+                  const isAbsent = rec.status === "not_started";
+                  const statusBadgeCls = isAbsent
+                    ? "bg-red-50 text-red-600 border border-red-200"
+                    : "bg-green-50 text-green-700 border border-green-200";
+                  const statusText = isAbsent ? "Absent" : "Present";
+                  const timeOpts = { hour: "2-digit", minute: "2-digit" };
+                  const checkInDisp = firstIn
+                    ? new Date(firstIn).toLocaleTimeString("en-DE", timeOpts)
+                    : "Not recorded";
+                  const checkOutDisp = lastOut
+                    ? new Date(lastOut).toLocaleTimeString("en-DE", timeOpts)
+                    : "Not recorded";
+                  const workMins = rec.totalWorkMinutes || 0;
+                  const breakMins = rec.totalBreakMinutes || 0;
+                  return (
+                    <div key={emp._id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 pr-3">
+                          <p className="font-semibold text-gray-900 text-sm">
+                            {emp.username || "Employee"}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                            {selectedShift?.shiftTitle || "Shift"}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusBadgeCls}`}>
+                            {statusText}
+                          </span>
+                          {rec.isLate && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">
+                              Late
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div>
+                          <span className="text-gray-400">Check In</span>
+                          <p className="font-medium mt-0.5">{checkInDisp}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Check Out</span>
+                          <p className="font-medium mt-0.5">{checkOutDisp}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Work Time</span>
+                          <p className="font-medium mt-0.5">
+                            {workMins
+                              ? `${Math.floor(workMins / 60)}h ${workMins % 60}m`
+                              : "0h 0m"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Break Time</span>
+                          <p className="font-medium mt-0.5">
+                            {breakMins ? `${breakMins}m` : "0m"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
+                        {rec.status === "not_started" && (
+                          <button type="button" onClick={() => handleCheckIn(emp._id)} disabled={busy}
+                            className="w-full min-h-11 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 inline-flex items-center justify-center gap-1">
+                            <LogIn className="w-4 h-4" /> Check In
+                          </button>
+                        )}
+                        {rec.status === "checked_in" && (
+                          <>
+                            <button type="button" onClick={() => handleStartBreak(emp._id, "short_break")} disabled={busy}
+                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 disabled:opacity-50">Break</button>
+                            <button type="button" onClick={() => handleStartBreak(emp._id, "lunch")} disabled={busy}
+                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-orange-700 bg-orange-50 border border-orange-200 disabled:opacity-50">Lunch</button>
+                            <button type="button" onClick={() => handleCheckOut(emp._id)} disabled={busy}
+                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 disabled:opacity-50 inline-flex items-center justify-center gap-1">
+                              <LogOut className="w-4 h-4" /> Out
+                            </button>
+                          </>
+                        )}
+                        {rec.status === "on_break" && (
+                          <button type="button" onClick={() => handleEndBreak(emp._id)} disabled={busy}
+                            className="w-full min-h-11 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 disabled:opacity-50">Resume</button>
+                        )}
+                        {rec.status === "checked_out" && (
+                          <span className="text-xs text-center text-slate-500 py-2 inline-flex items-center justify-center gap-1">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Completed
+                          </span>
+                        )}
+                        {busy && <Loader2 className="w-5 h-5 text-indigo-400 animate-spin mx-auto" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
@@ -658,7 +759,7 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                             {rec.status === "on_break" && (
                               <button onClick={() => handleEndBreak(emp._id)} disabled={busy}
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition disabled:opacity-50 animate-pulse">
-                                ▶ Resume
+                                Resume
                               </button>
                             )}
                             {rec.status === "checked_out" && (
@@ -674,7 +775,8 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
 
           {!loading && filtered.length > 0 && (
@@ -853,7 +955,51 @@ const TimesheetTab = () => {
               <p className="text-xs text-slate-400 mt-1">No attendance data for the selected range.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="md:hidden space-y-3 px-4 pb-4">
+                {history.map((rec, idx) => {
+                  const outValid = rec.checkOut &&
+                    new Date(rec.checkOut).getTime() !== new Date(rec.checkIn).getTime();
+                  return (
+                    <div key={rec.shiftId || idx} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-semibold text-gray-900 text-sm flex-1">{rec.shiftTitle}</p>
+                        <span className="text-xs text-slate-400 shrink-0">#{String(idx + 1).padStart(2, "0")}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{fmtDate(rec.shiftDate)}</p>
+                      <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-600">
+                        <div>
+                          <span className="text-gray-400">In:</span>{" "}
+                          <span className="font-medium text-gray-800">{fmtTime(rec.checkIn)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Out:</span>{" "}
+                          {outValid ? (
+                            <span className="font-medium text-gray-800">{fmtTime(rec.checkOut)}</span>
+                          ) : (
+                            <span className="text-amber-600 font-medium">In progress</span>
+                          )}
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-400">Hours:</span>{" "}
+                          {rec.totalHours ? (
+                            <span className="font-bold text-[#1B3F8B]">{rec.totalHours}h</span>
+                          ) : (
+                            "—"
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="rounded-xl bg-[#EFF6FF] border border-indigo-100 px-4 py-3 flex justify-between items-center">
+                  <span className="text-xs font-bold text-[#2563EB] uppercase tracking-widest">Grand Total</span>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-800">
+                    <Timer className="w-4 h-4" />{Math.round(totalHours * 100) / 100}h
+                  </span>
+                </div>
+              </div>
+              <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
@@ -913,7 +1059,8 @@ const TimesheetTab = () => {
                   </tr>
                 </tfoot>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -978,9 +1125,9 @@ const AttendanceManagement = () => {
                 <div className="w-8 h-8 rounded-xl bg-[#1B3F8B] flex items-center justify-center shadow-sm">
                   <UserCheck className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-xl font-black text-slate-900 tracking-tight">Attendance & Timesheet</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Attendance & Timesheet</h1>
               </div>
-              <p className="text-sm text-slate-500 ml-0.5">
+              <p className="text-sm text-slate-500 ml-0.5 hidden sm:block">
                 Track employee check-ins, check-outs and generate detailed timesheets.
               </p>
             </div>
@@ -991,6 +1138,7 @@ const AttendanceManagement = () => {
               <span className="text-xs font-bold text-emerald-700">Live Tracking</span>
             </div>
           </div>
+          <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none mb-3">Scroll down to refresh</p>
 
           {/* Tab bar */}
           <div className="flex gap-1 -mb-px">

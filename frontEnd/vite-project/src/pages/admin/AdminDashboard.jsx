@@ -56,7 +56,7 @@ const BannerTimeCard = React.memo(() => {
 });
 
 const KpiCard = ({ icon: Icon, label, value, trend }) => (
-  <div className="bg-white rounded-xl border border-slate-200 border-t-2 border-t-[#1B3F8B] shadow-sm p-5 flex flex-col">
+  <div className="bg-white rounded-xl border border-slate-200 border-t-2 border-t-[#1B3F8B] shadow-sm p-4 md:p-5 flex flex-col">
     <div className="flex justify-between items-start mb-4">
       <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center">
         <Icon className="h-[18px] w-[18px] text-[#1B3F8B]" />
@@ -254,44 +254,46 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-full bg-[#f1f5f9]">
-      <div className="bg-[#1B3F8B] px-6 pt-6 pb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className="bg-[#1B3F8B] px-4 md:px-6 pt-6 pb-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="text-white/60 text-sm font-normal">{greeting()},</p>
-            <p className="text-white text-3xl font-extrabold tracking-tight leading-tight">
-              {getDisplayName(user, "Admin")} 👋
+            <p className="text-white text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
+              {getDisplayName(user, "Admin")}
             </p>
-            <p className="text-white/40 text-xs mt-2">{todayStr} · Admin Panel</p>
-            <div className="flex flex-wrap gap-2 mt-5">
+            <p className="text-white/40 text-xs mt-2 hidden sm:block">{todayStr} · Admin Panel</p>
+            <div className="flex gap-2 overflow-x-auto pb-2 mt-5 scrollbar-hide sm:flex-wrap sm:overflow-visible">
               <button
                 type="button"
                 onClick={() => navigate("/admin/users")}
-                className="bg-white text-[#1B3F8B] font-bold text-xs px-5 py-2 rounded-lg hover:bg-slate-50 transition"
+                className="bg-white text-[#1B3F8B] font-semibold text-sm px-4 py-2 rounded-lg hover:bg-slate-50 transition flex-shrink-0 whitespace-nowrap"
               >
                 User Management
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/admin/managers")}
-                className="bg-white/10 border border-white/15 text-white/80 text-xs px-4 py-2 rounded-lg hover:bg-white/15 transition"
+                className="bg-white/10 border border-white/15 text-white/80 text-sm px-4 py-2 rounded-lg hover:bg-white/15 transition flex-shrink-0 whitespace-nowrap"
               >
                 Managers
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/admin/employees")}
-                className="bg-white/10 border border-white/15 text-white/80 text-xs px-4 py-2 rounded-lg hover:bg-white/15 transition"
+                className="bg-white/10 border border-white/15 text-white/80 text-sm px-4 py-2 rounded-lg hover:bg-white/15 transition flex-shrink-0 whitespace-nowrap"
               >
                 Employees
               </button>
             </div>
           </div>
-          <BannerTimeCard />
+          <div className="w-full sm:w-auto sm:shrink-0 flex justify-end">
+            <BannerTimeCard />
+          </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto pt-6 px-6 pb-6 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto pt-4 md:pt-6 px-4 md:px-6 lg:px-8 pb-20 lg:pb-6 space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard icon={Users} label="Total Employees" value={stats?.totalEmployees ?? 0} trend="Staff" />
           <KpiCard icon={CalendarDays} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} trend="Live" />
           <KpiCard icon={Zap} label="Capacity" value={`${capacity ?? 0}%`} trend="Fill" />

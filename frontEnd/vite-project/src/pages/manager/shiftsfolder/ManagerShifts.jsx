@@ -381,7 +381,8 @@ const ManagerShifts = () => {
   };
 
   /* ── Edit ── */
-  const onEditChange = (e) => setEditingShift({ ...editingShift, [e.target.name]: e.target.value });
+  const onEditChange = (e) =>
+    setEditingShift((prev) => (prev ? { ...prev, [e.target.name]: e.target.value } : prev));
   const onUpdateHandler = async (e) => {
     e.preventDefault();
     try {
@@ -435,24 +436,25 @@ const ManagerShifts = () => {
   }, [showCreate, editingShift, deleteTarget, selectedShift]);
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-6 md:p-8">
+    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* ── Header ─────────────────────────────────────── */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 sm:px-0 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Shift Management</h1>
-            <p className="text-slate-500 text-sm mt-1">Create, schedule and manage your workforce shifts.</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Shift Management</h1>
+            <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Create, schedule and manage your workforce shifts.</p>
           </div>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-11 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-200 text-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-semibold bg-[#1B3F8B] text-white rounded-xl shadow-md hover:bg-[#162d5e] transition-all"
           >
             <Plus className="h-4 w-4" />
             Create Shift
           </button>
         </div>
+        <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
         {/* ── Stats ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -508,30 +510,100 @@ const ManagerShifts = () => {
               <p className="text-sm text-slate-400 mt-1">Try a different filter or create a new shift.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date & Time</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fill Rate</th>
-                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {filteredShifts.map(shift => (
-                    <ShiftRow
+            <>
+              <div className="md:hidden space-y-3 px-4 pb-4">
+                {filteredShifts.map((shift) => {
+                  const slots = Number(shift.slotsAvailable) || 0;
+                  const dtOpts = {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  };
+                  return (
+                    <div
                       key={shift._id}
-                      shift={shift}
-                      onView={setSelectedShift}
-                      onEdit={setEditingShift}
-                      onDelete={setDeleteTarget}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1 pr-3">
+                          <p className="font-semibold text-gray-900 text-sm leading-tight">
+                            {shift.shiftTitle}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {slots} slots available
+                          </p>
+                        </div>
+                        <span
+                          className="
+                          text-xs px-2.5 py-1 rounded-full
+                          font-medium flex-shrink-0
+                          bg-blue-50 text-blue-700
+                          border border-blue-100
+                        "
+                        >
+                          {slots > 0 ? "Open" : "Full"}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <span className="text-gray-400 w-10 flex-shrink-0">Start</span>
+                          <span className="font-medium">
+                            {new Date(shift.shiftStartTime).toLocaleString("en-DE", dtOpts)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <span className="text-gray-400 w-10 flex-shrink-0">End</span>
+                          <span className="font-medium">
+                            {new Date(shift.shiftEndTime).toLocaleString("en-DE", dtOpts)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => setEditingShift(shift)}
+                          className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(shift)}
+                          className="flex-1 min-h-11 text-sm font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full min-w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/50">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date & Time</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fill Rate</th>
+                      <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredShifts.map(shift => (
+                      <ShiftRow
+                        key={shift._id}
+                        shift={shift}
+                        onView={setSelectedShift}
+                        onEdit={setEditingShift}
+                        onDelete={setDeleteTarget}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {/* Footer count */}

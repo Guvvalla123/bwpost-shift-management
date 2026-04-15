@@ -7,9 +7,9 @@ import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil } fro
 import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
 
 const ROLE_BADGES = {
-  admin: "bg-amber-100 text-amber-700 border-amber-200",
-  manager: "bg-blue-100 text-blue-700 border-blue-200",
-  employee: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  admin: "bg-purple-50 text-purple-700 border border-purple-200",
+  manager: "bg-blue-50 text-blue-700 border border-blue-100",
+  employee: "bg-gray-100 text-gray-600 border border-gray-200",
 };
 
 const AdminUserManagement = () => {
@@ -138,15 +138,15 @@ const AdminUserManagement = () => {
     }
   };
 
-  const inputCls = "w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm";
+  const inputCls = "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base";
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-6 md:p-8">
+    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
-            <p className="text-slate-500 text-sm mt-1">Create and manage Admin, Manager, and Employee accounts.</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-slate-500 text-sm mt-0.5 hidden sm:block">Create and manage Admin, Manager, and Employee accounts.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
@@ -208,14 +208,55 @@ const AdminUserManagement = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                {users.length === 0 ? (
-                  <EmptyState
-                    icon={Users}
-                    title="No users found"
-                    message="No users match your current filters."
-                  />
-                ) : (
+              {users.length === 0 ? (
+                <EmptyState
+                  icon={Users}
+                  title="No users found"
+                  message="No users match your current filters."
+                />
+              ) : (
+                <>
+              <div className="md:hidden space-y-3 px-4 pb-4">
+                {users.map((u) => (
+                  <div key={u._id} className={`bg-white rounded-xl border border-gray-200 p-4 shadow-sm ${u.isActive === false ? "opacity-70" : ""}`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-full flex-shrink-0 bg-[#1B3F8B] flex items-center justify-center text-white font-bold text-sm">
+                        {u.username?.[0]?.toUpperCase() || "U"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm truncate">{u.username}</p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{u.email}</p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 border ${ROLE_BADGES[u.role] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                        {u.role?.charAt(0).toUpperCase() + u.role?.slice(1)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        u.isActive !== false ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
+                      }`}>
+                        {u.isActive !== false ? "Active" : "Inactive"}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-DE") : "—"}
+                      </span>
+                    </div>
+                    {u.isActive !== false && (
+                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
+                          className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 inline-flex items-center justify-center gap-1"
+                        >
+                          <Pencil size={14} />
+                          Change role
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
                   <table className="w-full min-w-full">
                     <thead className="bg-slate-50 border-b border-slate-100">
                       <tr>
@@ -260,8 +301,9 @@ const AdminUserManagement = () => {
                       ))}
                     </tbody>
                   </table>
-                )}
               </div>
+                </>
+              )}
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -277,9 +319,10 @@ const AdminUserManagement = () => {
 
       {/* Change Role Modal */}
       {roleModalUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setRoleModalUser(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={() => setRoleModalUser(null)}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:mx-4" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
+            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl md:rounded-t-2xl flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Change Role</h2>
               <button onClick={() => setRoleModalUser(null)} className="p-1.5 rounded-lg hover:bg-white/20 text-white"><X size={18} /></button>
             </div>
@@ -306,11 +349,11 @@ const AdminUserManagement = () => {
                   </select>
                 </div>
               )}
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setRoleModalUser(null)}
-                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50">Cancel</button>
+                  className="w-full sm:w-auto px-5 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={roleSubmitting}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
+                  className="w-full sm:w-auto px-5 py-3 min-h-12 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
                   {roleSubmitting ? "Updating…" : "Update Role"}
                 </button>
               </div>
@@ -321,9 +364,10 @@ const AdminUserManagement = () => {
 
       {/* Invite User Modal */}
       {inviteModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:mx-4" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
+            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl md:rounded-t-2xl flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Invite User</h2>
               <button onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }} className="p-1.5 rounded-lg hover:bg-white/20 text-white">
                 <X size={18} />
@@ -369,11 +413,11 @@ const AdminUserManagement = () => {
                     </select>
                   </div>
                 )}
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2 border-t border-gray-100">
                   <button type="button" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}
-                    className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50">Cancel</button>
+                    className="w-full sm:w-auto px-5 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50">Cancel</button>
                   <button type="submit" disabled={inviteSubmitting}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
+                    className="w-full sm:w-auto px-5 py-3 min-h-12 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
                     {inviteSubmitting ? "Creating…" : "Create Invite"}
                   </button>
                 </div>
@@ -385,9 +429,10 @@ const AdminUserManagement = () => {
 
       {/* Add User Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setModalOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={() => setModalOpen(false)}>
+          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:mx-4" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
+            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl md:rounded-t-2xl flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Add User</h2>
               <button onClick={() => setModalOpen(false)} className="p-1.5 rounded-lg hover:bg-white/20 text-white">
                 <X size={18} />
@@ -434,13 +479,13 @@ const AdminUserManagement = () => {
                   )}
                 </div>
               )}
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setModalOpen(false)}
-                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50">
+                  className="w-full sm:w-auto px-5 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50">
                   Cancel
                 </button>
                 <button type="submit" disabled={submitting}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
+                  className="w-full sm:w-auto px-5 py-3 min-h-12 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
                   {submitting ? "Creating…" : "Create User"}
                 </button>
               </div>

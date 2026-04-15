@@ -13,6 +13,7 @@ credentials.txt
 # Interview prep (local only; may contain sample credentials)
 INTERVIEW_REFERENCE.md
 CSV_SECURITY_REFERENCE.txt
+REALWORLD_PROBLEMS_REFERENCE.txt
 
 # Build output
 dist/

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Settings, User, ChevronDown, ClipboardList, Menu, X } from "lucide-react";
 import EmployeeSidebar from "./Employeesidebar";
+import BottomNav from "@/components/ui/BottomNav";
 import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
 
@@ -60,15 +61,19 @@ const EmployeeLayout = () => {
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
       )}
 
       {/* Sidebar */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-30 w-64 flex flex-col h-full shrink-0
-          transform transition-transform duration-200 ease-in-out
-          lg:relative lg:translate-x-0
+          fixed inset-y-0 left-0 z-40 w-64 flex flex-col h-full shrink-0
+          transform transition-transform duration-300 ease-in-out
+          lg:relative lg:translate-x-0 lg:z-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -79,20 +84,20 @@ const EmployeeLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* ── Top Navbar ── */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-10">
+        <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
 
           {/* Hamburger + Page title */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSidebarOpen((s) => !s)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0"
+              className="lg:hidden -ml-2 p-3 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0 min-h-[48px] min-w-[48px]"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="min-w-0">
-              <h2 className="font-bold text-[#0f2042] text-sm truncate">{pageTitle}</h2>
+              <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[150px] sm:max-w-none">{pageTitle}</h2>
               <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
                 Employee Portal / {pageTitle}
               </p>
@@ -105,7 +110,7 @@ const EmployeeLayout = () => {
             <button
               type="button"
               onClick={() => navigate("/employee/requests")}
-              className="relative w-9 h-9 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-center text-[#1B3F8B] hover:bg-[#dbeafe] transition"
+              className="relative min-h-[44px] min-w-[44px] p-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-center text-[#1B3F8B] hover:bg-[#dbeafe] transition"
               title="My Requests"
             >
               <ClipboardList size={16} />
@@ -117,7 +122,7 @@ const EmployeeLayout = () => {
               <button
                 type="button"
                 onClick={() => setProfileOpen(p => !p)}
-                className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-1.5 cursor-pointer hover:bg-[#dbeafe] transition focus:outline-none"
+                className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-2 min-h-[44px] cursor-pointer hover:bg-[#dbeafe] transition focus:outline-none"
               >
                 <div className="w-6 h-6 rounded-full bg-[#1B3F8B] flex items-center justify-center text-white text-[9px] font-bold overflow-hidden shrink-0">
                   {user?.profileImage
@@ -193,9 +198,11 @@ const EmployeeLayout = () => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto min-h-0">
+        <main className="flex-1 overflow-y-auto min-h-0 pb-20 lg:pb-0">
           <Outlet />
         </main>
+
+        <BottomNav />
       </div>
     </div>
   );

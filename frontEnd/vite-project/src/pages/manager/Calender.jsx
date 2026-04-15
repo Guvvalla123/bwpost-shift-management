@@ -453,7 +453,7 @@ const CalendarPage = () => {
   const selectedSource = selectedEvent?.extendedProps?.source;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-[#f1f5f9] overflow-hidden">
+    <div className="flex min-h-[calc(100dvh-9rem)] lg:min-h-[calc(100vh-4rem)] max-h-[calc(100dvh-9rem)] lg:max-h-[calc(100vh-4rem)] bg-[#f1f5f9] overflow-hidden">
 
       {/* ── Mobile sidebar overlay ────────────────────────────── */}
       {sidebarOpen && (
@@ -553,10 +553,10 @@ const CalendarPage = () => {
       <div className="flex-1 flex flex-col min-w-0 bg-white">
 
         {/* Single header bar */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 shrink-0">
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 shrink-0 min-h-[56px]">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+            className="lg:hidden -ml-2 p-3 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
             title="Toggle sidebar"
           >
             {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}

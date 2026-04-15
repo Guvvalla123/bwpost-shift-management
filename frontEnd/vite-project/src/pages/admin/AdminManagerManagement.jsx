@@ -154,30 +154,31 @@ const AdminManagerManagement = () => {
   const activeCount = managers.filter((m) => m.isActive !== false).length;
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-6 md:p-8">
+    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* ── Page header ────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Manager Management</h1>
-            <p className="text-slate-500 text-sm mt-1">Create, invite, and manage Managers who handle day-to-day operations.</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Manager Management</h1>
+            <p className="text-slate-500 text-sm mt-0.5 hidden sm:block">Create, invite, and manage Managers who handle day-to-day operations.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={() => { setInviteModalOpen(true); setCreatedInviteLink(null); setInviteEmail(""); }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition text-sm shrink-0"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 h-11 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition text-sm"
             >
               <Mail className="w-4 h-4" /> Invite Manager
             </button>
             <button
               onClick={() => setModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md transition text-sm shrink-0"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 h-11 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#162d5e] transition text-sm"
             >
               <UserPlus className="w-4 h-4" /> Add Manager
             </button>
           </div>
         </div>
+        <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
         {/* ── Stats ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">

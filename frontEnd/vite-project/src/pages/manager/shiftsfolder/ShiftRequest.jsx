@@ -51,9 +51,10 @@ const ResolveModal = ({ request, action, onClose, onSuccess }) => {
 
   const isApprove = action === "approve";
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <div className={`px-6 py-5 rounded-t-2xl ${isApprove ? "bg-gradient-to-r from-emerald-600 to-teal-600" : "bg-gradient-to-r from-red-600 to-rose-600"}`}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:my-8" onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
+        <div className={`px-6 py-5 rounded-t-2xl md:rounded-t-2xl ${isApprove ? "bg-gradient-to-r from-emerald-600 to-teal-600" : "bg-gradient-to-r from-red-600 to-rose-600"}`}>
           <div className="flex items-center gap-3">
             {isApprove ? <CheckCircle2 size={20} className="text-white" /> : <XCircle size={20} className="text-white" />}
             <div>
@@ -76,10 +77,10 @@ const ResolveModal = ({ request, action, onClose, onSuccess }) => {
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] bg-slate-50"
             />
           </div>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:flex-nowrap">
+            <button onClick={onClose} className="w-full sm:flex-1 px-4 py-3 min-h-11 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
             <button onClick={submit} disabled={busy}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60
+              className={`w-full sm:flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-11 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-60
                             ${isApprove ? "bg-gradient-to-r from-emerald-600 to-teal-600" : "bg-gradient-to-r from-red-600 to-rose-600"}`}
             >
               {busy && <Loader2 size={13} className="animate-spin" />}
@@ -170,13 +171,16 @@ const ShiftRequest = () => {
     [ranged, debouncedSearch]);
 
   return (
-    <div className="p-6 md:p-8 space-y-5">
+    <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-5 max-w-7xl mx-auto">
 
       {/* ── Page header ── */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Shift Requests</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Review and act on employee leave and shift-change requests</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Shift Requests</h1>
+          <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Review and act on employee leave and shift-change requests</p>
+        </div>
       </div>
+      <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
       {/* ── ONE combined filter bar ── */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex flex-wrap items-center gap-2">
@@ -260,91 +264,146 @@ const ShiftRequest = () => {
             <p className="text-slate-400 text-xs mt-1">Try a different search or date range</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Employee</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Reason</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Submitted</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {visible.map(req => {
-                  const typeCfg = TYPE_CFG[req.type] || TYPE_CFG.leave;
-                  const statusCfg = STATUS_CFG[req.status] || STATUS_CFG.pending;
-                  const TypeIcon = typeCfg.Icon;
-                  return (
-                    <tr key={req._id} className={`transition-all hover:brightness-[0.97] ${statusCfg.row}`}>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${grad(req.employee?.username)} flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden`}>
-                            {req.employee?.profileImage
-                              ? <img src={req.employee.profileImage} alt="" className="w-full h-full object-cover" />
-                              : inits(req.employee?.username || "")}
-                          </div>
-                          <span className="text-sm font-semibold text-slate-800 truncate max-w-[110px]">{req.employee?.username || "—"}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${typeCfg.badge}`}>
-                          <TypeIcon size={10} />{typeCfg.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <p className="text-sm font-medium text-slate-800 truncate max-w-[150px]">{req.currentShift?.shiftTitle || "—"}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{fmtDate(req.currentShift?.shiftStartTime)}</p>
-                        {req.requestedShift && <p className="text-xs text-amber-600 mt-0.5">→ {req.requestedShift.shiftTitle}</p>}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <p className="text-xs text-slate-500 italic max-w-[160px] truncate">{req.reason || <span className="not-italic text-slate-300">—</span>}</p>
-                        {req.managerNote && (
-                          <p className="text-xs text-[#1B3F8B] mt-0.5 flex items-center gap-1 max-w-[160px] truncate">
-                            <MessageSquare size={10} />{req.managerNote}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusCfg.badge}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                          {statusCfg.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <p className="text-xs font-medium text-slate-700">{fmtDate(req.createdAt)}</p>
-                      </td>
-                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                        {req.status === "pending" ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => setModal({ request: req, action: "approve" })}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
-                              <CheckCircle2 size={12} /> Approve
-                            </button>
-                            <button onClick={() => setModal({ request: req, action: "reject" })}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors">
-                              <XCircle size={12} /> Reject
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-300">{req.resolvedAt ? fmtDate(req.resolvedAt) : "—"}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="px-5 py-3 border-t border-slate-50 bg-slate-50/50">
-              <p className="text-xs text-slate-400">
-                Showing <span className="font-semibold text-slate-600">{visible.length}</span> on this page ·{" "}
-                <span className="font-semibold text-slate-600">{totalItems}</span> total · auto-refreshes every 30s
-              </p>
+          <>
+            <div className="md:hidden space-y-3 px-4 pb-2">
+              {visible.map((req) => {
+                const st = req.status || "pending";
+                const statusLabel = st.charAt(0).toUpperCase() + st.slice(1);
+                const badgeCls =
+                  st === "pending"
+                    ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                    : st === "approved"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-600 border border-red-200";
+                return (
+                  <div key={req._id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 pr-3">
+                        <p className="font-semibold text-gray-900 text-sm">
+                          {req.employee?.username || "Employee"}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                          {req.currentShift?.shiftTitle || "Shift"}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${badgeCls}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-3">
+                      Requested:{" "}
+                      {req.createdAt
+                        ? new Date(req.createdAt).toLocaleDateString("en-DE")
+                        : "—"}
+                    </p>
+                    {st === "pending" && (
+                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => setModal({ request: req, action: "approve" })}
+                          className="flex-1 min-h-11 text-sm font-semibold rounded-xl bg-green-600 text-white hover:bg-green-700 transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModal({ request: req, action: "reject" })}
+                          className="flex-1 min-h-11 text-sm font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Employee</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Reason</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Submitted</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {visible.map(req => {
+                    const typeCfg = TYPE_CFG[req.type] || TYPE_CFG.leave;
+                    const statusCfg = STATUS_CFG[req.status] || STATUS_CFG.pending;
+                    const TypeIcon = typeCfg.Icon;
+                    return (
+                      <tr key={req._id} className={`transition-all hover:brightness-[0.97] ${statusCfg.row}`}>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${grad(req.employee?.username)} flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden`}>
+                              {req.employee?.profileImage
+                                ? <img src={req.employee.profileImage} alt="" className="w-full h-full object-cover" />
+                                : inits(req.employee?.username || "")}
+                            </div>
+                            <span className="text-sm font-semibold text-slate-800 truncate max-w-[110px]">{req.employee?.username || "—"}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${typeCfg.badge}`}>
+                            <TypeIcon size={10} />{typeCfg.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <p className="text-sm font-medium text-slate-800 truncate max-w-[150px]">{req.currentShift?.shiftTitle || "—"}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{fmtDate(req.currentShift?.shiftStartTime)}</p>
+                          {req.requestedShift && <p className="text-xs text-amber-600 mt-0.5">→ {req.requestedShift.shiftTitle}</p>}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <p className="text-xs text-slate-500 italic max-w-[160px] truncate">{req.reason || <span className="not-italic text-slate-300">—</span>}</p>
+                          {req.managerNote && (
+                            <p className="text-xs text-[#1B3F8B] mt-0.5 flex items-center gap-1 max-w-[160px] truncate">
+                              <MessageSquare size={10} />{req.managerNote}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusCfg.badge}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                            {statusCfg.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <p className="text-xs font-medium text-slate-700">{fmtDate(req.createdAt)}</p>
+                        </td>
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          {req.status === "pending" ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button onClick={() => setModal({ request: req, action: "approve" })}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
+                                <CheckCircle2 size={12} /> Approve
+                              </button>
+                              <button onClick={() => setModal({ request: req, action: "reject" })}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors">
+                                <XCircle size={12} /> Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-300">{req.resolvedAt ? fmtDate(req.resolvedAt) : "—"}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div className="px-5 py-3 border-t border-slate-50 bg-slate-50/50">
+                <p className="text-xs text-slate-400">
+                  Showing <span className="font-semibold text-slate-600">{visible.length}</span> on this page ·{" "}
+                  <span className="font-semibold text-slate-600">{totalItems}</span> total · auto-refreshes every 30s
+                </p>
+              </div>
+            </div>
+          </>
         )}
         {!loading && !fetchError && (
           <Pagination

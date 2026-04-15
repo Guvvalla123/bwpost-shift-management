@@ -1,5 +1,5 @@
 import { memo } from "react";
-import ShiftRow from "./ShiftRow";
+import ShiftRow, { ShiftMobileCard } from "./ShiftRow";
 
 function ShiftTable({ shifts, onApply, onCancel }) {
   if (shifts.length === 0) {
@@ -16,39 +16,51 @@ function ShiftTable({ shifts, onApply, onCancel }) {
   }
 
   return (
-    <div className="overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Shift Title
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Start Time
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              End Time
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Slots
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-slate-100">
-          {shifts.map((shift) => (
-            <ShiftRow
-              key={shift._id}
-              shift={shift}
-              onApply={onApply}
-              onCancel={onCancel}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="md:hidden space-y-3 px-4">
+        {shifts.map((shift) => (
+          <ShiftMobileCard
+            key={shift._id}
+            shift={shift}
+            onApply={onApply}
+            onCancel={onCancel}
+          />
+        ))}
+      </div>
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Shift Title
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Start Time
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                End Time
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Slots
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-slate-100">
+            {shifts.map((shift) => (
+              <ShiftRow
+                key={shift._id}
+                shift={shift}
+                onApply={onApply}
+                onCancel={onCancel}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

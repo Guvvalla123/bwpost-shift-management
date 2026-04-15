@@ -287,16 +287,37 @@
   }
 
   .fc-toolbar-title {
-    font-size: 16px !important;
+    font-size: 14px !important;
   }
 
   .fc-button {
     font-size: 11px !important;
     padding: 5px 8px !important;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .fc .fc-today-button {
+    width: 100%;
+    margin-left: 0 !important;
+    margin-top: 4px;
   }
 
   .fc-daygrid-day-number {
     font-size: 11px;
     padding: 4px 6px !important;
+  }
+
+  .fc-daygrid-day {
+    min-height: 4.5rem;
+  }
+
+  .fc-daygrid-event .fc-event-title,
+  .fc-event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    display: block;
   }
 }

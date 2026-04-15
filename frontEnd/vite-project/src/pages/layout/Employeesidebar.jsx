@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   LogIn,
@@ -7,6 +7,7 @@ import {
   FileText,
   User,
   LogOut,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
@@ -37,7 +38,7 @@ const NavItem = ({ item, isActive, onNavigate }) => {
     <Link
       to={item.path}
       onClick={() => onNavigate?.()}
-      className={`flex items-center gap-2.5 px-3 py-2 mx-2 rounded-lg text-[11px] transition-colors ${
+      className={`flex items-center gap-2.5 px-4 py-3 mx-2 rounded-lg text-sm transition-colors min-h-[48px] ${
         isActive
           ? "bg-[#1B3F8B] text-white font-semibold"
           : "text-white/45 hover:bg-white/5 hover:text-white/70"
@@ -57,7 +58,6 @@ const NavItem = ({ item, isActive, onNavigate }) => {
 
 const EmployeeSidebar = ({ onNavigate }) => {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const initials = user?.username
@@ -75,6 +75,17 @@ const EmployeeSidebar = ({ onNavigate }) => {
 
   return (
     <aside className="w-64 min-h-full flex flex-col bg-[#0f2042] h-full">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] lg:hidden">
+        <span className="text-white/80 text-xs font-semibold">Menu</span>
+        <button
+          type="button"
+          onClick={() => onNavigate?.()}
+          className="p-2 rounded-lg text-white/70 hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label="Close menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
       <div className="px-4 pt-4 pb-3 border-b border-white/[0.06] shrink-0">
         <div className="flex items-baseline gap-0.5">
           <span className="font-extrabold text-white text-[15px] tracking-tight">BW</span>

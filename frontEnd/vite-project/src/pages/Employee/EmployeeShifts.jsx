@@ -67,11 +67,16 @@ const EmployeeShifts = () => {
   }, [fetchShifts]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f1f5f9] via-[#EFF6FF]/40 to-[#f1f5f9] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#f1f5f9] via-[#EFF6FF]/40 to-[#f1f5f9] px-4 py-4 md:px-6 md:py-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Available Shifts</h1>
-          <p className="text-slate-600">Browse and apply for available shifts</p>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Available Shifts</h1>
+              <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Browse and apply for available shifts</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none mt-2">Scroll down to refresh</p>
         </div>
 
         {loading ? (

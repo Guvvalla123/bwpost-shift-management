@@ -8,7 +8,7 @@ import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
 import { cn } from "@/lib/utils";
 
 const inputClass =
-  "w-full h-11 rounded-lg border border-slate-200 px-3 text-sm text-[#0f2042] bg-white transition-colors outline-none focus:border-[#1B3F8B] focus:ring-2 focus:ring-[#BFDBFE]/50 placeholder:text-slate-400";
+  "w-full h-12 rounded-lg border border-slate-200 px-3 text-base text-[#0f2042] bg-white transition-colors outline-none focus:border-[#1B3F8B] focus:ring-2 focus:ring-[#BFDBFE]/50 placeholder:text-slate-400";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -93,11 +93,11 @@ export default function Login() {
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-gradient-to-br from-[#0f2042]/90 via-[#1B3F8B]/80 to-[#0f2042]/90"
+        className="absolute inset-0 bg-gradient-to-br from-[#0f2042]/90 via-[#1B3F8B]/80 to-[#0f2042]/90 bg-black/40"
         aria-hidden
       />
 
-      <div className="relative z-10 bg-white/95 backdrop-blur-sm rounded-2xl border border-white/20 shadow-2xl shadow-[#0f2042]/40 p-8 w-full max-w-md mx-4">
+      <div className="relative z-10 bg-white rounded-2xl border border-white/20 shadow-2xl shadow-[#0f2042]/40 p-6 sm:p-8 w-full max-w-md mx-auto px-4 sm:px-0 sm:mx-4">
         <div className="text-center mb-6">
           <p className="text-2xl tracking-tight">
             <span className="font-extrabold text-[#1B3F8B]">BW</span>
@@ -109,7 +109,7 @@ export default function Login() {
           <div className="w-10 h-0.5 bg-[#1B3F8B] mx-auto mt-4 mb-6 rounded-full" />
         </div>
 
-        <h1 className="font-bold text-[#0f2042] text-xl mb-1 text-center">
+        <h1 className="font-bold text-[#0f2042] text-xl lg:text-2xl mb-1 text-center">
           Sign in to your account
         </h1>
         <p className="text-slate-400 text-sm mb-6 text-center">
@@ -118,17 +118,19 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="login-email" className="text-[11px] font-bold tracking-wider uppercase text-slate-500 mb-1.5 block">
+            <label htmlFor="login-email" className="text-sm font-medium text-gray-700 mb-1.5 block">
               Email
             </label>
             <input
               id="login-email"
               type="email"
+              inputMode="email"
               name="email"
               value={email}
               onChange={handleChange}
               placeholder="you@company.com"
               autoComplete="email"
+              autoFocus
               className={cn(
                 inputClass,
                 errors.email && "border-red-500 focus:border-red-500 focus:ring-red-500/25"
@@ -141,7 +143,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="login-password" className="text-[11px] font-bold tracking-wider uppercase text-slate-500 mb-1.5 block">
+            <label htmlFor="login-password" className="text-sm font-medium text-gray-700 mb-1.5 block">
               Password
             </label>
             <div className="relative">
@@ -178,7 +180,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-11 bg-[#1B3F8B] hover:bg-[#162d5e] text-white font-bold rounded-lg text-sm flex items-center justify-center gap-2 transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50"
+            className="w-full h-12 text-base font-semibold bg-[#1B3F8B] hover:bg-[#162d5e] text-white rounded-lg flex items-center justify-center gap-2 transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50"
           >
             {loading ? (
               "Signing in…"
@@ -194,7 +196,7 @@ export default function Login() {
         <div className="text-center mt-4">
           <Link
             to="/forgot-password"
-            className="text-[#1B3F8B] text-sm font-semibold hover:text-[#162d5e] hover:underline inline-block"
+            className="text-[#1B3F8B] text-sm font-semibold hover:text-[#162d5e] hover:underline inline-block py-3"
           >
             Forgot password?
           </Link>

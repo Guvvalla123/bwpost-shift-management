@@ -214,10 +214,10 @@ const EmployeeCheckIn = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4 sm:p-6">
+    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 sm:p-6 max-w-7xl mx-auto">
       <div className="w-full max-w-md mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Check In</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Check In</h1>
           <p className="text-base text-slate-500 mt-0.5">
             {user?.username ? `Hi ${user.username} — ` : ""}
             Record attendance for your shift
@@ -339,9 +339,9 @@ const EmployeeCheckIn = () => {
                   type="button"
                   onClick={handleCheckIn}
                   disabled={actionLoading}
-                  className="w-full sm:w-auto min-w-0 flex items-center justify-center gap-2 bg-[#1B3F8B] hover:bg-[#162d5e] text-white rounded-lg px-4 py-3 text-base font-semibold transition-colors disabled:opacity-60 min-h-12"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1B3F8B] hover:bg-[#162d5e] text-white rounded-2xl px-4 h-16 text-lg font-bold shadow-lg transition-colors disabled:opacity-60 min-h-[64px] sm:max-w-sm sm:mx-auto"
                 >
-                  <LogIn className="w-5 h-5 shrink-0" />
+                  <LogIn className="w-6 h-6 shrink-0" />
                   Check In
                 </button>
               )}

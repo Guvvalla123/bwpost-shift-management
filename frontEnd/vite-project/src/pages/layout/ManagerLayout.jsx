@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { LogOut, Settings, User, Bell, ChevronDown, CheckCheck, AlertTriangle, Info, CheckCircle2, Zap, Menu, X } from "lucide-react";
 import Managersidebar from "./Managersidebar";
+import BottomNav from "@/components/ui/BottomNav";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 import { getDisplayName } from "@/utils/displayName";
@@ -73,7 +74,7 @@ const NotificationBell = () => {
       if (built.length === 0) {
         built.push({
           id: "sys-ok",
-          text: "All shifts are fully staffed ✓",
+          text: "All shifts are fully staffed",
           time: "Now",
         });
       }
@@ -124,7 +125,7 @@ const NotificationBell = () => {
       <button
         type="button"
         onClick={handleOpen}
-        className="relative w-9 h-9 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-center cursor-pointer text-[#1B3F8B] hover:bg-[#dbeafe] transition"
+        className="relative min-h-[44px] min-w-[44px] p-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg flex items-center justify-center cursor-pointer text-[#1B3F8B] hover:bg-[#dbeafe] transition"
         aria-label="Notifications"
       >
         <Bell size={16} />
@@ -253,15 +254,19 @@ const ManagerLayout = () => {
 
       {/* ── Mobile sidebar overlay ── */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
       )}
 
       {/* ── Sidebar ─────────────────────────────────────────────── */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-30 w-64 flex flex-col h-full shrink-0
-          transform transition-transform duration-200 ease-in-out
-          lg:relative lg:translate-x-0
+          fixed inset-y-0 left-0 z-40 w-64 flex flex-col h-full shrink-0
+          transform transition-transform duration-300 ease-in-out
+          lg:relative lg:translate-x-0 lg:z-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -272,20 +277,20 @@ const ManagerLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* ── Top Navbar ──────────────────────────────────────── */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-10">
+        <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
 
           {/* Hamburger + Page title */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSidebarOpen((o) => !o)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0"
+              className="lg:hidden -ml-2 p-3 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0 min-h-[48px] min-w-[48px]"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           <div className="min-w-0">
-            <h2 className="font-bold text-[#0f2042] text-sm truncate">{pageTitle}</h2>
+            <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[150px] sm:max-w-none">{pageTitle}</h2>
             <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
               Manager Panel / {pageTitle}
             </p>
@@ -370,9 +375,11 @@ const ManagerLayout = () => {
         </header>
 
         {/* ── Page content ────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto min-h-0">
+        <main className="flex-1 overflow-y-auto min-h-0 pb-20 lg:pb-0">
           <Outlet />
         </main>
+
+        <BottomNav />
 
       </div>
     </div>

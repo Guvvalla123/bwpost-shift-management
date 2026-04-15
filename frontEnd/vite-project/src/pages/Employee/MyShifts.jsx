@@ -208,14 +208,24 @@ const MyShifts = () => {
         </div>
     );
 
+    const managerLabel = (shift) => {
+        const m = shift?.manager || shift?.managerId;
+        if (!m) return null;
+        if (typeof m === "object") return m.username || m.email || null;
+        return null;
+    };
+
     return (
-        <div className="p-6 md:p-8 space-y-6">
+        <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-6 max-w-7xl mx-auto">
 
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">My Shifts</h1>
-                <p className="text-sm text-slate-500 mt-0.5">All shifts you are assigned to</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+                <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Shifts</h1>
+                    <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">All shifts you are assigned to</p>
+                </div>
             </div>
+            <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
             {/* Filter tabs */}
             <div className="flex gap-2 flex-wrap">
@@ -260,64 +270,159 @@ const MyShifts = () => {
                     <p className="text-slate-500 font-medium">No {filter !== "all" ? filter : ""} shifts on this page</p>
                 </div>
             ) : (
-                <div className="space-y-3">
-                    {filtered.map(shift => {
-                        const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
-                        const cfg = STATUS_CFG[status];
-
-                        return (
-                            <div key={shift._id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex items-start gap-4 flex-1 min-w-0">
-                                        {/* Date box */}
-                                        <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col items-center justify-center shrink-0">
-                                            <p className="text-emerald-600 text-xs font-semibold uppercase">{new Date(shift.shiftStartTime).toLocaleDateString(undefined, { month: "short" })}</p>
-                                            <p className="text-emerald-800 text-xl font-bold leading-none">{new Date(shift.shiftStartTime).getDate()}</p>
-                                        </div>
-
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="text-base font-bold text-slate-800 truncate">{shift.shiftTitle}</h3>
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold shrink-0 ${cfg.cls}`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                                    {cfg.label}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-4 text-sm text-slate-500">
-                                                <span className="flex items-center gap-1"><Calendar size={13} />{fmtDate(shift.shiftStartTime)}</span>
-                                                <span className="flex items-center gap-1"><Clock size={13} />{fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}</span>
-                                            </div>
-                                            {shift.shiftNotes && (
-                                                <p className="text-xs text-slate-400 mt-1.5 truncate">{shift.shiftNotes}</p>
-                                            )}
-                                        </div>
+                <>
+                    <div className="md:hidden space-y-3">
+                        {filtered.map((shift) => {
+                            const now = new Date();
+                            const start = new Date(shift.shiftStartTime);
+                            const end = new Date(shift.shiftEndTime);
+                            const timelineStatus =
+                                now < start ? "Upcoming" : now > end ? "Completed" : "Ongoing";
+                            const badgeCls =
+                                timelineStatus === "Upcoming"
+                                    ? "bg-blue-50 text-blue-700 border border-blue-100"
+                                    : timelineStatus === "Ongoing"
+                                        ? "bg-green-50 text-green-700 border border-green-100"
+                                        : "bg-gray-100 text-gray-600";
+                            const apiStatus = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+                            return (
+                                <div
+                                    key={shift._id}
+                                    className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+                                >
+                                    <div className="flex justify-between items-start mb-3">
+                                        <p className="font-semibold text-gray-900 text-sm flex-1 pr-3 leading-tight">
+                                            {shift.shiftTitle}
+                                        </p>
+                                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${badgeCls}`}>
+                                            {timelineStatus}
+                                        </span>
                                     </div>
-
-                                    {/* Actions (only for upcoming shifts) */}
-                                    {status === "upcoming" && (
-                                        <div className="flex gap-2 shrink-0">
+                                    <div className="space-y-1.5 text-xs text-gray-600">
+                                        <div className="flex gap-2">
+                                            <span className="text-gray-400 w-10">Start</span>
+                                            <span className="font-medium">
+                                                {start.toLocaleString("en-DE", {
+                                                    day: "2-digit",
+                                                    month: "short",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <span className="text-gray-400 w-10">End</span>
+                                            <span className="font-medium">
+                                                {end.toLocaleString("en-DE", {
+                                                    day: "2-digit",
+                                                    month: "short",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </span>
+                                        </div>
+                                        {managerLabel(shift) && (
+                                            <p className="text-gray-500 pt-1">
+                                                Manager:{" "}
+                                                <span className="font-medium text-gray-800">{managerLabel(shift)}</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                    {apiStatus === "upcoming" && (
+                                        <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
                                             <button
+                                                type="button"
                                                 onClick={() => setModal({ shift, type: "shift_change" })}
-                                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors"
+                                                className="w-full min-h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-colors inline-flex items-center justify-center gap-2"
                                             >
-                                                <ArrowRightLeft size={13} />
-                                                Change
+                                                <ArrowRightLeft size={16} />
+                                                Change shift
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => setModal({ shift, type: "leave" })}
-                                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+                                                className="w-full min-h-11 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors inline-flex items-center justify-center gap-2"
                                             >
-                                                <LeaveIcon size={13} />
-                                                Leave
+                                                <LeaveIcon size={16} />
+                                                Request leave
                                             </button>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="hidden md:block overflow-x-auto bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <table className="w-full min-w-full">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/50">
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Start</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">End</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Manager</th>
+                                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filtered.map((shift) => {
+                                    const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+                                    const cfg = STATUS_CFG[status];
+                                    return (
+                                        <tr key={shift._id} className="hover:bg-slate-50/60">
+                                            <td className="px-6 py-4">
+                                                <p className="text-sm font-semibold text-slate-900">{shift.shiftTitle}</p>
+                                                {shift.shiftNotes && (
+                                                    <p className="text-xs text-slate-400 truncate max-w-xs mt-0.5">{shift.shiftNotes}</p>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.cls}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                                {fmtDate(shift.shiftStartTime)} {fmtTime(shift.shiftStartTime)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                                {fmtTime(shift.shiftEndTime)}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-slate-600">
+                                                {managerLabel(shift) || "—"}
+                                            </td>
+                                            <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                {status === "upcoming" ? (
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setModal({ shift, type: "shift_change" })}
+                                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100"
+                                                        >
+                                                            <ArrowRightLeft size={13} />
+                                                            Change
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setModal({ shift, type: "leave" })}
+                                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100"
+                                                        >
+                                                            <LeaveIcon size={13} />
+                                                            Leave
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-slate-300">—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
 
             {!loading && !fetchError && shifts.length > 0 && (

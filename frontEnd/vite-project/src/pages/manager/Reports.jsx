@@ -16,7 +16,7 @@ const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7"
 
 /* ── Stat Card ──────────────────────────────────────────────────── */
 const StatCard = ({ icon: Icon, label, value, sub, color }) => (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
             <Icon size={20} className="text-white" />
         </div>
@@ -217,7 +217,7 @@ const Reports = () => {
 
     if (loading) {
         return (
-            <div className="p-6 space-y-4">
+            <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 pb-20 lg:pb-6 max-w-7xl mx-auto space-y-4">
                 <SkeletonCard lines={3} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <SkeletonCard lines={8} />
@@ -228,41 +228,41 @@ const Reports = () => {
     }
 
     return (
-        <div className="p-6 md:p-8 space-y-6">
+        <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 pb-20 lg:pb-6 space-y-4 md:space-y-6 max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Reports & Analytics</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Workforce performance overview</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-900">Reports & Analytics</h1>
+                    <p className="text-sm text-slate-500 mt-0.5 hidden sm:block">Workforce performance overview</p>
                 </div>
                 <button
                     type="button"
                     onClick={handleExportCsv}
                     disabled={exporting}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-60 disabled:pointer-events-none"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 h-12 text-base font-semibold bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-60 disabled:pointer-events-none"
                 >
                     <Download size={15} />
                     {exporting ? "Exporting..." : "Export Report"}
                 </button>
             </div>
 
-            <div className="flex gap-3 mb-6 flex-wrap">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label className="text-sm text-gray-600">From</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
                     <input
                         type="date"
                         value={dateRange.start}
                         onChange={(e) => setDateRange((p) => ({ ...p, start: e.target.value }))}
-                        className="block border rounded-lg px-3 py-2 text-sm mt-1 border-slate-200"
+                        className="w-full h-12 px-3 rounded-lg border text-base border-slate-200"
                     />
                 </div>
                 <div>
-                    <label className="text-sm text-gray-600">To</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                     <input
                         type="date"
                         value={dateRange.end}
                         onChange={(e) => setDateRange((p) => ({ ...p, end: e.target.value }))}
-                        className="block border rounded-lg px-3 py-2 text-sm mt-1 border-slate-200"
+                        className="w-full h-12 px-3 rounded-lg border text-base border-slate-200"
                     />
                 </div>
             </div>
@@ -274,7 +274,7 @@ const Reports = () => {
             )}
 
             {/* KPI Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard icon={CalendarDays} label="Total Shifts" value={summaryStats.totalShifts} sub="All time" color="bg-gradient-to-br from-[#2563EB] to-blue-600" />
                 <StatCard icon={Users} label="Total Employees" value={summaryStats.totalEmployees} sub="Registered staff" color="bg-gradient-to-br from-emerald-500 to-teal-600" />
                 <StatCard icon={CheckCircle2} label="Completed" value={summaryStats.completed} sub="Past shifts" color="bg-gradient-to-br from-blue-500 to-cyan-600" />
@@ -284,9 +284,10 @@ const Reports = () => {
             {/* Row: Bar Chart + Pie Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Monthly Shifts Bar Chart */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 max-w-full overflow-hidden">
                     <Section title="Shifts Per Month (Last 6 Months)">
-                        <ResponsiveContainer width="100%" height={220}>
+                        <div className="h-48 sm:h-64 w-full max-w-full">
+                        <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={monthlyData} barCategoryGap="40%">
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
@@ -295,13 +296,15 @@ const Reports = () => {
                                 <Bar dataKey="shifts" name="Shifts" fill="#6366f1" radius={[6, 6, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
+                        </div>
                     </Section>
                 </div>
 
                 {/* Status Pie */}
                 <Section title="Shift Status Breakdown">
                     {statusData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={220}>
+                        <div className="h-48 sm:h-64 w-full max-w-full">
+                        <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie data={statusData} cx="50%" cy="45%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
                                     {statusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -310,8 +313,9 @@ const Reports = () => {
                                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                             </PieChart>
                         </ResponsiveContainer>
+                        </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-[220px] text-slate-400">
+                        <div className="flex flex-col items-center justify-center h-48 sm:h-64 text-slate-400">
                             <AlertCircle size={32} className="mb-2 opacity-40" />
                             <p className="text-sm">No shift data yet</p>
                         </div>

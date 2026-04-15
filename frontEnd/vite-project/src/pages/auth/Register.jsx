@@ -9,7 +9,7 @@ import { getApiErrorMessage, getApiFieldErrors, unwrapSuccessData } from "@/util
 import { cn } from "@/lib/utils";
 
 const inputBase =
-  "h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100 dark:placeholder:text-slate-500";
+  "h-12 w-full rounded-xl border border-gray-300 bg-white px-3 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1B3F8B] dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100 dark:placeholder:text-slate-500";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -132,7 +132,7 @@ const Register = () => {
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center px-4 py-12 sm:px-6">
+        <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center px-4 sm:px-0 py-12 pb-20 lg:pb-12">
           {!inviteToken && (
             <div className="mb-8 text-center">
               <p className="text-xs font-semibold uppercase tracking-widest text-[#1B3F8B] dark:text-[#93C5FD]">
@@ -236,11 +236,13 @@ const Register = () => {
                       <input
                         id="register-username"
                         type="text"
+                        inputMode="text"
                         name="username"
                         value={username}
                         onChange={handleChange}
                         placeholder="jane.smith"
                         autoComplete="username"
+                        autoFocus={showInviteForm}
                         disabled={!showInviteForm}
                         className={cn(
                           inputBase,
@@ -262,6 +264,7 @@ const Register = () => {
                       <input
                         id="register-email"
                         type="email"
+                        inputMode="email"
                         name="email"
                         value={email}
                         onChange={handleChange}
@@ -324,7 +327,7 @@ const Register = () => {
                     <button
                       type="submit"
                       disabled={loading || !showInviteForm}
-                      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#1B3F8B] text-base font-medium text-white shadow-md shadow-[#1B3F8B]/20 transition hover:bg-[#162d5e] disabled:pointer-events-none disabled:opacity-50 dark:shadow-slate-900/40"
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] text-base font-semibold text-white shadow-md shadow-[#1B3F8B]/20 transition hover:bg-[#162d5e] disabled:pointer-events-none disabled:opacity-50 dark:shadow-slate-900/40"
                     >
                       {loading ? (
                         <>
@@ -339,7 +342,7 @@ const Register = () => {
                       )}
                     </button>
 
-                    <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+                    <p className="py-3 block text-center text-sm text-slate-600 dark:text-slate-400">
                       Already have an account?{" "}
                       <Link
                         to="/login"
