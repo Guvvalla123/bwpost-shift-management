@@ -60,6 +60,7 @@ const Reports = () => {
     const [employeeTotal, setEmployeeTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [dateRange, setDateRange] = useState({
         start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         end: new Date().toISOString().split("T")[0],
@@ -177,30 +178,40 @@ const Reports = () => {
         return { monthlyData, statusData, topEmployees };
     }, [shifts, employees]);
 
-    const csvData = useMemo(() => {
-        if (!shifts.length) return null;
-        const header = "Shift Title,Start Time,End Time,Slots Available,Employees Assigned,Status\n";
-        const now = Date.now();
-        const rows = shifts.map(s => {
-            const start = new Date(s.shiftStartTime);
-            const end = new Date(s.shiftEndTime);
-            const status = end < now ? "Completed" : start <= now ? "Ongoing" : "Upcoming";
-            const title = `"${(s.shiftTitle || "").replace(/"/g, '""')}"`;
-            return `${title},${start.toISOString()},${end.toISOString()},${s.slotsAvailable || 0},${s.acceptedEmployees?.length || 0},${status}`;
-        }).join("\n");
-        return { header, rows };
-    }, [shifts, employees]);
-
-    const exportCSV = useCallback(() => {
-        if (!csvData) return;
-        const blob = new Blob([csvData.header + csvData.rows], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `shift-report-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }, [csvData]);
+    const handleExportCsv = useCallback(async () => {
+        try {
+            setExporting(true);
+            const response = await API.get(
+                "/api/manager/shifts/export/csv",
+                { responseType: "blob" }
+            );
+            const disposition =
+                response.headers["content-disposition"];
+            let filename = "report.csv";
+            if (disposition) {
+                const match = disposition.match(
+                    /filename="([^"]+)"/
+                );
+                if (match) filename = match[1];
+            }
+            const url = window.URL.createObjectURL(
+                new Blob([response.data])
+            );
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Report exported successfully");
+        } catch (err) {
+            toast.error("Failed to export report");
+            console.error("CSV export error:", err);
+        } finally {
+            setExporting(false);
+        }
+    }, []);
 
     const { monthlyData, statusData, topEmployees } = chartData;
 
@@ -225,11 +236,13 @@ const Reports = () => {
                     <p className="text-sm text-slate-500 mt-0.5">Workforce performance overview</p>
                 </div>
                 <button
-                    onClick={exportCSV}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all"
+                    type="button"
+                    onClick={handleExportCsv}
+                    disabled={exporting}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-60 disabled:pointer-events-none"
                 >
                     <Download size={15} />
-                    Export Report
+                    {exporting ? "Exporting..." : "Export Report"}
                 </button>
             </div>
 

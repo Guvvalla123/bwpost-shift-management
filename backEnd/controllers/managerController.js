@@ -1,7 +1,72 @@
 const { sendSuccess } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
+const { log: auditLog } = require("../utils/auditLog");
+const {
+  objectsToCsv,
+  generateSafeFilename,
+  setSecureCsvHeaders,
+  filterAllowedFields,
+  getAllowedFields,
+  isRoleAllowedToExport,
+} = require("../utils/csvSecurity");
 const shiftService = require("../services/shiftService");
 const teamService = require("../services/teamService");
+const Shift = require("../models/shiftModel");
+
+/**
+ * GET /api/manager/shifts/export/csv
+ * Export shifts as CSV with sanitization, headers, and audit logging.
+ * Restricted to admin and manager roles.
+ */
+exports.exportShiftsCsv = asyncHandler(async (req, res) => {
+  const { role, id: userId } = req.user;
+
+  if (!isRoleAllowedToExport(role, "shifts")) {
+    throw new AppError(
+      "You do not have permission to export data",
+      403
+    );
+  }
+
+  const allowedFields = getAllowedFields(role, "shifts");
+  if (!allowedFields.length) {
+    throw new AppError(
+      "You do not have permission to export data",
+      403
+    );
+  }
+
+  const query =
+    role === "manager" ? { createdByManager: userId } : {};
+
+  const shifts = await Shift.find(query)
+    .select(allowedFields.join(" "))
+    .lean();
+
+  const filteredShifts = shifts.map((shift) =>
+    filterAllowedFields(shift, allowedFields)
+  );
+
+  const filename = generateSafeFilename("shifts-report");
+  setSecureCsvHeaders(res, filename);
+  const csv = objectsToCsv(allowedFields, filteredShifts);
+
+  auditLog(
+    "csv.export.shifts",
+    req,
+    "Shift",
+    null,
+    {
+      recordCount: filteredShifts.length,
+      filename,
+      allowedFields,
+      exportedAt: new Date().toISOString(),
+    }
+  );
+
+  return res.status(200).send(csv);
+});
 
 exports.getAllShiftsPublic = asyncHandler(async (req, res) => {
   const { message, data, pagination } = await shiftService.getAllShiftsPublic(req.query);

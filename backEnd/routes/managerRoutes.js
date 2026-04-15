@@ -33,6 +33,7 @@ const {
     removeEmployeeFromShift,
     assignEmployeeToShift,
     getEmployeeAttendanceHistory,
+    exportShiftsCsv,
 } = require('../controllers/managerController');
 
 // Authenticated (any role): limited upcoming shifts for internal use
@@ -42,6 +43,12 @@ router.get("/public", auth, getAllShiftsPublic);
 router.post('/', auth, authorize('admin', 'manager'), validate(createShiftSchema), createShift);
 router.get('/', auth, authorize('admin', 'manager'), validate.validateQuery(getShiftsQuerySchema), getAllShiftsManager);
 router.get('/dashboard/data', auth, authorize('admin', 'manager'), require('../controllers/dashboardController').getDashboardData);
+
+/**
+ * GET /api/manager/shifts/export/csv
+ * Secure CSV export (must be registered before /:shiftId)
+ */
+router.get('/export/csv', auth, authorize('admin', 'manager'), exportShiftsCsv);
 
 // MANAGER ROUTES - Employees (admin can also access)
 router.post('/employees', auth, authorize('admin', 'manager'), validate(createEmployeeSchema), createEmployee);

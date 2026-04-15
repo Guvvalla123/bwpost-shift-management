@@ -12,6 +12,7 @@ credentials.txt
 
 # Interview prep (local only; may contain sample credentials)
 INTERVIEW_REFERENCE.md
+CSV_SECURITY_REFERENCE.txt
 
 # Build output
 dist/
@@ -27,3 +28,13 @@ npm-debug.log*
 .idea
 *.jpg
 *.png
+
+COMMANDS_REFERENCE.txt
+
+# Google service account key (NEVER commit)
+google-service-account.json
+**/google-service-account.json
+
+# Backup temp files
+backEnd/backup-temp/
+*.enc

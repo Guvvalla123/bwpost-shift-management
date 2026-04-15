@@ -8,6 +8,7 @@
     "dev": "node scripts/seedManagerEmployee.js && nodemon server.js",
     "seed:admin": "node scripts/seedAdmin.js",
     "seed:dev": "node scripts/seedManagerEmployee.js",
+    "backup": "node scripts/backupDatabase.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
