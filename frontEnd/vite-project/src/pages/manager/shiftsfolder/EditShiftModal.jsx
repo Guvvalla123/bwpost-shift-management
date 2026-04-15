@@ -28,13 +28,20 @@ const EditShiftModal = ({ editingShift, setEditingShift, onEditChange, onUpdateH
   const endVal = editingShift.shiftEndTime?.slice(0, 16) ?? "";
   const handleDT = (name) => (val) => onEditChange({ target: { name, value: val } });
 
+  const isEndBeforeStart =
+    endVal &&
+    startVal &&
+    new Date(endVal) <= new Date(startVal);
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4 bg-slate-900/60 backdrop-blur-sm"
-      onClick={() => setEditingShift(null)}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setEditingShift(null);
+      }}
     >
       <div
-        className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-2xl shadow-2xl md:my-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+        className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-t-2xl md:rounded-2xl shadow-2xl md:my-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
@@ -83,12 +90,19 @@ const EditShiftModal = ({ editingShift, setEditingShift, onEditChange, onUpdateH
               />
             </Field>
             <Field label="End Date & Time">
-              <DateTimePicker
-                value={endVal}
-                onChange={handleDT("shiftEndTime")}
-                placeholder="Pick end"
-                accentColor="amber"
-              />
+              <div className={`rounded-xl ${isEndBeforeStart ? "ring-2 ring-red-500/40" : ""}`}>
+                <DateTimePicker
+                  value={endVal}
+                  onChange={handleDT("shiftEndTime")}
+                  placeholder="Pick end"
+                  accentColor="amber"
+                />
+              </div>
+              {isEndBeforeStart && (
+                <p className="text-xs text-red-500 mt-1">
+                  End time must be after start time
+                </p>
+              )}
             </Field>
           </div>
 

@@ -94,7 +94,12 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
   const st = STATUS[status];
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white h-full w-full sm:w-[420px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -210,7 +215,7 @@ const EmployeeDashboard = () => {
   if (loading) {
     return (
       <div className="p-6 space-y-6 bg-[#f1f5f9] min-h-full">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <SkeletonCard key={i} lines={2} />
           ))}
@@ -275,11 +280,11 @@ const EmployeeDashboard = () => {
               {getDisplayName(user, "Employee")}
             </p>
             <p className="text-white/40 text-xs mt-2 hidden sm:block">{todayStr} · Employee Panel</p>
-            <div className="flex gap-2 overflow-x-auto pb-2 mt-5 scrollbar-hide sm:flex-wrap sm:overflow-visible">
+            <div className="flex flex-col sm:flex-row gap-2 overflow-x-auto pb-2 mt-5 scrollbar-hide sm:flex-wrap sm:overflow-visible">
               <button
                 type="button"
                 onClick={() => navigate("/employee/AllShifts")}
-                className="bg-white text-[#1B3F8B] font-semibold text-sm px-4 py-2 rounded-lg hover:bg-slate-50 transition flex-shrink-0 whitespace-nowrap"
+                className="w-full sm:w-auto h-11 px-6 text-sm font-semibold rounded-xl border-2 border-white text-white hover:bg-white hover:text-[#1B3F8B] transition-colors flex-shrink-0 whitespace-nowrap"
               >
                 Available Shifts
               </button>

@@ -7,7 +7,7 @@ import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/
 import {
   ClipboardList, CheckCircle2, XCircle, Calendar,
   ArrowRightLeft, LogOut as LeaveIcon, Search,
-  ChevronDown, X, Loader2, MessageSquare,
+  X, Loader2, MessageSquare,
 } from "lucide-react";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -51,7 +51,12 @@ const ResolveModal = ({ request, action, onClose, onSuccess }) => {
 
   const isApprove = action === "approve";
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:my-8" onClick={e => e.stopPropagation()}>
         <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
         <div className={`px-6 py-5 rounded-t-2xl md:rounded-t-2xl ${isApprove ? "bg-gradient-to-r from-emerald-600 to-teal-600" : "bg-gradient-to-r from-red-600 to-rose-600"}`}>
@@ -170,6 +175,16 @@ const ShiftRequest = () => {
     }),
     [ranged, debouncedSearch]);
 
+  const openResolveModal = (req, action) => {
+    const ok = window.confirm(
+      action === "approve"
+        ? "Approve this shift request?"
+        : "Reject this shift request?"
+    );
+    if (!ok) return;
+    setModal({ request: req, action });
+  };
+
   return (
     <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-5 max-w-7xl mx-auto">
 
@@ -183,57 +198,72 @@ const ShiftRequest = () => {
       <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
       {/* ── ONE combined filter bar ── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex flex-wrap items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex flex-col gap-3">
 
-        {/* Date range */}
-        <div className="flex items-center gap-1.5">
-          <Calendar size={13} className="text-slate-400" />
-          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-slate-50" />
-          <ChevronDown size={12} className="text-slate-300 -rotate-90" />
-          <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-slate-50" />
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 w-full items-center">
+          <div className="flex items-center gap-2 min-w-0">
+            <Calendar size={14} className="text-slate-400 shrink-0" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
+              className="w-full h-11 text-sm border border-gray-300 rounded-xl px-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB]"
+            />
+          </div>
+          <span className="hidden sm:flex items-center justify-center text-gray-400 text-sm px-1">to</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
+            className="w-full h-11 text-sm border border-gray-300 rounded-xl px-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB]"
+          />
         </div>
 
-        <div className="h-5 w-px bg-slate-200 mx-1" />
-
-        {/* Summary counts inline */}
-        <div className="flex items-center gap-3 text-xs font-medium">
-          <span className="text-slate-500"><span className="font-bold text-slate-800">{totalItems}</span> total</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-slate-500">Total <span className="font-bold text-slate-800">{totalItems}</span></span>
         </div>
 
-        <div className="h-5 w-px bg-slate-200 mx-1" />
-
-        {/* Type chips */}
-        {[["all", "All"], ["leave", "Leave"], ["shift_change", "Shift Change"]].map(([k, l]) => (
-          <button key={k} onClick={() => { setTypeFilter(k); setCurrentPage(1); }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 items-center">
+          {[["all", "All"], ["leave", "Leave"], ["shift_change", "Shift Change"]].map(([k, l]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => { setTypeFilter(k); setCurrentPage(1); }}
+              className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap
                         ${typeFilter === k ? "bg-[#1B3F8B] text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-          >{l}</button>
-        ))}
+            >{l}</button>
+          ))}
+        </div>
 
-        <div className="h-5 w-px bg-slate-200 mx-1" />
-
-        {/* Status chips */}
-        {[["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]].map(([k, l]) => (
-          <button key={k} onClick={() => { setStatusFilter(k); setCurrentPage(1); }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 items-center">
+          {[["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]].map(([k, l]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => { setStatusFilter(k); setCurrentPage(1); }}
+              className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap
                         ${statusFilter === k ? "bg-[#1B3F8B] text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-          >
-            {l}
-            <span className={`text-[10px] font-bold ${statusFilter === k ? "text-white/70" : "text-slate-400"}`}>
-              {statusFilter === k ? totalItems : ""}
-            </span>
-          </button>
-        ))}
-
-        {/* Search — pushed to right */}
-        <div className="relative ml-auto">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-            placeholder="Search…"
-            className="pl-7 pr-7 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-slate-50 w-44" />
-          {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={11} /></button>}
+            >
+              {l}
+              <span className={`text-[10px] font-bold ${statusFilter === k ? "text-white/70" : "text-slate-400"}`}>
+                {statusFilter === k ? totalItems : ""}
+              </span>
+            </button>
+          ))}
+          <div className="relative ml-auto min-w-[8rem] flex-shrink-0">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              placeholder="Search…"
+              className="w-full pl-7 pr-7 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-slate-50"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X size={11} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -300,14 +330,14 @@ const ShiftRequest = () => {
                       <div className="flex gap-2 pt-3 border-t border-gray-100">
                         <button
                           type="button"
-                          onClick={() => setModal({ request: req, action: "approve" })}
+                          onClick={() => openResolveModal(req, "approve")}
                           className="flex-1 min-h-11 text-sm font-semibold rounded-xl bg-green-600 text-white hover:bg-green-700 transition-colors"
                         >
                           Approve
                         </button>
                         <button
                           type="button"
-                          onClick={() => setModal({ request: req, action: "reject" })}
+                          onClick={() => openResolveModal(req, "reject")}
                           className="flex-1 min-h-11 text-sm font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
                         >
                           Reject
@@ -378,12 +408,18 @@ const ShiftRequest = () => {
                         <td className="px-5 py-3.5 text-right whitespace-nowrap">
                           {req.status === "pending" ? (
                             <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => setModal({ request: req, action: "approve" })}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
+                              <button
+                                type="button"
+                                onClick={() => openResolveModal(req, "approve")}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
+                              >
                                 <CheckCircle2 size={12} /> Approve
                               </button>
-                              <button onClick={() => setModal({ request: req, action: "reject" })}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors">
+                              <button
+                                type="button"
+                                onClick={() => openResolveModal(req, "reject")}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+                              >
                                 <XCircle size={12} /> Reject
                               </button>
                             </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Settings, User, ChevronDown, ClipboardList, Menu, X } from "lucide-react";
+import { LogOut, User, ChevronDown, ClipboardList, Menu, X, Briefcase } from "lucide-react";
 import EmployeeSidebar from "./Employeesidebar";
 import BottomNav from "@/components/ui/BottomNav";
 import { useAuth } from "@/context/AuthContext";
@@ -22,6 +22,15 @@ const PAGE_TITLES = {
   "/employee/profile": "My Profile",
 };
 
+const SHORT_PAGE_TITLES_BY_PATH = {
+  "/employee/dashboard": "Home",
+  "/employee/checkin": "Check In",
+  "/employee/AllShifts": "Shifts",
+  "/employee/myshifts": "Shifts",
+  "/employee/requests": "Requests",
+  "/employee/profile": "Profile",
+};
+
 /* ══════════════════════════════════════════════════════════
    EMPLOYEE LAYOUT
 ══════════════════════════════════════════════════════════ */
@@ -35,29 +44,29 @@ const EmployeeLayout = () => {
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => setProfileOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, []);
+
   const pageTitle = PAGE_TITLES[pathname] ?? "Employee Portal";
+  const shortPageTitle = SHORT_PAGE_TITLES_BY_PATH[pathname] ?? pageTitle;
 
   const initials = user?.username
     ? user.username.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "E";
-
-  /* Close dropdown on outside click */
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const handleLogout = () => {
     logout();
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#f1f5f9]">
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
@@ -97,7 +106,10 @@ const EmployeeLayout = () => {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="min-w-0">
-              <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[150px] sm:max-w-none">{pageTitle}</h2>
+              <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[160px] sm:max-w-none">
+                <span className="sm:hidden">{shortPageTitle}</span>
+                <span className="hidden sm:inline">{pageTitle}</span>
+              </h2>
               <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
                 Employee Portal / {pageTitle}
               </p>
@@ -118,10 +130,17 @@ const EmployeeLayout = () => {
 
             <div className="w-px h-6 bg-slate-200 hidden sm:block" />
 
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative z-40" ref={dropdownRef}>
+              {profileOpen && (
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setProfileOpen(false)}
+                  aria-hidden
+                />
+              )}
               <button
                 type="button"
-                onClick={() => setProfileOpen(p => !p)}
+                onClick={() => setProfileOpen((p) => !p)}
                 className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-2 min-h-[44px] cursor-pointer hover:bg-[#dbeafe] transition focus:outline-none"
               >
                 <div className="w-6 h-6 rounded-full bg-[#1B3F8B] flex items-center justify-center text-white text-[9px] font-bold overflow-hidden shrink-0">
@@ -141,7 +160,16 @@ const EmployeeLayout = () => {
 
               {/* Dropdown menu */}
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div
+                  className="
+                    absolute right-0 top-full mt-2
+                    w-64 max-w-[calc(100vw-2rem)]
+                    bg-white rounded-2xl shadow-xl
+                    border border-gray-100
+                    z-40 overflow-hidden
+                    py-2 animate-in fade-in zoom-in-95 duration-150
+                  "
+                >
 
                   <div className="px-4 py-3 border-b border-slate-100">
                     <div className="flex items-center gap-3 mb-1">
@@ -164,10 +192,18 @@ const EmployeeLayout = () => {
                   <div className="py-1">
                     <button
                       type="button"
-                      onClick={() => { navigate("/employee/myshifts"); setProfileOpen(false); }}
+                      onClick={() => { navigate("/employee/profile"); setProfileOpen(false); }}
                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
                       <User size={15} className="text-slate-400" />
+                      My Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { navigate("/employee/myshifts"); setProfileOpen(false); }}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      <Briefcase size={15} className="text-slate-400" />
                       My Shifts
                     </button>
 
@@ -198,7 +234,7 @@ const EmployeeLayout = () => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto min-h-0 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 lg:pb-0">
           <Outlet />
         </main>
 

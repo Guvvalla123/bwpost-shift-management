@@ -8,6 +8,13 @@ const formatDateTime = (iso) =>
     minute: "2-digit",
   });
 
+const secondaryBtnCls = `
+  w-full min-h-11 text-sm font-medium
+  rounded-xl border border-gray-300
+  text-gray-600 bg-white
+  hover:bg-gray-50 transition-colors
+`;
+
 export function ShiftMobileCard({ shift, onApply, onCancel }) {
   const [status, setStatus] = useState("none");
 
@@ -20,17 +27,19 @@ export function ShiftMobileCard({ shift, onApply, onCancel }) {
     }
   };
 
-  const handleCancelClick = async () => {
-    setStatus("cancelled");
+  const handleSecondaryClick = async () => {
+    if (status !== "applied") return;
+    if (!window.confirm("Withdraw your application for this shift?")) return;
+    setStatus("withdrawn");
     try {
       await onCancel(shift._id);
     } catch {
-      setStatus("none");
+      setStatus("applied");
     }
   };
 
   const applied = status === "applied";
-  const cancelled = status === "cancelled";
+  const withdrawn = status === "withdrawn";
   const slots = shift.slotsAvailable ?? 0;
 
   return (
@@ -83,15 +92,13 @@ export function ShiftMobileCard({ shift, onApply, onCancel }) {
       </button>
       <button
         type="button"
-        onClick={handleCancelClick}
-        disabled={cancelled}
-        className={`mt-2 w-full min-h-11 text-sm font-semibold rounded-xl border transition-colors ${
-          cancelled
-            ? "bg-red-50 text-red-600 border-red-200 cursor-not-allowed"
-            : "bg-red-600 text-white border-red-600 hover:bg-red-700"
+        onClick={handleSecondaryClick}
+        disabled={withdrawn}
+        className={`mt-2 ${secondaryBtnCls} ${
+          withdrawn ? "opacity-50 cursor-not-allowed" : ""
         }`}
       >
-        {cancelled ? "Cancelled" : "Cancel"}
+        {withdrawn ? "Withdrawn" : applied ? "Withdraw" : "Close"}
       </button>
     </div>
   );
@@ -109,14 +116,19 @@ function ShiftRow({ shift, onApply, onCancel }) {
     }
   };
 
-  const handleCancelClick = async () => {
-    setStatus("cancelled");
+  const handleSecondaryClick = async () => {
+    if (status !== "applied") return;
+    if (!window.confirm("Withdraw your application for this shift?")) return;
+    setStatus("withdrawn");
     try {
       await onCancel(shift._id);
     } catch {
-      setStatus("none");
+      setStatus("applied");
     }
   };
+
+  const applied = status === "applied";
+  const withdrawn = status === "withdrawn";
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">
@@ -140,28 +152,28 @@ function ShiftRow({ shift, onApply, onCancel }) {
         <div className="flex items-center justify-end gap-2">
           <button
             type="button"
-            disabled={status === "applied"}
+            disabled={applied}
             onClick={handleApplyClick}
             className={`min-h-11 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              status === "applied"
+              applied
                 ? "bg-green-100 text-green-700 cursor-not-allowed"
                 : "bg-[#1B3F8B] text-white hover:bg-[#162d5e] shadow-sm"
             }`}
           >
-            {status === "applied" ? "Applied" : "Apply"}
+            {applied ? "Applied" : "Apply"}
           </button>
 
           <button
             type="button"
-            disabled={status === "cancelled"}
-            onClick={handleCancelClick}
-            className={`min-h-11 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              status === "cancelled"
-                ? "bg-red-100 text-red-700 cursor-not-allowed"
-                : "bg-red-600 text-white hover:bg-red-700 shadow-sm"
+            disabled={withdrawn}
+            onClick={handleSecondaryClick}
+            className={`min-h-11 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              withdrawn
+                ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
+                : "border-gray-300 text-gray-600 bg-white hover:bg-gray-50"
             }`}
           >
-            {status === "cancelled" ? "Cancelled" : "Cancel"}
+            {withdrawn ? "Withdrawn" : applied ? "Withdraw" : "Close"}
           </button>
         </div>
       </td>

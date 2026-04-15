@@ -59,7 +59,7 @@ const EmployeeShifts = () => {
         "/api/employee/shifts/cancelShift",
         { shiftId }
       );
-      toast.success("Cancelled successfully");
+      toast.success("Application withdrawn");
       fetchShifts();
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Cancel failed"));

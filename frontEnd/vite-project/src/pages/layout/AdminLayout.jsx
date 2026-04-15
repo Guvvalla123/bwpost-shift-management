@@ -35,6 +35,14 @@ const PAGE_TITLES = {
   "/admin/settings": "Settings",
 };
 
+const SHORT_PAGE_TITLES = {
+  "User Management": "Users",
+  "Manager Management": "Managers",
+  "Employee Management": "Employees",
+  "Attendance & Timesheets": "Attendance",
+  "Reports & Analytics": "Reports",
+};
+
 const NAV_GROUPS = [
   {
     label: "Overview",
@@ -97,7 +105,18 @@ const AdminLayout = () => {
 
   useEffect(() => setSidebarOpen(false), [pathname]);
 
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => setProfileOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, []);
+
   const pageTitle = PAGE_TITLES[pathname] ?? "Admin Panel";
+  const shortPageTitle = SHORT_PAGE_TITLES[pageTitle] ?? pageTitle;
 
   const initials = user?.username
     ? user.username
@@ -108,20 +127,12 @@ const AdminLayout = () => {
         .slice(0, 2)
     : "A";
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setProfileOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const handleLogout = () => {
     logout();
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#f1f5f9]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -216,12 +227,22 @@ const AdminLayout = () => {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <div className="min-w-0">
-              <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[150px] sm:max-w-none">{pageTitle}</h2>
+              <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[160px] sm:max-w-none">
+                <span className="sm:hidden">{shortPageTitle}</span>
+                <span className="hidden sm:inline">{pageTitle}</span>
+              </h2>
               <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">Admin Panel / {pageTitle}</p>
             </div>
           </div>
 
-          <div className="relative shrink-0" ref={dropdownRef}>
+          <div className="relative z-40 shrink-0" ref={dropdownRef}>
+            {profileOpen && (
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setProfileOpen(false)}
+                aria-hidden
+              />
+            )}
             <button
               type="button"
               onClick={() => setProfileOpen((p) => !p)}
@@ -239,7 +260,15 @@ const AdminLayout = () => {
               </span>
             </button>
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50">
+              <div
+                className="
+                  absolute right-0 top-full mt-2
+                  w-64 max-w-[calc(100vw-2rem)]
+                  bg-white rounded-2xl shadow-xl
+                  border border-gray-100
+                  z-40 overflow-hidden py-2
+                "
+              >
                 <div className="px-4 py-3 border-b border-slate-100">
                   <p className="text-sm font-bold text-[#0f2042]">{getDisplayName(user, "Admin")}</p>
                   <p className="text-xs text-slate-500">{user?.email || ""}</p>
@@ -268,7 +297,7 @@ const AdminLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto min-h-0 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 lg:pb-0">
           <Outlet />
         </main>
 

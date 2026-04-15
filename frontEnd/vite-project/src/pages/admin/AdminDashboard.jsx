@@ -97,8 +97,12 @@ const ShiftModal = ({ shift, onClose }) => {
   const bar = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-[#1B3F8B]" : "bg-amber-400";
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0"
-      onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white h-full w-full sm:w-[420px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300"
         onClick={e => e.stopPropagation()}>
         <div className="bg-gradient-to-br from-[#1B3F8B] via-[#1B3F8B] to-[#162d5e] p-6">

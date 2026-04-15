@@ -1,5 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+
+const SHORT_PAGE_TITLES = {
+  "Shift Management": "Shifts",
+  "Employee Management": "Employees",
+  "Attendance & Timesheets": "Attendance",
+  "Shift Requests": "Requests",
+  "Reports & Analytics": "Reports",
+};
 import { LogOut, Settings, User, Bell, ChevronDown, CheckCheck, AlertTriangle, Info, CheckCircle2, Zap, Menu, X } from "lucide-react";
 import Managersidebar from "./Managersidebar";
 import BottomNav from "@/components/ui/BottomNav";
@@ -46,14 +54,16 @@ const NotificationBell = () => {
   const [readIds, setReadIds] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const bellRef = useRef();
+  const { pathname } = useLocation();
 
-  /* Close on outside click */
   useEffect(() => {
-    const h = (e) => {
-      if (bellRef.current && !bellRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => setOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
   }, []);
 
   /* Fetch notifications from dashboard API */
@@ -112,7 +122,7 @@ const NotificationBell = () => {
   const unread = notifications.filter(n => !readIds.has(n.id)).length;
 
   const handleOpen = () => {
-    setOpen(o => !o);
+    setOpen((o) => !o);
   };
 
   const markAllRead = () => {
@@ -120,7 +130,14 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="relative" ref={bellRef}>
+    <div className="relative z-40" ref={bellRef}>
+      {open && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setOpen(false)}
+          aria-hidden
+        />
+      )}
       {/* Bell button */}
       <button
         type="button"
@@ -136,7 +153,17 @@ const NotificationBell = () => {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div
+          className="
+            absolute right-0 top-full mt-2
+            w-80 max-w-[calc(100vw-2rem)]
+            bg-white rounded-2xl shadow-xl
+            border border-gray-100
+            z-40
+            max-h-[70vh] overflow-y-auto overflow-x-hidden
+            animate-in fade-in zoom-in-95 duration-150
+          "
+        >
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
@@ -228,29 +255,29 @@ const ManagerLayout = () => {
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleScroll = () => setProfileOpen(false);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, []);
+
   const pageTitle = PAGE_TITLES[pathname] ?? "Manager Panel";
+  const shortTitle = SHORT_PAGE_TITLES[pageTitle] ?? pageTitle;
 
   const initials = user?.username
     ? user.username.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "M";
-
-  /* Close profile dropdown on outside click */
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const handleLogout = () => {
     logout();
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#f1f5f9]">
 
       {/* ── Mobile sidebar overlay ── */}
       {sidebarOpen && (
@@ -290,7 +317,10 @@ const ManagerLayout = () => {
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           <div className="min-w-0">
-            <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[150px] sm:max-w-none">{pageTitle}</h2>
+            <h2 className="font-bold text-[#0f2042] text-xl lg:text-2xl truncate max-w-[160px] sm:max-w-none">
+              <span className="sm:hidden">{shortTitle}</span>
+              <span className="hidden sm:inline">{pageTitle}</span>
+            </h2>
             <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
               Manager Panel / {pageTitle}
             </p>
@@ -307,7 +337,14 @@ const ManagerLayout = () => {
             <div className="w-px h-6 bg-slate-200 hidden sm:block" />
 
             {/* Profile dropdown */}
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative z-40" ref={dropdownRef}>
+              {profileOpen && (
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setProfileOpen(false)}
+                  aria-hidden
+                />
+              )}
               <button
                 type="button"
                 onClick={() => setProfileOpen((p) => !p)}
@@ -330,7 +367,16 @@ const ManagerLayout = () => {
 
               {/* Dropdown menu */}
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div
+                  className="
+                    absolute right-0 top-full mt-2
+                    w-64 max-w-[calc(100vw-2rem)]
+                    bg-white rounded-2xl shadow-xl
+                    border border-gray-100
+                    z-40 overflow-hidden
+                    animate-in fade-in zoom-in-95 duration-150
+                  "
+                >
 
                   {/* Mini profile header */}
                   <div className="px-4 py-3 border-b border-slate-100">
@@ -375,7 +421,7 @@ const ManagerLayout = () => {
         </header>
 
         {/* ── Page content ────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto min-h-0 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 lg:pb-0">
           <Outlet />
         </main>
 

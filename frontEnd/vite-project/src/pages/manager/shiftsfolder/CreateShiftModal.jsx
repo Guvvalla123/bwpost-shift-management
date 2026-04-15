@@ -26,13 +26,20 @@ const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) =>
 
   const handleDT = (name) => (val) => onChange({ target: { name, value: val } });
 
+  const isEndBeforeStart =
+    createShift.shiftEndTime &&
+    createShift.shiftStartTime &&
+    new Date(createShift.shiftEndTime) <= new Date(createShift.shiftStartTime);
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4 bg-slate-900/60 backdrop-blur-sm"
-      onClick={() => setShow(false)}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setShow(false);
+      }}
     >
       <div
-        className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-2xl shadow-2xl md:my-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+        className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-t-2xl md:rounded-2xl shadow-2xl md:my-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
@@ -82,12 +89,21 @@ const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) =>
               />
             </Field>
             <Field label="End Date & Time">
-              <DateTimePicker
-                value={createShift.shiftEndTime}
-                onChange={handleDT("shiftEndTime")}
-                placeholder="Pick end"
-                accentColor="blue"
-              />
+              <div
+                className={`rounded-xl ${isEndBeforeStart ? "ring-2 ring-red-500/40" : ""}`}
+              >
+                <DateTimePicker
+                  value={createShift.shiftEndTime}
+                  onChange={handleDT("shiftEndTime")}
+                  placeholder="Pick end"
+                  accentColor="blue"
+                />
+              </div>
+              {isEndBeforeStart && (
+                <p className="text-xs text-red-500 mt-1">
+                  End time must be after start time
+                </p>
+              )}
             </Field>
           </div>
 

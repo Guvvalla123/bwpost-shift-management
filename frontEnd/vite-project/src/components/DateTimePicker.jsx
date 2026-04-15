@@ -115,7 +115,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
     const cells = buildGrid(viewYear, viewMonth);
 
     return (
-        <div className="relative">
+        <div className="relative w-full">
             {/* ── Trigger ───────────────────────────────────────────── */}
             <button
                 ref={triggerRef}
@@ -147,13 +147,17 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
             {open && (
                 <div
                     ref={dropdownRef}
-                    /* Use fixed so it's never clipped by a parent's overflow:hidden */
-                    className="fixed z-[999] mt-1 w-68 bg-white rounded-2xl shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150"
+                    className="
+                        absolute left-0 top-full mt-1 z-50
+                        w-full max-w-[min(100%,320px)]
+                        bg-white rounded-2xl shadow-xl border border-gray-100
+                        overflow-hidden
+                        animate-in fade-in zoom-in-95 duration-150
+                    "
                     style={{
-                        /* Position below trigger via JS */
-                        top: (triggerRef.current?.getBoundingClientRect().bottom ?? 0) + 6,
-                        left: triggerRef.current?.getBoundingClientRect().left ?? 0,
-                        width: 272,
+                        maxWidth: "min(320px, calc(100vw - 2rem))",
+                        left: "50%",
+                        transform: "translateX(-50%)",
                     }}
                 >
                     {/* Month nav */}

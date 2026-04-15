@@ -70,7 +70,9 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
   return (
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end"
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="bg-white h-full w-full sm:w-[440px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300"
@@ -365,11 +367,37 @@ const ManagerShifts = () => {
   }, [currentPage, debouncedSearch, statusFilter, fetchShifts]);
 
   /* ── Create ── */
-  const onChange = (e) => setCreateShift({ ...createShift, [e.target.name]: e.target.value });
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "shiftStartTime") {
+      setCreateShift((prev) => {
+        const next = { ...prev, shiftStartTime: value };
+        if (prev.shiftEndTime && new Date(prev.shiftEndTime) <= new Date(value)) {
+          next.shiftEndTime = "";
+          toast.info("Please select a new end time");
+        }
+        return next;
+      });
+      return;
+    }
+    setCreateShift((prev) => ({ ...prev, [name]: value }));
+  };
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!createShift.shiftTitle || !createShift.shiftStartTime || !createShift.shiftEndTime || !createShift.slotsAvailable) {
       return toast.error("Please fill all required fields");
+    }
+    const start = new Date(createShift.shiftStartTime);
+    const end = new Date(createShift.shiftEndTime);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return toast.error("Please select a valid start and end date and time");
+    }
+    if (end <= start) {
+      return toast.error("End time must be after start time");
+    }
+    const diffHours = (end - start) / (1000 * 60 * 60);
+    if (diffHours > 24) {
+      return toast.error("Shift cannot be longer than 24 hours");
     }
     try {
       await API.post("/api/manager/shifts", createShift);
@@ -381,10 +409,36 @@ const ManagerShifts = () => {
   };
 
   /* ── Edit ── */
-  const onEditChange = (e) =>
-    setEditingShift((prev) => (prev ? { ...prev, [e.target.name]: e.target.value } : prev));
+  const onEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditingShift((prev) => {
+      if (!prev) return prev;
+      if (name === "shiftStartTime") {
+        const next = { ...prev, shiftStartTime: value };
+        if (prev.shiftEndTime && new Date(prev.shiftEndTime) <= new Date(value)) {
+          next.shiftEndTime = "";
+          toast.info("Please select a new end time");
+        }
+        return next;
+      }
+      return { ...prev, [name]: value };
+    });
+  };
   const onUpdateHandler = async (e) => {
     e.preventDefault();
+    if (!editingShift) return;
+    const start = new Date(editingShift.shiftStartTime);
+    const end = new Date(editingShift.shiftEndTime);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return toast.error("Please select a valid start and end date and time");
+    }
+    if (end <= start) {
+      return toast.error("End time must be after start time");
+    }
+    const diffHours = (end - start) / (1000 * 60 * 60);
+    if (diffHours > 24) {
+      return toast.error("Shift cannot be longer than 24 hours");
+    }
     try {
       await API.put(`/api/manager/shifts/${editingShift._id}`, editingShift);
       toast.success("Shift updated");

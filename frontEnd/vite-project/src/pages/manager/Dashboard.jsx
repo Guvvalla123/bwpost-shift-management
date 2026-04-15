@@ -63,17 +63,19 @@ const BannerTimeCard = React.memo(() => {
    KPI STAT CARD(KEY PERFORMANCE INDICATOR CARDS) 
 ════════════════════════════════════════════════════════════ */
 const KpiCard = ({ icon: Icon, label, value, trend }) => (
-  <div className="bg-white rounded-xl border border-slate-200 border-t-2 border-t-[#1B3F8B] shadow-sm p-4 md:p-5 flex flex-col">
-    <div className="flex justify-between items-start mb-4">
-      <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center">
-        <Icon className="h-[18px] w-[18px] text-[#1B3F8B]" />
+  <div className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm">
+    <div className="flex items-center gap-3 sm:gap-4">
+      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 flex items-center justify-center bg-blue-50">
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#1B3F8B]" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xl sm:text-2xl font-bold text-gray-900 tabular-nums leading-tight">{value}</p>
+        <p className="text-xs text-gray-500 mt-0.5 leading-snug">{label}</p>
       </div>
       {trend != null && (
-        <span className="bg-[#EFF6FF] text-[#1B3F8B] text-[10px] font-bold px-2 py-0.5 rounded-md">{trend}</span>
+        <span className="ml-auto text-[10px] sm:text-xs text-gray-400 font-medium shrink-0">{trend}</span>
       )}
     </div>
-    <p className="text-3xl font-extrabold text-[#0f2042] tabular-nums leading-none">{value}</p>
-    <p className="text-slate-400 text-xs font-medium mt-1">{label}</p>
   </div>
 );
 
@@ -110,8 +112,12 @@ const ShiftModal = ({ shift, onClose }) => {
   const bar = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-[#1B3F8B]" : "bg-amber-400";
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0"
-      onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-end p-4 sm:p-0"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white h-full w-full sm:w-[420px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300"
         onClick={e => e.stopPropagation()}>
 
@@ -285,7 +291,7 @@ const Dashboard = () => {
               {getDisplayName(user, "Manager")}
             </p>
             <p className="text-white/40 text-xs mt-2 hidden sm:block">{todayStr} · Manager Panel</p>
-            <div className="flex gap-2 overflow-x-auto pb-2 mt-5 scrollbar-hide sm:flex-wrap sm:overflow-visible">
+            <div className="hidden sm:flex gap-2 flex-wrap mt-5">
               <button
                 type="button"
                 onClick={() => navigate("/manager/shifts")}
@@ -317,7 +323,7 @@ const Dashboard = () => {
 
       <div className="max-w-7xl mx-auto pt-4 md:pt-6 px-4 md:px-6 lg:px-8 pb-20 lg:pb-6 space-y-4 md:space-y-6">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <KpiCard icon={Users} label="Total Employees" value={stats?.totalEmployees ?? 0} trend="Staff" />
           <KpiCard icon={CalendarDays} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} trend="Live" />
           <KpiCard icon={Zap} label="Capacity" value={`${capacity ?? 0}%`} trend="Fill" />

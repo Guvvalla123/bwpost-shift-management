@@ -58,7 +58,12 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
     const switchable = allShifts.filter(s => s._id !== shift._id && new Date(s.shiftStartTime) > Date.now());
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
@@ -228,7 +233,7 @@ const MyShifts = () => {
             <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
             {/* Filter tabs */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                 {[
                     { key: "all", label: "All" },
                     { key: "upcoming", label: "Upcoming" },
@@ -237,16 +242,17 @@ const MyShifts = () => {
                 ].map(tab => (
                     <button
                         key={tab.key}
+                        type="button"
                         onClick={() => { setFilter(tab.key); setCurrentPage(1); }}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all
+                        className={`flex-shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-medium whitespace-nowrap transition-colors
             ${filter === tab.key
-                                ? "bg-emerald-600 text-white shadow-md"
-                                : "bg-white border border-slate-200 text-slate-600 hover:border-emerald-300"
+                                ? "bg-[#1B3F8B] text-white"
+                                : "bg-white text-gray-600 border border-gray-200"
                             }`}
                     >
                         {tab.label}
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold
-            ${filter === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                        <span className={`text-xs font-semibold tabular-nums
+            ${filter === tab.key ? "text-white/90" : "text-gray-500"}`}>
                             {counts[tab.key]}
                         </span>
                     </button>
