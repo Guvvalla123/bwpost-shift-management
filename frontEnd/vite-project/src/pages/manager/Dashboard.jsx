@@ -75,7 +75,7 @@ function scaleCountsToTotal(raw, total) {
 function DonutLegendRows({ rows, total, valueMode = "count" }) {
   const denom = total > 0 ? total : 1;
   return (
-    <ul className="w-full space-y-3">
+    <ul className="w-full space-y-2">
       {rows.map((row) => {
         const pct = total > 0 ? Math.round((row.value / denom) * 100) : 0;
         const barPct = total > 0 ? (row.value / denom) * 100 : 0;
@@ -322,45 +322,41 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-full bg-[#F8F9FC]">
-      <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-6 md:pt-6 lg:pb-8">
-        <div className="mb-6 grid h-auto grid-cols-2 gap-4 lg:grid-cols-4 lg:items-stretch">
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-4 md:px-6 md:pt-4 lg:pb-6">
+        <div className="mb-4 grid h-auto grid-cols-2 gap-3 lg:grid-cols-4 lg:items-stretch">
           <KpiCard variant="navy" icon={Users} label="Total Staff" value={stats?.totalEmployees ?? 0} />
           <KpiCard variant="default" icon={Calendar} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} />
           <KpiCard variant="green" icon={TrendingUp} label="Present Rate" value={`${attendance?.rate ?? 0}%`} />
           <KpiCard variant="amber" icon={AlertTriangle} label="Need Staff" value={understaffedShifts ?? 0} />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
-          <div className="flex min-h-[440px] flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:min-h-[480px]">
-            <h2 className="shrink-0 text-sm font-semibold text-gray-900">Shifts by status</h2>
-            <div className="mt-4 flex flex-1 flex-col items-center justify-between gap-6">
-              <div className="flex w-full flex-col items-center">
-                <DonutChart data={shiftDonutData} centerValue={String(totalShiftCount)} centerLabel="total" size={144} />
-              </div>
-              <div className="w-full shrink-0">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
+          <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Shifts by status</h2>
+            <div className="mt-3 flex flex-col items-center">
+              <DonutChart data={shiftDonutData} centerValue={String(totalShiftCount)} centerLabel="total" size={120} />
+              <div className="mt-2 w-full">
                 <DonutLegendRows rows={shiftDonutData} total={totalShiftCount} valueMode="count" />
               </div>
             </div>
           </div>
 
-          <div className="flex min-h-[440px] flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:min-h-[480px]">
-            <h2 className="shrink-0 text-sm font-semibold text-gray-900">Staff presence</h2>
-            <div className="mt-4 flex flex-1 flex-col items-center justify-between gap-6">
-              <div className="flex w-full flex-col items-center">
-                <DonutChart
-                  data={attendanceDonutData}
-                  centerValue={`${onTimeRate}%`}
-                  centerLabel="on time"
-                  size={144}
-                />
-              </div>
-              <div className="w-full shrink-0">
+          <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="text-sm font-semibold text-gray-900">Staff presence</h2>
+            <div className="mt-3 flex flex-col items-center">
+              <DonutChart
+                data={attendanceDonutData}
+                centerValue={`${onTimeRate}%`}
+                centerLabel="on time"
+                size={120}
+              />
+              <div className="mt-2 w-full">
                 <DonutLegendRows rows={attendanceRows} total={attendanceTotal} valueMode="percent" />
               </div>
             </div>
           </div>
 
-          <div className="flex min-h-[440px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:min-h-[480px]">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
             <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
               <h2 className="text-sm font-semibold text-gray-900">Recent activity</h2>
               <button

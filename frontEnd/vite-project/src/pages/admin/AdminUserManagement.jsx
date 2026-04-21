@@ -4,12 +4,12 @@ import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil } from "lucide-react";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard } from "@/components/ui";
 
 const ROLE_BADGES = {
   admin: "bg-purple-50 text-purple-700 border border-purple-200",
-  manager: "bg-blue-50 text-blue-700 border border-blue-100",
-  employee: "bg-gray-100 text-gray-600 border border-gray-200",
+  manager: "bg-[#EFF6FF] text-[#1B3F8B] border border-blue-100",
+  employee: "bg-emerald-50 text-emerald-800 border border-emerald-100",
 };
 
 const AdminUserManagement = () => {
@@ -32,7 +32,39 @@ const AdminUserManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [fetchError, setFetchError] = useState(false);
+  const [stats, setStats] = useState({
+    totalAll: 0,
+    active: 0,
+    inactive: 0,
+    admin: 0,
+    manager: 0,
+    employee: 0,
+  });
   const debouncedSearch = useDebounce(search, 300);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [allInc, activeOnly, ad, mg, em] = await Promise.all([
+        API.get("/api/admin/users?page=1&limit=1&includeInactive=true"),
+        API.get("/api/admin/users?page=1&limit=1"),
+        API.get("/api/admin/users?page=1&limit=1&role=admin&includeInactive=true"),
+        API.get("/api/admin/users?page=1&limit=1&role=manager&includeInactive=true"),
+        API.get("/api/admin/users?page=1&limit=1&role=employee&includeInactive=true"),
+      ]);
+      const totalAll = allInc.data?.pagination?.total ?? 0;
+      const active = activeOnly.data?.pagination?.total ?? 0;
+      setStats({
+        totalAll,
+        active,
+        inactive: Math.max(0, totalAll - active),
+        admin: ad.data?.pagination?.total ?? 0,
+        manager: mg.data?.pagination?.total ?? 0,
+        employee: em.data?.pagination?.total ?? 0,
+      });
+    } catch {
+      /* keep previous */
+    }
+  }, []);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -63,6 +95,10 @@ const AdminUserManagement = () => {
     fetchUsers();
   }, [fetchUsers]);
 
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
   const handleRoleChange = async (e) => {
     e.preventDefault();
     if (!roleModalUser) return;
@@ -78,6 +114,7 @@ const AdminUserManagement = () => {
       toast.success("Role updated successfully");
       setRoleModalUser(null);
       fetchUsers();
+      fetchStats();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to update role"));
     } finally {
@@ -100,6 +137,7 @@ const AdminUserManagement = () => {
       setModalOpen(false);
       setForm({ username: "", email: "", password: "", role: "employee", managerId: "" });
       fetchUsers();
+      fetchStats();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to create user"));
     } finally {
@@ -141,12 +179,12 @@ const AdminUserManagement = () => {
   const inputCls = "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base";
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+    <div className="min-h-screen bg-[#F8F9FC] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between px-0 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-slate-500 text-sm mt-0.5 hidden sm:block">Create and manage Admin, Manager, and Employee accounts.</p>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-sm text-gray-400 mt-1">Manage all system users</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
@@ -166,30 +204,79 @@ const AdminUserManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:flex-wrap gap-3">
-            <div className="relative flex-1 w-full sm:min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <KpiCard variant="navy" icon={Users} label="Total Users" value={stats.totalAll} />
+          <KpiCard variant="green" icon={UserCheck} label="Active Users" value={stats.active} />
+          <KpiCard variant="amber" icon={UserCheck} label="Inactive Users" value={stats.inactive} />
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:px-6">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+              {[
+                ["", "All", stats.totalAll],
+                ["admin", "Admin", stats.admin],
+                ["manager", "Manager", stats.manager],
+                ["employee", "Employee", stats.employee],
+              ].map(([key, label, count]) => (
+                <button
+                  key={key || "all"}
+                  type="button"
+                  onClick={() => {
+                    setRoleFilter(key);
+                    setCurrentPage(1);
+                  }}
+                  className={`inline-flex min-h-[40px] items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all sm:px-4 ${
+                    roleFilter === key
+                      ? "bg-[#1B3F8B] text-white shadow-sm"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {label}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                      roleFilter === key ? "bg-white/20 text-white" : "bg-white text-slate-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full sm:ml-auto sm:max-w-xs">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                type="text"
+                type="search"
                 placeholder="Search by name or email…"
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-9 pr-4 py-2 min-h-11 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                aria-label="Search users"
               />
+              {search.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
-            <select
-              value={roleFilter}
-              onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-              className="w-full sm:w-auto sm:min-w-[140px] px-4 py-2 min-h-11 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="">All roles</option>
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-              <option value="employee">Employee</option>
-            </select>
-            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer min-h-11 w-full sm:w-auto">
-              <input type="checkbox" checked={includeInactive} onChange={(e) => { setIncludeInactive(e.target.checked); setCurrentPage(1); }} className="rounded w-4 h-4 shrink-0" />
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-600 sm:ml-0">
+              <input
+                type="checkbox"
+                checked={includeInactive}
+                onChange={(e) => {
+                  setIncludeInactive(e.target.checked);
+                  setCurrentPage(1);
+                }}
+                className="h-4 w-4 shrink-0 rounded"
+              />
               Include deactivated
             </label>
           </div>

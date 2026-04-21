@@ -65,7 +65,7 @@ const BannerClock = React.memo(() => {
 function DonutLegendRows({ rows, total, valueMode = "count" }) {
   const denom = total > 0 ? total : 1;
   return (
-    <ul className="mt-4 space-y-3">
+    <ul className="w-full space-y-2">
       {rows.map((row) => {
         const pct = total > 0 ? Math.round((row.value / denom) * 100) : 0;
         const barPct = total > 0 ? (row.value / denom) * 100 : 0;
@@ -291,8 +291,8 @@ const EmployeeDashboard = () => {
 
   return (
     <div className="min-h-full bg-[#F8F9FC]" data-requests-loaded={requests.length}>
-      <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-6 md:pt-8 lg:pb-8">
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-[#1B3F8B] px-6 py-6 shadow-lg shadow-[#1B3F8B]/20 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-4 md:px-6 md:pt-4 lg:pb-6">
+        <div className="mb-4 flex flex-col gap-4 rounded-2xl bg-[#1B3F8B] px-6 py-5 shadow-lg shadow-[#1B3F8B]/20 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-sm text-white/80">{greeting()}</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -308,45 +308,45 @@ const EmployeeDashboard = () => {
           <BannerClock />
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard variant="navy" label="My Total Shifts" value={totalShifts} />
           <KpiCard variant="default" label="Upcoming" value={upcomingShifts} />
           <KpiCard variant="green" label="Completed" value={completedShifts} />
           <KpiCard variant="amber" label="My Attendance Rate" value={`${attendanceRatePct}%`} />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-5">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="text-sm font-semibold text-gray-900">My shifts by status</h2>
-            <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+            <div className="mt-3 flex flex-col items-center">
               <DonutChart
                 data={shiftDonutData}
                 centerValue={String(totalShifts)}
                 centerLabel="total"
                 size={120}
               />
-              <div className="w-full min-w-0 flex-1">
+              <div className="mt-2 w-full">
                 <DonutLegendRows rows={shiftDonutData} total={totalShifts} valueMode="count" />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-4">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="text-sm font-semibold text-gray-900">My attendance</h2>
-            <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+            <div className="mt-3 flex flex-col items-center">
               <DonutChart
                 data={attendanceDonutData}
                 centerValue={`${attendanceRatePct}%`}
                 centerLabel="on time"
                 size={120}
               />
-              <div className="w-full min-w-0 flex-1">
+              <div className="mt-2 w-full">
                 <DonutLegendRows rows={attendanceRows} total={attendanceTotal} valueMode="percent" />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-3">
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <h2 className="text-sm font-semibold text-gray-900">My recent shifts</h2>
               <button

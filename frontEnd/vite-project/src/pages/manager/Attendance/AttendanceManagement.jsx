@@ -8,9 +8,9 @@ import {
   Timer, BarChart2, Download, Search, UserCheck,
   ClipboardList, TrendingUp, RefreshCw,
   LogIn, LogOut, FlaskConical, Calendar, Loader2,
-  Briefcase, FileText,
+  Briefcase, FileText, X,
 } from "lucide-react";
-import { SkeletonTable, ErrorState } from "@/components/ui";
+import { SkeletonTable, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 
 
 /* ════════════════════════════════════════════════════════════
@@ -33,10 +33,16 @@ const initials = (n = "") => n.split(" ").map((w) => w[0]).join("").toUpperCase(
    AVATAR
 ════════════════════════════════════════════════════════════ */
 const Avatar = ({ name }) => (
-  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${grad(name)} flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm`}>
+  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1B3F8B] text-xs font-bold text-white shadow-sm">
     {initials(name)}
   </div>
 );
+
+function attendanceBorderClass(status) {
+  if (status === "checked_out") return "border-l-emerald-500";
+  if (status === "checked_in" || status === "on_break") return "border-l-[#1B3F8B]";
+  return "border-l-slate-300";
+}
 
 /* ════════════════════════════════════════════════════════════
    STAT STRIP CARD  (compact horizontal)
@@ -390,6 +396,24 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
 
   const fmtMins = (m) => m >= 60 ? `${(m / 60).toFixed(1)}h` : `${m}m`;
 
+  const lateOnly = records.filter((r) => r.isLate && r.status !== "not_started").length;
+  const presentOnTime = records.filter((r) => r.status !== "not_started" && !r.isLate).length;
+  const donutAttendanceData = [
+    { name: "Present", value: presentOnTime, color: "#1B3F8B" },
+    { name: "Late", value: lateOnly, color: "#f59e0b" },
+    { name: "Absent", value: absent, color: "#ef4444" },
+  ];
+  const donutTotalToday = records.length;
+
+  const formatWorkDuration = (mins) => {
+    if (mins == null || Number.isNaN(mins)) return "—";
+    const m = Math.max(0, Math.round(mins));
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    if (h === 0) return `${r}m`;
+    return r === 0 ? `${h}h` : `${h}h ${r}m`;
+  };
+
   return (
     <div className="space-y-5">
 
@@ -513,14 +537,23 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
         </div>
       )}
 
-      {/* ── KPI strip ── */}
+      {/* ── KPI row + donut ── */}
       {selectedShiftId && !loading && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <StatPill icon={Users} label="Assigned" value={records.length} color="bg-[#2563EB]" />
-          <StatPill icon={CheckCircle2} label="Present" value={present} color="bg-emerald-500" />
-          <StatPill icon={XCircle} label="Absent" value={absent} color="bg-rose-500" />
-          <StatPill icon={Timer} label="On Break" value={onBreak} color="bg-amber-500" />
-          <StatPill icon={BarChart2} label="Hrs Logged" value={fmtMins(totalMins)} color="bg-violet-500" />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:col-span-8">
+            <KpiCard variant="green" icon={CheckCircle2} label="Present" value={presentOnTime} />
+            <KpiCard variant="amber" icon={Timer} label="Late" value={lateOnly} />
+            <KpiCard variant="red" icon={XCircle} label="Absent" value={absent} />
+          </div>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white p-4 shadow-sm lg:col-span-4">
+            <p className="mb-2 text-center text-xs font-medium text-gray-500">Today&apos;s attendance</p>
+            <DonutChart
+              data={donutAttendanceData}
+              size={112}
+              centerValue={String(donutTotalToday)}
+              centerLabel="today"
+            />
+          </div>
         </div>
       )}
 
@@ -537,11 +570,26 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                 </p>
               )}
             </div>
-            <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input type="text" placeholder="Search employees…" value={search}
+            <div className="relative w-full sm:w-72">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                placeholder="Search employees…"
+                value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] transition" />
+                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                aria-label="Search employees"
+              />
+              {search.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -562,11 +610,6 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                   const busy = actionBusy === emp._id;
                   const firstIn = rec.workSessions?.[0]?.checkIn;
                   const lastOut = rec.workSessions?.[rec.workSessions.length - 1]?.checkOut;
-                  const isAbsent = rec.status === "not_started";
-                  const statusBadgeCls = isAbsent
-                    ? "bg-red-50 text-red-600 border border-red-200"
-                    : "bg-green-50 text-green-700 border border-green-200";
-                  const statusText = isAbsent ? "Absent" : "Present";
                   const timeOpts = { hour: "2-digit", minute: "2-digit" };
                   const checkInDisp = firstIn
                     ? new Date(firstIn).toLocaleTimeString("en-DE", timeOpts)
@@ -577,43 +620,37 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                   const workMins = rec.totalWorkMinutes || 0;
                   const breakMins = rec.totalBreakMinutes || 0;
                   return (
-                    <div key={emp._id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1 pr-3">
-                          <p className="font-semibold text-gray-900 text-sm">
-                            {emp.username || "Employee"}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                            {selectedShift?.shiftTitle || "Shift"}
-                          </p>
+                    <div
+                      key={emp._id}
+                      className={`rounded-xl border border-gray-200 border-l-4 bg-white p-4 shadow-sm ${attendanceBorderClass(rec.status)}`}
+                    >
+                      <div className="mb-3 flex items-start gap-3">
+                        <Avatar name={emp.username || "?"} />
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="text-sm font-bold text-gray-900">{emp.username || "Employee"}</p>
+                          <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">{selectedShift?.shiftTitle || "Shift"}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusBadgeCls}`}>
-                            {statusText}
-                          </span>
-                          {rec.isLate && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">
+                          <StatusBadge status={rec.status || "not_started"} />
+                          {rec.isLate ? (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
                               Late
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                         <div>
                           <span className="text-gray-400">Check In</span>
-                          <p className="font-medium mt-0.5">{checkInDisp}</p>
+                          <p className="mt-0.5 font-medium">{checkInDisp}</p>
                         </div>
                         <div>
                           <span className="text-gray-400">Check Out</span>
-                          <p className="font-medium mt-0.5">{checkOutDisp}</p>
+                          <p className="mt-0.5 font-medium">{checkOutDisp}</p>
                         </div>
                         <div>
                           <span className="text-gray-400">Work Time</span>
-                          <p className="font-medium mt-0.5">
-                            {workMins
-                              ? `${Math.floor(workMins / 60)}h ${workMins % 60}m`
-                              : "0h 0m"}
-                          </p>
+                          <p className="mt-0.5 font-medium">{formatWorkDuration(workMins)}</p>
                         </div>
                         <div>
                           <span className="text-gray-400">Break Time</span>
@@ -1116,6 +1153,7 @@ const AttendanceManagement = () => {
   const [shiftsLoading, setShiftsLoading] = useState(true);
   const [shiftSearch, setShiftSearch] = useState("");
   const debouncedShift = useDebounce(shiftSearch, 400);
+  const [listDate, setListDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     setShiftsLoading(true);
@@ -1130,38 +1168,47 @@ const AttendanceManagement = () => {
       .finally(() => setShiftsLoading(false));
   }, [debouncedShift]);
 
+  const shiftsForDay = useMemo(() => {
+    if (!listDate) return shifts;
+    const t = new Date(`${listDate}T12:00:00`);
+    return shifts.filter((s) => {
+      const d = new Date(s.shiftStartTime);
+      return (
+        d.getFullYear() === t.getFullYear() &&
+        d.getMonth() === t.getMonth() &&
+        d.getDate() === t.getDate()
+      );
+    });
+  }, [shifts, listDate]);
+
   const activeTabCfg = TABS.find((t) => t.key === activeTab);
 
   return (
-    <div className="min-h-full bg-[#f1f5f9]">
+    <div className="min-h-full bg-[#F8F9FC]">
 
-      {/* ── Page header ─────────────────────────────────────────
-          Clean white header — no gradient, no colour clash
-      ────────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200 px-6 md:px-8 pt-6 pb-0">
-        <div className="max-w-6xl mx-auto">
+      {/* ── Page header ───────────────────────────────────────── */}
+      <div className="border-b border-slate-200 bg-white px-4 pb-0 pt-6 sm:px-6 md:px-8">
+        <div className="mx-auto max-w-6xl">
 
           {/* Title row */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="w-8 h-8 rounded-xl bg-[#1B3F8B] flex items-center justify-center shadow-sm">
-                  <UserCheck className="w-4 h-4 text-white" />
-                </div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Attendance & Timesheet</h1>
-              </div>
-              <p className="text-sm text-slate-500 ml-0.5 hidden sm:block">
-                Track employee check-ins, check-outs and generate detailed timesheets.
-              </p>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Attendance</h1>
+              <p className="mt-1 text-sm text-gray-400">Track daily staff attendance</p>
             </div>
-
-            {/* Live indicator */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full self-start sm:self-auto shrink-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-bold text-emerald-700">Live Tracking</span>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[200px]">
+              <label className="text-xs font-medium text-slate-500" htmlFor="attendance-date">
+                Filter by date
+              </label>
+              <input
+                id="attendance-date"
+                type="date"
+                value={listDate}
+                onChange={(e) => setListDate(e.target.value)}
+                className="h-11 min-h-[44px] w-full rounded-xl border border-gray-200 px-3 text-sm text-slate-900 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+              />
             </div>
           </div>
-          <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none mb-3">Scroll down to refresh</p>
 
           {/* Tab bar */}
           <div className="flex gap-1 -mb-px">
@@ -1183,23 +1230,25 @@ const AttendanceManagement = () => {
       </div>
 
       {/* ── Content ─────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-6 md:px-8 py-6">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 md:px-8">
 
         {/* Active tab description */}
-        <div className="flex items-center gap-2 mb-5 text-xs text-slate-400">
-          {activeTabCfg && <activeTabCfg.icon className="w-3.5 h-3.5 text-indigo-400" />}
+        <div className="mb-5 flex items-center gap-2 text-xs text-slate-400">
+          {activeTabCfg && <activeTabCfg.icon className="h-3.5 w-3.5 text-indigo-400" />}
           <span>{activeTabCfg?.desc}</span>
         </div>
 
         {shiftsLoading ? (
           <div className="space-y-4">
             <Sk className="h-20 w-full" />
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map(i => <Sk key={i} className="h-20" />)}</div>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[1, 2, 3, 4].map((i) => <Sk key={i} className="h-20" />)}</div>
             <Sk className="h-64 w-full" />
           </div>
-        ) : activeTab === "attendance"
-          ? <AttendanceTab shifts={shifts} shiftSearch={shiftSearch} setShiftSearch={setShiftSearch} />
-          : <TimesheetTab />}
+        ) : activeTab === "attendance" ? (
+          <AttendanceTab shifts={shiftsForDay} shiftSearch={shiftSearch} setShiftSearch={setShiftSearch} />
+        ) : (
+          <TimesheetTab />
+        )}
       </div>
     </div>
   );

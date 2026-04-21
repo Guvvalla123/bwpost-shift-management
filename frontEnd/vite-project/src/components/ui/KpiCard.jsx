@@ -3,6 +3,7 @@ const variants = {
   navy: "bg-[#1B3F8B] text-white border border-[#152f6b] shadow-md shadow-[#1B3F8B]/15",
   green: "bg-emerald-50 border border-emerald-100/80",
   amber: "bg-amber-50 border border-amber-100/80",
+  red: "bg-red-50 border border-red-100/80",
 };
 
 const labelStyles = {
@@ -10,6 +11,7 @@ const labelStyles = {
   navy: "text-white/80",
   green: "text-emerald-700/90",
   amber: "text-amber-800/90",
+  red: "text-red-800/90",
 };
 
 const valueStyles = {
@@ -17,6 +19,7 @@ const valueStyles = {
   navy: "text-white",
   green: "text-emerald-800",
   amber: "text-amber-900",
+  red: "text-red-900",
 };
 
 const iconBoxStyles = {
@@ -24,13 +27,14 @@ const iconBoxStyles = {
   navy: "bg-white/15 text-white",
   green: "bg-emerald-100/90 text-emerald-800",
   amber: "bg-amber-100/90 text-amber-900",
+  red: "bg-red-100/90 text-red-800",
 };
 
 /**
  * @param {object} props
  * @param {string} props.label
  * @param {string|number} props.value
- * @param {'default'|'navy'|'green'|'amber'} [props.variant]
+ * @param {'default'|'navy'|'green'|'amber'|'red'} [props.variant]
  * @param {React.ComponentType<{ className?: string; strokeWidth?: number }>} [props.icon]
  */
 export default function KpiCard({ label, value, variant = "default", icon: Icon }) {
@@ -41,7 +45,7 @@ export default function KpiCard({ label, value, variant = "default", icon: Icon 
 
   return (
     <div
-      className={`flex h-full min-h-[132px] flex-col rounded-2xl px-5 py-4 lg:min-h-[140px] ${v}`}
+      className={`flex h-full min-h-[120px] flex-col rounded-2xl px-4 py-4 sm:px-5 ${v}`}
     >
       <div className="flex shrink-0 items-start">
         {Icon ? (

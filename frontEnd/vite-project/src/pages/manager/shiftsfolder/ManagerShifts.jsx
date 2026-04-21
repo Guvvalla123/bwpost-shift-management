@@ -1,11 +1,12 @@
 import API from "@/api";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { DonutChart, SkeletonTable } from "@/components/ui";
 import {
-  Plus, CalendarDays, Clock, Users, Trash2,
+  Plus, CalendarDays, Clock, Trash2,
   Pencil, Search, X, AlignLeft, AlertTriangle,
   CheckCircle2, Timer, CalendarX, ChevronRight,
-  UserCheck, FileText, TrendingUp,
+  UserCheck, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -34,17 +35,94 @@ const duration = (start, end) => {
   return m ? `${h}h ${m}m` : `${h}h`;
 };
 
-/* ─── Stat Card ──────────────────────────────────────────── */
-const StatCard = ({ label, value, icon: Icon, gradient }) => (
-  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-    <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${gradient}`}>
-      <Icon className="h-5 w-5 text-white" />
+const SHIFT_STATUS_COLORS = {
+  ongoing: "#059669",
+  upcoming: "#1B3F8B",
+  needsStaff: "#f59e0b",
+  completed: "#d1d5db",
+};
+
+function classifyShiftForDonut(shift) {
+  const s = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+  const open = shift.slotsAvailable ?? 0;
+  if (s === "ongoing") return "ongoing";
+  if (s === "completed") return "completed";
+  if (s === "upcoming" && open > 0) return "needsStaff";
+  if (s === "upcoming") return "upcoming";
+  return "completed";
+}
+
+function scaleCountsToTotal(raw, total) {
+  const keys = ["ongoing", "upcoming", "needsStaff", "completed"];
+  const sum = keys.reduce((a, k) => a + raw[k], 0);
+  if (total <= 0) return { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+  if (sum <= 0) return { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+  const scaled = keys.map((k) => Math.round((raw[k] / sum) * total));
+  const diff = total - scaled.reduce((a, b) => a + b, 0);
+  const maxIdx = scaled.indexOf(Math.max(...scaled));
+  scaled[maxIdx] += diff;
+  return { ongoing: scaled[0], upcoming: scaled[1], needsStaff: scaled[2], completed: scaled[3] };
+}
+
+function DonutLegendMini({ rows, total }) {
+  const denom = total > 0 ? total : 1;
+  return (
+    <ul className="mt-2 w-full space-y-1.5">
+      {rows.map((row) => {
+        const barPct = total > 0 ? (row.value / denom) * 100 : 0;
+        return (
+          <li key={row.name} className="text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-1.5 text-gray-600">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+                <span className="truncate">{row.name}</span>
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums text-gray-900">{row.value}</span>
+            </div>
+            <div className="mt-1 h-0.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full rounded-full" style={{ width: `${barPct}%`, backgroundColor: row.color }} />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function mobileStatusBorder(shift) {
+  const s = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+  const open = Number(shift.slotsAvailable) || 0;
+  if (s === "ongoing") return "border-l-emerald-500";
+  if (s === "completed") return "border-l-slate-300";
+  if (s === "upcoming" && open > 0) return "border-l-amber-500";
+  if (s === "upcoming") return "border-l-[#1B3F8B]";
+  return "border-l-slate-300";
+}
+
+const FilterStatCard = ({ label, value, icon: Icon, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex w-full flex-col rounded-2xl border p-4 text-left shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 ${
+      active
+        ? "border-[#1B3F8B] bg-[#EFF6FF] ring-1 ring-[#1B3F8B]/20"
+        : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-md"
+    }`}
+  >
+    <div className="flex items-center gap-3">
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+          active ? "bg-[#1B3F8B] text-white" : "bg-blue-50 text-[#1B3F8B]"
+        }`}
+      >
+        <Icon className="h-4 w-4" strokeWidth={2} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-gray-500">{label}</p>
+        <p className="text-2xl font-bold tabular-nums text-gray-900">{value}</p>
+      </div>
     </div>
-    <div>
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 tabular-nums mt-0.5">{value}</p>
-    </div>
-  </div>
+  </button>
 );
 
 /* ─── Avatar helpers ─────────────────────────────────────── */
@@ -230,7 +308,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
 
   return (
     <tr
-      className="group hover:bg-blue-50/30 transition-colors duration-150 cursor-pointer"
+      className="group cursor-pointer border-b border-slate-50 transition-colors duration-150 even:bg-slate-50/40 hover:bg-blue-50/50"
       onClick={() => onView(shift)}
     >
       <td className="px-6 py-4">
@@ -264,8 +342,15 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
 
       {/* Status */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+          {status === "ongoing" ? (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className={`relative inline-flex h-2 w-2 rounded-full ${cfg.dot}`} />
+            </span>
+          ) : (
+            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+          )}
           {cfg.label}
         </span>
       </td>
@@ -288,22 +373,41 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
 
       {/* Actions */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center gap-1 justify-end">
+        <div className="flex items-center justify-end gap-0.5">
           <button
-            onClick={(e) => { e.stopPropagation(); onEdit(shift); }}
-            className="p-2 rounded-lg text-slate-400 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] transition-colors"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(shift);
+            }}
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#1B3F8B]"
+            title="View details"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(shift);
+            }}
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
             title="Edit shift"
           >
-            <Pencil className="w-4 h-4" />
+            <Pencil className="h-4 w-4" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(shift); }}
-            className="p-2 rounded-lg text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(shift);
+            }}
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600"
             title="Delete shift"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="h-4 w-4" />
           </button>
-          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 ml-1 transition-colors" />
+          <ChevronRight className="ml-0.5 h-4 w-4 text-slate-300 transition-colors group-hover:text-blue-500" aria-hidden />
         </div>
       </td>
     </tr>
@@ -323,6 +427,13 @@ const ManagerShifts = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [shiftListTotal, setShiftListTotal] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(() => new Date());
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    upcoming: 0,
+    ongoing: 0,
+    completed: 0,
+  });
+  const [dashData, setDashData] = useState(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
@@ -384,6 +495,31 @@ const ManagerShifts = () => {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [currentPage, fetchShifts]);
 
+  const fetchShiftMeta = useCallback(async () => {
+    try {
+      const [all, up, on, co, dash] = await Promise.all([
+        API.get("/api/manager/shifts?page=1&limit=1"),
+        API.get("/api/manager/shifts?page=1&limit=1&status=upcoming"),
+        API.get("/api/manager/shifts?page=1&limit=1&status=ongoing"),
+        API.get("/api/manager/shifts?page=1&limit=1&status=completed"),
+        API.get("/api/manager/shifts/dashboard/data"),
+      ]);
+      setStatusCounts({
+        all: all.data?.pagination?.total ?? 0,
+        upcoming: up.data?.pagination?.total ?? 0,
+        ongoing: on.data?.pagination?.total ?? 0,
+        completed: co.data?.pagination?.total ?? 0,
+      });
+      setDashData(dash.data?.data ?? dash.data);
+    } catch {
+      /* keep previous meta on failure */
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchShiftMeta();
+  }, [fetchShiftMeta]);
+
   /* ── Create ── */
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -423,6 +559,7 @@ const ManagerShifts = () => {
       setCreateShift({ shiftTitle: "", shiftStartTime: "", shiftEndTime: "", shiftNotes: "", slotsAvailable: "" });
       setShowCreate(false);
       fetchShifts(currentPage, false);
+      fetchShiftMeta();
     } catch (err) { toast.error(getApiErrorMessage(err, "Failed to create shift")); }
   };
 
@@ -462,6 +599,7 @@ const ManagerShifts = () => {
       toast.success("Shift updated");
       setEditingShift(null);
       fetchShifts(currentPage, false);
+      fetchShiftMeta();
     } catch { toast.error("Update failed"); }
   };
 
@@ -474,24 +612,47 @@ const ManagerShifts = () => {
       toast.success("Shift deleted");
       setDeleteTarget(null);
       fetchShifts(currentPage, false);
+      fetchShiftMeta();
     } catch (err) { toast.error(getApiErrorMessage(err, "Delete failed")); }
     finally { setDeleting(false); }
   };
 
-  /* ── Stats ── */
-  const totalShifts = shiftListTotal;
-  const upcomingShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "upcoming").length;
-  const ongoingShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "ongoing").length;
-  const totalEmployees = shifts.reduce((acc, s) => acc + (s.acceptedEmployees?.length || 0), 0);
-
   /* ── Filter (server returns filtered data; client filter only for instant UI before debounce) ── */
   const filteredShifts = shifts;
 
+  const { shiftDonutData, donutTotal } = useMemo(() => {
+    const d = dashData;
+    if (!d) {
+      return { shiftDonutData: [], donutTotal: 0 };
+    }
+    const { stats, recentShifts } = d;
+    const totalShiftCount = stats?.totalShifts ?? 0;
+    const raw = { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+    for (const shift of recentShifts || []) {
+      const k = classifyShiftForDonut(shift);
+      raw[k] += 1;
+    }
+    const scaled = scaleCountsToTotal(raw, totalShiftCount);
+    const data = [
+      { name: "Ongoing", value: scaled.ongoing, color: SHIFT_STATUS_COLORS.ongoing },
+      { name: "Upcoming", value: scaled.upcoming, color: SHIFT_STATUS_COLORS.upcoming },
+      { name: "Needs staff", value: scaled.needsStaff, color: SHIFT_STATUS_COLORS.needsStaff },
+      { name: "Completed", value: scaled.completed, color: SHIFT_STATUS_COLORS.completed },
+    ];
+    return { shiftDonutData: data, donutTotal: totalShiftCount };
+  }, [dashData]);
+
+  const donutLegendRows = shiftDonutData.map((d) => ({
+    name: d.name,
+    value: d.value,
+    color: d.color,
+  }));
+
   const FILTER_TABS = [
-    { key: "all", label: "All" },
-    { key: "upcoming", label: "Upcoming" },
-    { key: "ongoing", label: "Ongoing" },
-    { key: "completed", label: "Completed" },
+    { key: "all", label: "All", count: statusCounts.all },
+    { key: "upcoming", label: "Upcoming", count: statusCounts.upcoming },
+    { key: "ongoing", label: "Ongoing", count: statusCounts.ongoing },
+    { key: "completed", label: "Completed", count: statusCounts.completed },
   ];
 
   /* ── ESC closes everything ── */
@@ -508,74 +669,126 @@ const ManagerShifts = () => {
   }, [showCreate, editingShift, deleteTarget, selectedShift]);
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-8">
+      <div className="mx-auto max-w-7xl space-y-5">
 
         {/* ── Header ─────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 sm:px-0 mb-4 sm:mb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Shift Management</h1>
-            <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Create, schedule and manage your workforce shifts.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Shift Management</h1>
+            <p className="mt-1 text-sm text-gray-400">Create, schedule, and manage workforce shifts across your team.</p>
           </div>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-semibold bg-[#1B3F8B] text-white rounded-xl shadow-md hover:bg-[#162d5e] transition-all"
+            className="inline-flex h-11 min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#162d5e] sm:w-auto sm:px-6"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" strokeWidth={2} />
             Create Shift
           </button>
         </div>
-        <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
-        {/* ── Stats ──────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Shifts" value={totalShifts} icon={CalendarDays} gradient="bg-gradient-to-br from-blue-600 to-[#162d5e]" />
-          <StatCard label="Upcoming" value={upcomingShifts} icon={Timer} gradient="bg-gradient-to-br from-violet-500 to-purple-600" />
-          <StatCard label="Ongoing" value={ongoingShifts} icon={CheckCircle2} gradient="bg-gradient-to-br from-emerald-500 to-teal-600" />
-          <StatCard label="Assigned Employees" value={totalEmployees} icon={Users} gradient="bg-gradient-to-br from-orange-500 to-amber-500" />
+        {/* ── Stat summary (clickable) ─────────────────── */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          <FilterStatCard
+            label="Total Shifts"
+            value={statusCounts.all}
+            icon={CalendarDays}
+            active={statusFilter === "all"}
+            onClick={() => {
+              setStatusFilter("all");
+              setCurrentPage(1);
+            }}
+          />
+          <FilterStatCard
+            label="Ongoing"
+            value={statusCounts.ongoing}
+            icon={CheckCircle2}
+            active={statusFilter === "ongoing"}
+            onClick={() => {
+              setStatusFilter("ongoing");
+              setCurrentPage(1);
+            }}
+          />
+          <FilterStatCard
+            label="Upcoming"
+            value={statusCounts.upcoming}
+            icon={Timer}
+            active={statusFilter === "upcoming"}
+            onClick={() => {
+              setStatusFilter("upcoming");
+              setCurrentPage(1);
+            }}
+          />
+          <FilterStatCard
+            label="Completed"
+            value={statusCounts.completed}
+            icon={CalendarX}
+            active={statusFilter === "completed"}
+            onClick={() => {
+              setStatusFilter("completed");
+              setCurrentPage(1);
+            }}
+          />
         </div>
 
-        {/* ── Table Card ─────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          {/* Toolbar */}
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            {/* Filter Tabs */}
-            <div className="flex flex-wrap items-center gap-1 bg-slate-50 p-1 rounded-xl w-full sm:w-auto">
-              {FILTER_TABS.map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => { setStatusFilter(tab.key); setCurrentPage(1); }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${statusFilter === tab.key
-                    ? "bg-white shadow-sm text-blue-700 border border-slate-100"
-                    : "text-slate-500 hover:text-slate-700"
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
+          {/* ── Table Card ─────────────────────────────────── */}
+          <div className="order-2 overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-sm lg:order-1 lg:col-span-8">
+            {/* Toolbar */}
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              {/* Filter Tabs */}
+              <div className="inline-flex w-full flex-wrap gap-1 rounded-full bg-slate-100/80 p-1 sm:w-auto">
+                {FILTER_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(tab.key);
+                      setCurrentPage(1);
+                    }}
+                    className={`min-h-[40px] flex-1 rounded-full px-3 py-2 text-xs font-semibold transition-all sm:flex-none sm:px-4 ${
+                      statusFilter === tab.key
+                        ? "bg-white text-[#1B3F8B] shadow-sm ring-1 ring-gray-200/80"
+                        : "text-slate-500 hover:text-slate-800"
                     }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+                  >
+                    {tab.label}{" "}
+                    <span className="tabular-nums text-slate-400">({tab.count})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div className="relative w-full sm:w-72 sm:shrink-0">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  placeholder="Search shifts..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                  aria-label="Search shifts"
+                />
+                {search.trim() ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
             </div>
 
-            {/* Search */}
-            <div className="relative w-full sm:w-64 sm:shrink-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search shifts..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 min-h-11 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-10 h-10 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-              <p className="text-sm text-slate-400">Loading shifts…</p>
-            </div>
-          ) : filteredShifts.length === 0 ? (
+            {/* Table */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 sm:px-6">
+                <SkeletonTable rows={3} cols={5} />
+              </div>
+            ) : filteredShifts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
               <CalendarDays className="h-12 w-12 mb-3 opacity-25" />
               <p className="text-base font-medium text-slate-600">No shifts found</p>
@@ -583,9 +796,13 @@ const ManagerShifts = () => {
             </div>
           ) : (
             <>
-              <div className="md:hidden space-y-3 px-4 pb-4">
+              <div className="space-y-3 px-4 pb-4 md:hidden">
                 {filteredShifts.map((shift) => {
                   const slots = Number(shift.slotsAvailable) || 0;
+                  const accepted = shift.acceptedEmployees?.length || 0;
+                  const fillPct = Math.min(Math.round((accepted / Math.max(slots, 1)) * 100), 100);
+                  const st = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+                  const cfg = STATUS_CONFIG[st];
                   const dtOpts = {
                     day: "2-digit",
                     month: "short",
@@ -595,56 +812,91 @@ const ManagerShifts = () => {
                   return (
                     <div
                       key={shift._id}
-                      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedShift(shift)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedShift(shift);
+                        }
+                      }}
+                      className={`cursor-pointer rounded-xl border border-gray-200 border-l-4 bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${mobileStatusBorder(shift)}`}
                     >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1 pr-3">
-                          <p className="font-semibold text-gray-900 text-sm leading-tight">
-                            {shift.shiftTitle}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {slots} slots available
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="text-sm font-semibold leading-tight text-gray-900">{shift.shiftTitle}</p>
+                          <p className="mt-1 text-xs text-gray-400">
+                            {accepted}/{slots} filled
                           </p>
                         </div>
                         <span
-                          className="
-                          text-xs px-2.5 py-1 rounded-full
-                          font-medium flex-shrink-0
-                          bg-blue-50 text-blue-700
-                          border border-blue-100
-                        "
+                          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.text}`}
                         >
-                          {slots > 0 ? "Open" : "Full"}
+                          {st === "ongoing" ? (
+                            <span className="relative flex h-2 w-2">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                              <span className={`relative inline-flex h-2 w-2 rounded-full ${cfg.dot}`} />
+                            </span>
+                          ) : (
+                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                          )}
+                          {cfg.label}
                         </span>
                       </div>
-                      <div className="space-y-1.5 mb-3">
+                      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full ${fillPct >= 100 ? "bg-emerald-500" : fillPct >= 60 ? "bg-blue-500" : "bg-amber-400"}`}
+                          style={{ width: `${fillPct}%` }}
+                        />
+                      </div>
+                      <div className="mb-3 space-y-1.5">
                         <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <span className="text-gray-400 w-10 flex-shrink-0">Start</span>
+                          <span className="w-10 flex-shrink-0 text-gray-400">Start</span>
                           <span className="font-medium">
                             {new Date(shift.shiftStartTime).toLocaleString("en-DE", dtOpts)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <span className="text-gray-400 w-10 flex-shrink-0">End</span>
+                          <span className="w-10 flex-shrink-0 text-gray-400">End</span>
                           <span className="font-medium">
                             {new Date(shift.shiftEndTime).toLocaleString("en-DE", dtOpts)}
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-end gap-1 border-t border-gray-100 pt-3">
                         <button
                           type="button"
-                          onClick={() => setEditingShift(shift)}
-                          className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                          title="View details"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedShift(shift);
+                          }}
+                          className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#1B3F8B]"
                         >
-                          Edit
+                          <Eye className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeleteTarget(shift)}
-                          className="flex-1 min-h-11 text-sm font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                          title="Edit shift"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingShift(shift);
+                          }}
+                          className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
                         >
-                          Delete
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete shift"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(shift);
+                          }}
+                          className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -662,7 +914,7 @@ const ManagerShifts = () => {
                       <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody>
                     {filteredShifts.map(shift => (
                       <ShiftRow
                         key={shift._id}
@@ -717,6 +969,18 @@ const ManagerShifts = () => {
               </p>
             </div>
           )}
+          </div>
+
+          <aside className="order-1 lg:order-2 lg:col-span-4">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+              <h2 className="text-sm font-semibold text-slate-900">Shift status</h2>
+              <p className="mt-0.5 text-xs text-gray-400">Distribution across all shifts</p>
+              <div className="mt-4 flex flex-col items-center">
+                <DonutChart data={shiftDonutData} size={120} centerValue={String(donutTotal)} centerLabel="Total" />
+                <DonutLegendMini rows={donutLegendRows} total={donutTotal} />
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
 

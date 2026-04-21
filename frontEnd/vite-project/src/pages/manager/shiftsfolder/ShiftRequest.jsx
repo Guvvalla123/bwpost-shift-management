@@ -3,11 +3,11 @@ import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard } from "@/components/ui";
 import {
   ClipboardList, CheckCircle2, XCircle, Calendar,
   ArrowRightLeft, LogOut as LeaveIcon, Search,
-  X, Loader2, MessageSquare,
+  X, Loader2, MessageSquare, Clock,
 } from "lucide-react";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
@@ -115,6 +115,31 @@ const ShiftRequest = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [fetchError, setFetchError] = useState(false);
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+
+  const fetchStatusCounts = useCallback(async () => {
+    try {
+      const [all, pen, app, rej] = await Promise.all([
+        API.get("/api/manager/requests?page=1&limit=1"),
+        API.get("/api/manager/requests?page=1&limit=1&status=pending"),
+        API.get("/api/manager/requests?page=1&limit=1&status=approved"),
+        API.get("/api/manager/requests?page=1&limit=1&status=rejected"),
+      ]);
+      setStatusCounts({
+        all: all.data?.pagination?.total ?? 0,
+        pending: pen.data?.pagination?.total ?? 0,
+        approved: app.data?.pagination?.total ?? 0,
+        rejected: rej.data?.pagination?.total ?? 0,
+      });
+    } catch {
+      /* keep previous */
+    }
+  }, []);
 
   /* ── Fetch ── */
   const fetchRequests = useCallback(async (silent = false) => {
@@ -142,9 +167,13 @@ const ShiftRequest = () => {
   /* ── Auto-refresh every 30 s ── */
   useEffect(() => {
     fetchRequests();
-    const id = setInterval(() => fetchRequests(true), 30_000);
+    fetchStatusCounts();
+    const id = setInterval(() => {
+      fetchRequests(true);
+      fetchStatusCounts();
+    }, 30_000);
     return () => clearInterval(id);
-  }, [fetchRequests]);
+  }, [fetchRequests, fetchStatusCounts]);
 
   /* ── Re-fetch on tab focus ── */
   useEffect(() => {
@@ -176,26 +205,23 @@ const ShiftRequest = () => {
     [ranged, debouncedSearch]);
 
   const openResolveModal = (req, action) => {
-    const ok = window.confirm(
-      action === "approve"
-        ? "Approve this shift request?"
-        : "Reject this shift request?"
-    );
-    if (!ok) return;
     setModal({ request: req, action });
   };
 
   return (
-    <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-5 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-5 bg-[#F8F9FC] px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-8">
 
       {/* ── Page header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Shift Requests</h1>
-          <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Review and act on employee leave and shift-change requests</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Shift Requests</h1>
+        <p className="mt-1 text-sm text-gray-400">Review and manage staff requests</p>
       </div>
-      <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <KpiCard variant="amber" icon={Clock} label="Pending" value={statusCounts.pending} />
+        <KpiCard variant="green" icon={CheckCircle2} label="Approved" value={statusCounts.approved} />
+        <KpiCard variant="default" icon={XCircle} label="Rejected" value={statusCounts.rejected} />
+      </div>
 
       {/* ── ONE combined filter bar ── */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex flex-col gap-3">
@@ -236,17 +262,26 @@ const ShiftRequest = () => {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 items-center">
-          {[["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]].map(([k, l]) => (
+          {[
+            ["all", "All", statusCounts.all],
+            ["pending", "Pending", statusCounts.pending],
+            ["approved", "Approved", statusCounts.approved],
+            ["rejected", "Rejected", statusCounts.rejected],
+          ].map(([k, l, c]) => (
             <button
               key={k}
               type="button"
               onClick={() => { setStatusFilter(k); setCurrentPage(1); }}
-              className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap
+              className={`flex-shrink-0 flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap
                         ${statusFilter === k ? "bg-[#1B3F8B] text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
             >
               {l}
-              <span className={`text-[10px] font-bold ${statusFilter === k ? "text-white/70" : "text-slate-400"}`}>
-                {statusFilter === k ? totalItems : ""}
+              <span
+                className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                  statusFilter === k ? "bg-white/20 text-white" : "bg-white text-slate-500"
+                }`}
+              >
+                {c}
               </span>
             </button>
           ))}
@@ -295,55 +330,75 @@ const ShiftRequest = () => {
           </div>
         ) : (
           <>
-            <div className="md:hidden space-y-3 px-4 pb-2">
+            <div className="space-y-3 px-4 pb-2 md:hidden">
               {visible.map((req) => {
                 const st = req.status || "pending";
-                const statusLabel = st.charAt(0).toUpperCase() + st.slice(1);
-                const badgeCls =
-                  st === "pending"
-                    ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                    : st === "approved"
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-red-50 text-red-600 border border-red-200";
+                const typeCfg = TYPE_CFG[req.type] || TYPE_CFG.leave;
+                const TypeIcon = typeCfg.Icon;
+                const statusIcon =
+                  st === "approved" ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden />
+                  ) : st === "rejected" ? (
+                    <XCircle className="h-5 w-5 text-red-600" aria-hidden />
+                  ) : (
+                    <Clock className="h-5 w-5 text-amber-500" aria-hidden />
+                  );
                 return (
-                  <div key={req._id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1 pr-3">
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {req.employee?.username || "Employee"}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                          {req.currentShift?.shiftTitle || "Shift"}
+                  <div
+                    key={req._id}
+                    className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                  >
+                    <div className="mb-3 flex gap-3">
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${grad(req.employee?.username)} text-xs font-bold text-white`}
+                      >
+                        {inits(req.employee?.username || "")}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{req.employee?.username || "Employee"}</p>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-gray-500">{req.currentShift?.shiftTitle || "Shift"}</p>
+                          </div>
+                          {statusIcon}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${typeCfg.badge}`}>
+                            <TypeIcon className="h-3 w-3" />
+                            {typeCfg.label}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-400">
+                          Requested{" "}
+                          {req.createdAt ? new Date(req.createdAt).toLocaleDateString(undefined) : "—"}
                         </p>
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${badgeCls}`}>
-                        {statusLabel}
-                      </span>
                     </div>
-                    <p className="text-xs text-gray-400 mb-3">
-                      Requested:{" "}
-                      {req.createdAt
-                        ? new Date(req.createdAt).toLocaleDateString("en-DE")
-                        : "—"}
-                    </p>
-                    {st === "pending" && (
-                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    {req.reason ? (
+                      <blockquote className="mb-3 border-l-4 border-slate-200 bg-slate-50 py-2 pl-3 text-sm text-slate-600">
+                        {req.reason}
+                      </blockquote>
+                    ) : null}
+                    {st === "pending" ? (
+                      <div className="flex w-full flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row">
                         <button
                           type="button"
                           onClick={() => openResolveModal(req, "approve")}
-                          className="flex-1 min-h-11 text-sm font-semibold rounded-xl bg-green-600 text-white hover:bg-green-700 transition-colors"
+                          className="inline-flex min-h-[44px] w-full flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
                         >
+                          <CheckCircle2 className="h-4 w-4 sm:hidden" />
                           Approve
                         </button>
                         <button
                           type="button"
                           onClick={() => openResolveModal(req, "reject")}
-                          className="flex-1 min-h-11 text-sm font-semibold rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors"
+                          className="inline-flex min-h-[44px] w-full flex-1 items-center justify-center gap-2 rounded-xl border-2 border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                         >
+                          <XCircle className="h-4 w-4 sm:hidden" />
                           Reject
                         </button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}
@@ -458,7 +513,10 @@ const ShiftRequest = () => {
           request={modal.request}
           action={modal.action}
           onClose={() => setModal(null)}
-          onSuccess={fetchRequests}
+          onSuccess={() => {
+            fetchRequests();
+            fetchStatusCounts();
+          }}
         />
       )}
     </div>

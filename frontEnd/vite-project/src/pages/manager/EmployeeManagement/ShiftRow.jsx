@@ -1,18 +1,6 @@
 import { memo } from "react";
 import { Pencil, Trash2, Eye } from "lucide-react";
 
-/* Deterministic pastel gradient per employee initial */
-const AVATAR_GRADIENTS = [
-  "from-blue-600 to-[#162d5e]",
-  "from-violet-600 to-purple-600",
-  "from-emerald-500 to-teal-600",
-  "from-orange-500 to-amber-500",
-  "from-rose-500 to-pink-600",
-  "from-cyan-500 to-blue-600",
-];
-const avatarGradient = (name = "") =>
-  AVATAR_GRADIENTS[name.charCodeAt(0) % AVATAR_GRADIENTS.length];
-
 const formatJoinDate = (iso) => {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(undefined, {
@@ -22,77 +10,79 @@ const formatJoinDate = (iso) => {
   });
 };
 
-function ShiftRow({ employee, onEdit, onDelete, onView }) {
-  const initials = (employee.username || "?")
+const initialsFrom = (name = "") =>
+  name
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2) || "?";
+
+function ShiftRow({ employee, onEdit, onDelete, onView }) {
+  const initials = initialsFrom(employee.username);
+  const active = employee.isActive !== false;
+  const role = employee.role || "employee";
+  const roleLabel = role === "manager" ? "Manager" : "Employee";
 
   return (
-    <tr className="group hover:bg-blue-50/40 transition-colors duration-150">
-      {/* Employee info */}
-      <td className="px-6 py-4 whitespace-nowrap">
+    <tr className="group transition-colors duration-150 even:bg-slate-50/50 hover:bg-blue-50/40">
+      <td className="whitespace-nowrap px-6 py-4">
         <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div
-            className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarGradient(
-              employee.username
-            )} flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm`}
-          >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1B3F8B] text-sm font-bold text-white shadow-sm">
             {initials}
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {employee.username}
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">{employee.email}</p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-slate-900">{employee.username}</p>
+              <span className="inline-flex items-center rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1B3F8B]">
+                {roleLabel}
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-xs text-slate-400">{employee.email}</p>
           </div>
         </div>
       </td>
 
-      {/* Role */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-          Employee
+      <td className="whitespace-nowrap px-6 py-4">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+            active
+              ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+              : "bg-red-50 text-red-700 ring-1 ring-red-200"
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-red-500"}`} />
+          {active ? "Active" : "Inactive"}
         </span>
       </td>
 
-      {/* Status */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          Active
-        </span>
-      </td>
-
-      {/* Joined */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+      <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
         {formatJoinDate(employee.createdAt)}
       </td>
 
-      {/* Actions */}
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center gap-1">
+      <td className="whitespace-nowrap px-6 py-4">
+        <div className="flex items-center justify-end gap-0.5">
           <button
+            type="button"
             onClick={() => onView(employee)}
-            title="View Details"
-            className="p-2 rounded-lg text-slate-400 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+            title="View details"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#1B3F8B]"
           >
             <Eye className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={() => onEdit(employee)}
-            title="Edit Employee"
-            className="p-2 rounded-lg text-slate-400 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] transition-colors"
+            title="Edit employee"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
           >
             <Pencil className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={() => onDelete(employee)}
-            title="Deactivate Employee"
-            className="p-2 rounded-lg text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+            title="Remove employee"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <Trash2 className="h-4 w-4" />
           </button>

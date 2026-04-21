@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn, Mail, Lock } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import API from "@/api";
@@ -7,8 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
 import { cn } from "@/lib/utils";
 
-const inputClass =
-  "w-full h-12 rounded-lg border border-slate-200 px-3 text-base text-[#0f2042] bg-white transition-colors outline-none focus:border-[#1B3F8B] focus:ring-2 focus:ring-[#BFDBFE]/50 placeholder:text-slate-400";
+const fieldInputCls =
+  "w-full h-12 pl-10 pr-4 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl " +
+  "focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/20 focus:border-[#1B3F8B] focus:bg-white " +
+  "transition-all duration-200 placeholder:text-gray-400";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -86,120 +88,149 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url(/images/bwpost_hero.jpg)" }}
-        aria-hidden
-      />
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-[#0f2042]/90 via-[#1B3F8B]/80 to-[#0f2042]/90 bg-black/40"
-        aria-hidden
-      />
-
-      <div className="relative z-10 bg-white rounded-2xl border border-white/20 shadow-2xl shadow-[#0f2042]/40 p-6 sm:p-8 w-full max-w-md mx-auto px-4 sm:px-0 sm:mx-4">
-        <div className="text-center mb-6">
-          <p className="text-2xl tracking-tight">
-            <span className="font-extrabold text-[#1B3F8B]">BW</span>
-            <span className="font-light text-slate-400">POST</span>
-          </p>
-          <p className="text-[10px] font-bold tracking-[3px] text-slate-400 uppercase mt-1">
-            SHIFT MANAGEMENT SYSTEM
-          </p>
-          <div className="w-10 h-0.5 bg-[#1B3F8B] mx-auto mt-4 mb-6 rounded-full" />
+    <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+      <div className="hidden lg:flex lg:w-[60%] min-h-screen relative flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0f2042] via-[#152a52] to-[#1B3F8B]">
+        <div className="absolute inset-0 opacity-[0.07] pointer-events-none" aria-hidden>
+          <div className="absolute top-20 right-20 w-96 h-96 rounded-full border border-white" />
+          <div className="absolute bottom-32 left-10 w-64 h-64 rounded-full border border-white" />
+          <div className="absolute top-1/2 left-1/3 w-40 h-40 rotate-12 border border-white rounded-lg" />
         </div>
+        <div className="relative z-10 px-12 xl:px-16 py-14 flex flex-col justify-center flex-1 max-w-2xl">
+          <div className="mb-10">
+            <span className="text-white font-bold text-2xl tracking-tight">BW</span>
+            <span className="text-white/90 font-bold text-2xl tracking-tight ml-0.5">POST</span>
+          </div>
+          <h2 className="text-white text-3xl xl:text-4xl font-bold leading-tight tracking-tight">
+            Empowering Germany&apos;s
+            <br />
+            Delivery Workforce
+          </h2>
+          <p className="mt-5 text-white/70 text-base leading-relaxed max-w-md">
+            Shift management built for 2,200+ delivery professionals
+          </p>
+          <ul className="mt-10 space-y-5 text-white/90 text-sm">
+            <li className="flex items-start gap-3">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/80 shrink-0" />
+              Smart Shift Scheduling
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/80 shrink-0" />
+              Real-time Attendance Tracking
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/80 shrink-0" />
+              Seamless Team Coordination
+            </li>
+          </ul>
+        </div>
+        <div className="relative z-10 h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" aria-hidden />
+      </div>
 
-        <h1 className="font-bold text-[#0f2042] text-xl lg:text-2xl mb-1 text-center">
-          Sign in to your account
-        </h1>
-        <p className="text-slate-400 text-sm mb-6 text-center">
-          Enter your credentials to continue
-        </p>
+      <div className="flex-1 w-full lg:w-[40%] flex flex-col justify-center px-6 py-10 sm:p-8 lg:p-12 min-h-screen bg-white">
+        <div className="w-full max-w-md mx-auto">
+          <div className="mb-8 text-center lg:text-left">
+            <p className="text-xl tracking-tight">
+              <span className="font-extrabold text-[#1B3F8B]">BW</span>
+              <span className="font-extrabold text-[#1B3F8B] ml-0.5">POST</span>
+            </p>
+            <p className="text-xs font-medium tracking-widest text-gray-400 uppercase mt-2">
+              SHIFT MANAGEMENT SYSTEM
+            </p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="login-email" className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Email
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              inputMode="email"
-              name="email"
-              value={email}
-              onChange={handleChange}
-              placeholder="you@company.com"
-              autoComplete="email"
-              autoFocus
-              className={cn(
-                inputClass,
-                errors.email && "border-red-500 focus:border-red-500 focus:ring-red-500/25"
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+          <p className="text-sm text-gray-500 mt-1 mb-8">Sign in to your account</p>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="login-email" className="text-sm font-medium text-gray-700 mb-2 block">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  id="login-email"
+                  type="email"
+                  inputMode="email"
+                  name="email"
+                  value={email}
+                  onChange={handleChange}
+                  placeholder="you@bwpost.de"
+                  autoComplete="email"
+                  autoFocus
+                  className={cn(
+                    fieldInputCls,
+                    errors.email && "border-red-400 focus:border-red-500 focus:ring-red-200"
+                  )}
+                  aria-invalid={!!errors.email}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-sm text-red-600 mt-1">{errors.email}</p>
               )}
-              aria-invalid={!!errors.email}
-            />
-            {errors.email && (
-              <p className="text-sm text-red-600 mt-1">{errors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="login-password" className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="login-password"
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                className={cn(
-                  inputClass,
-                  "pr-11",
-                  errors.password &&
-                    "border-red-500 focus:border-red-500 focus:ring-red-500/25"
-                )}
-                aria-invalid={!!errors.password}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
             </div>
-            {errors.password && (
-              <p className="text-sm text-red-600 mt-1">{errors.password}</p>
-            )}
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full h-12 text-base font-semibold bg-[#1B3F8B] hover:bg-[#162d5e] text-white rounded-lg flex items-center justify-center gap-2 transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50"
-          >
-            {loading ? (
-              "Signing in…"
-            ) : (
-              <>
-                <LogIn className="h-4 w-4" aria-hidden />
-                Sign in
-              </>
-            )}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="login-password" className="text-sm font-medium text-gray-700 mb-2 block">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className={cn(
+                    fieldInputCls,
+                    "pr-11",
+                    errors.password && "border-red-400 focus:border-red-500 focus:ring-red-200"
+                  )}
+                  aria-invalid={!!errors.password}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/20"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-sm text-red-600 mt-1">{errors.password}</p>
+              )}
+            </div>
 
-        <div className="text-center mt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-xl bg-[#1B3F8B] text-white text-sm font-semibold hover:bg-[#152f6b] active:scale-[0.98] transition-all duration-150 shadow-lg shadow-[#1B3F8B]/25 flex items-center justify-center gap-2 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {loading ? (
+                "Signing in…"
+              ) : (
+                <>
+                  <LogIn className="h-4 w-4" aria-hidden />
+                  Sign in
+                </>
+              )}
+            </button>
+          </form>
+
           <Link
             to="/forgot-password"
-            className="text-[#1B3F8B] text-sm font-semibold hover:text-[#162d5e] hover:underline inline-block py-3"
+            className="text-sm text-[#1B3F8B] font-medium hover:underline text-center block py-3 mt-2"
           >
             Forgot password?
           </Link>
+
+          <div className="hidden lg:block mt-10 pt-8 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">Secure login powered by BWPost</p>
+          </div>
         </div>
       </div>
     </div>

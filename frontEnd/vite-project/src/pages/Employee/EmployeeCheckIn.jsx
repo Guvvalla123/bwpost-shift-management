@@ -17,8 +17,8 @@ const formatDuration = (minutes) => {
   const m = Math.max(0, Math.round(minutes));
   const h = Math.floor(m / 60);
   const r = m % 60;
-  if (h === 0) return `${r}m`;
-  return r === 0 ? `${h}h` : `${h}h ${r}m`;
+  if (h === 0) return `${r} minutes`;
+  return r === 0 ? `${h} hours` : `${h} hours ${r} minutes`;
 };
 
 const isShiftActive = (shift) => {
@@ -133,6 +133,17 @@ const EmployeeCheckIn = () => {
     return (currentTime - new Date(openBreak.start)) / 60000;
   }, [status, openBreak, currentTime]);
 
+  const shiftProgressPct = useMemo(() => {
+    const s = shiftInfo || todayShifts.find((x) => x._id === selectedShiftId);
+    if (!s?.shiftStartTime || !s?.shiftEndTime) return 0;
+    const start = new Date(s.shiftStartTime).getTime();
+    const end = new Date(s.shiftEndTime).getTime();
+    const now = currentTime.getTime();
+    if (end <= start) return 0;
+    const pct = ((now - start) / (end - start)) * 100;
+    return Math.min(100, Math.max(0, pct));
+  }, [shiftInfo, todayShifts, selectedShiftId, currentTime]);
+
   const runAction = async (fn) => {
     if (!selectedShiftId) return;
     setActionLoading(true);
@@ -172,16 +183,11 @@ const EmployeeCheckIn = () => {
       toast.success("Break ended, back to work");
     });
 
-  const onTimeLabel = () => {
-    if (!attendance) return "—";
-    if (attendance.isLate) return "Late";
-    if (attendance.leftEarly) return "Left early";
-    return "On time";
-  };
+  const displayShift = shiftInfo || todayShifts.find((x) => x._id === selectedShiftId);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f1f5f9] p-6">
+      <div className="min-h-screen bg-[#F8F9FC] p-6">
         <SkeletonCard lines={4} />
       </div>
     );
@@ -189,24 +195,22 @@ const EmployeeCheckIn = () => {
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-[#f1f5f9] p-6">
-        <ErrorState
-          title="Failed to load shifts"
-          message="Could not load your shifts. Please try again."
-          onRetry={fetchShiftsList}
-        />
+      <div className="min-h-screen bg-[#F8F9FC] p-6">
+        <ErrorState title="Failed to load shifts" message="Could not load your shifts. Please try again." onRetry={fetchShiftsList} />
       </div>
     );
   }
 
   if (todayShifts.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f1f5f9] p-6">
-        <div className="max-w-lg mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-          <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <h1 className="text-lg font-bold text-slate-900">No active shift today</h1>
-          <p className="text-sm text-slate-500 mt-2">
-            There is no shift starting within the next 2 hours or currently in progress.
+      <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-8">
+        <div className="mx-auto max-w-md rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+            <Clock className="h-8 w-8 text-slate-400" strokeWidth={1.5} />
+          </div>
+          <h1 className="text-lg font-bold text-slate-900">No active shift right now</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            There is no shift starting within the next two hours or in progress. Check back when you are scheduled.
           </p>
         </div>
       </div>
@@ -214,215 +218,243 @@ const EmployeeCheckIn = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 sm:p-6 max-w-7xl mx-auto">
-      <div className="w-full max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-6 sm:px-6">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Check In</h1>
-          <p className="text-base text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-slate-900">Check In</h1>
+          <p className="mt-1 text-sm text-gray-400">
             {user?.username ? `Hi ${user.username} — ` : ""}
             Record attendance for your shift
           </p>
         </div>
 
-        <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-2 text-slate-600">
-              <Clock className="w-6 h-6 text-[#1B3F8B] shrink-0" />
-              <span className="text-3xl sm:text-4xl font-bold tabular-nums text-slate-900">
-                {currentTime.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true })}
-              </span>
+        {todayShifts.length > 1 && (
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-600">Select shift</label>
+            <div className="relative">
+              <select
+                value={selectedShiftId || ""}
+                onChange={(e) => setSelectedShiftId(e.target.value || null)}
+                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-800 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+              >
+                <option value="">Choose a shift</option>
+                {todayShifts.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.shiftTitle} · {formatTime(s.shiftStartTime)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             </div>
-            <span className={`text-sm font-semibold px-3 py-1.5 rounded-full self-start sm:self-auto ${badge.cls}`}>{badge.label}</span>
           </div>
+        )}
 
-          {todayShifts.length > 1 && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-1.5">Select shift</label>
-              <div className="relative">
-                <select
-                  value={selectedShiftId || ""}
-                  onChange={(e) => setSelectedShiftId(e.target.value || null)}
-                  className="w-full h-12 appearance-none px-4 rounded-lg border border-slate-200 text-base text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B]"
-                >
-                  <option value="">— Choose a shift —</option>
-                  {todayShifts.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.shiftTitle} · {formatTime(s.shiftStartTime)}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        {!selectedShiftId && todayShifts.length > 1 && (
+          <p className="flex items-center gap-2 text-base text-amber-600">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            Select a shift to continue.
+          </p>
+        )}
+
+        {selectedShiftId && displayShift && (
+          <div className="overflow-hidden rounded-2xl bg-[#1B3F8B] text-white shadow-lg">
+            <div className="p-5 sm:p-6">
+              <p className="text-xs font-medium text-white/70">Current shift</p>
+              <h2 className="mt-1 text-xl font-bold leading-tight sm:text-2xl">{displayShift.shiftTitle}</h2>
+              <p className="mt-2 text-sm text-white/85">
+                {formatTime(displayShift.shiftStartTime)} – {formatTime(displayShift.shiftEndTime)}
+              </p>
+              <div className="mt-4">
+                <div className="mb-1 flex justify-between text-xs text-white/70">
+                  <span>Shift progress</span>
+                  <span className="tabular-nums">{Math.round(shiftProgressPct)}%</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white transition-all duration-500"
+                    style={{ width: `${shiftProgressPct}%` }}
+                  />
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {todayShifts.length === 1 && (shiftInfo?.shiftTitle || todayShifts[0]?.shiftTitle) && (
-            <p className="text-base font-medium text-slate-800">{shiftInfo?.shiftTitle || todayShifts[0]?.shiftTitle}</p>
-          )}
+        {selectedShiftId && attendanceLoading && <SkeletonCard lines={3} />}
 
-          {!selectedShiftId && todayShifts.length > 1 && (
-            <p className="text-base text-amber-600 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              Select a shift to view attendance and actions.
-            </p>
-          )}
+        {selectedShiftId && attendanceError && !attendanceLoading && (
+          <ErrorState title="Failed to load attendance" message="Could not load your attendance for this shift." onRetry={fetchAttendance} />
+        )}
 
-          {selectedShiftId && attendanceLoading && (
-            <SkeletonCard lines={3} />
-          )}
+        {selectedShiftId && !attendanceLoading && !attendanceError && shiftInfo && attendance && (
+          <>
+            <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+              <span className="text-sm text-slate-600">Status</span>
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}>{badge.label}</span>
+            </div>
 
-          {selectedShiftId && attendanceError && !attendanceLoading && (
-            <ErrorState
-              title="Failed to load attendance"
-              message="Could not load your attendance for this shift."
-              onRetry={fetchAttendance}
-            />
-          )}
+            {status === "not_started" && (
+              <button
+                type="button"
+                onClick={handleCheckIn}
+                disabled={actionLoading}
+                className="flex h-14 min-h-[56px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] text-white shadow-md transition hover:bg-[#162d5e] disabled:opacity-60"
+              >
+                <Clock className="h-5 w-5 shrink-0" strokeWidth={2} />
+                <span className="text-sm font-bold">Check In</span>
+              </button>
+            )}
 
-          {selectedShiftId && !attendanceLoading && !attendanceError && shiftInfo && attendance && (
-            <>
-              <div className="text-base text-slate-600 space-y-2 border-t border-slate-100 pt-4">
-                <p>
-                  <span className="text-slate-400">Start:</span>{" "}
-                  {formatTime(shiftInfo.shiftStartTime)} · {new Date(shiftInfo.shiftStartTime).toLocaleDateString()}
-                </p>
-                <p>
-                  <span className="text-slate-400">End:</span>{" "}
-                  {formatTime(shiftInfo.shiftEndTime)} · {new Date(shiftInfo.shiftEndTime).toLocaleDateString()}
-                </p>
-                {minutesSinceCheckIn != null && status === "checked_in" && (
-                  <p>
-                    <span className="text-slate-400">Time since check-in:</span>{" "}
-                    {formatDuration(minutesSinceCheckIn)}
-                  </p>
-                )}
-                {breakDurationMins != null && status === "on_break" && (
-                  <p>
-                    <span className="text-slate-400">Break duration:</span> {formatDuration(breakDurationMins)}
-                  </p>
-                )}
-              </div>
-
-              {status === "checked_out" && (
-                <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-800 font-bold text-base">
-                    <CheckCircle2 className="w-6 h-6 shrink-0" />
-                    Shift Complete
+            {(status === "checked_in" || status === "on_break") && (
+              <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/80 p-4">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">Checked in</p>
+                    {firstCheckIn ? (
+                      <p className="text-sm text-emerald-800">
+                        Checked in at {formatTime(firstCheckIn)}
+                      </p>
+                    ) : null}
+                    {minutesSinceCheckIn != null && status === "checked_in" ? (
+                      <p className="mt-1 text-sm text-emerald-800">
+                        Time worked: {formatDuration(minutesSinceCheckIn)}
+                      </p>
+                    ) : null}
+                    {breakDurationMins != null && status === "on_break" ? (
+                      <p className="mt-1 text-sm text-amber-800">On break: {formatDuration(breakDurationMins)}</p>
+                    ) : null}
                   </div>
-                  <dl className="text-base space-y-3 text-slate-700">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4 w-full">
-                      <dt className="text-slate-500 sm:text-slate-700">Total Work Time</dt>
-                      <dd className="font-semibold tabular-nums">{formatDuration(attendance.totalWorkMinutes)}</dd>
-                    </div>
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4 w-full">
-                      <dt className="text-slate-500 sm:text-slate-700">Break Time</dt>
-                      <dd className="font-semibold tabular-nums">{formatDuration(attendance.totalBreakMinutes)}</dd>
-                    </div>
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4 w-full">
-                      <dt className="text-slate-500 sm:text-slate-700">Check In</dt>
-                      <dd className="font-medium">{formatTime(firstCheckIn)}</dd>
-                    </div>
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4 w-full">
-                      <dt className="text-slate-500 sm:text-slate-700">Check Out</dt>
-                      <dd className="font-medium">{formatTime(lastCheckOut)}</dd>
-                    </div>
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4 w-full">
-                      <dt className="text-slate-500 sm:text-slate-700">Status</dt>
-                      <dd className="font-medium">{onTimeLabel()}</dd>
-                    </div>
-                  </dl>
                 </div>
-              )}
+              </div>
+            )}
 
-              {status === "not_started" && (
-                <button
-                  type="button"
-                  onClick={handleCheckIn}
-                  disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-[#1B3F8B] hover:bg-[#162d5e] text-white rounded-2xl px-4 h-16 text-lg font-bold shadow-lg transition-colors disabled:opacity-60 min-h-[64px] sm:max-w-sm sm:mx-auto"
-                >
-                  <LogIn className="w-6 h-6 shrink-0" />
-                  Check In
-                </button>
-              )}
-
-              {status === "checked_in" && (
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative w-full sm:flex-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowBreakMenu((v) => !v)}
-                      disabled={actionLoading}
-                      className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-3 text-base font-semibold transition-colors disabled:opacity-60 min-h-12"
-                    >
-                      <Coffee className="w-5 h-5 shrink-0" />
-                      Start Break
-                    </button>
-                    {showBreakMenu && (
-                      <>
-                        <button type="button" className="fixed inset-0 z-10 cursor-default" aria-label="Close menu" onClick={() => setShowBreakMenu(false)} />
-                        <div className="absolute left-0 right-0 mt-1 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 text-base">
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 min-h-11 hover:bg-slate-50"
-                            onClick={() => handleStartBreak("lunch")}
-                          >
-                            Lunch Break
-                          </button>
-                          <button
-                            type="button"
-                            className="w-full text-left px-4 py-3 min-h-11 hover:bg-slate-50"
-                            onClick={() => handleStartBreak("short_break")}
-                          >
-                            Short Break
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+            {status === "checked_in" && (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="relative w-full sm:flex-1">
                   <button
                     type="button"
-                    onClick={() => setShowCheckoutConfirm(true)}
+                    onClick={() => setShowBreakMenu((v) => !v)}
                     disabled={actionLoading}
-                    className="w-full sm:flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-3 text-base font-semibold transition-colors disabled:opacity-60 min-h-12"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    <LogOut className="w-5 h-5 shrink-0" />
-                    Check Out
+                    <Coffee className="h-5 w-5 shrink-0" />
+                    Start Break
                   </button>
+                  {showBreakMenu && (
+                    <>
+                      <button
+                        type="button"
+                        className="fixed inset-0 z-10 cursor-default"
+                        aria-label="Close menu"
+                        onClick={() => setShowBreakMenu(false)}
+                      />
+                      <div className="absolute left-0 right-0 z-20 mt-1 rounded-lg border border-slate-200 bg-white py-1 text-base shadow-lg">
+                        <button
+                          type="button"
+                          className="w-full min-h-11 px-4 py-3 text-left hover:bg-slate-50"
+                          onClick={() => handleStartBreak("lunch")}
+                        >
+                          Lunch Break
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full min-h-11 px-4 py-3 text-left hover:bg-slate-50"
+                          onClick={() => handleStartBreak("short_break")}
+                        >
+                          Short Break
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
-
-              {status === "on_break" && (
                 <button
                   type="button"
-                  onClick={handleEndBreak}
+                  onClick={() => setShowCheckoutConfirm(true)}
                   disabled={actionLoading}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1B3F8B] hover:bg-[#162d5e] text-white rounded-lg px-4 py-3 text-base font-semibold transition-colors disabled:opacity-60 min-h-12"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition hover:bg-[#162d5e] disabled:opacity-60 sm:flex-1"
                 >
-                  End Break
+                  <Clock className="h-5 w-5 shrink-0" />
+                  Check Out
                 </button>
-              )}
-            </>
-          )}
-        </div>
+              </div>
+            )}
+
+            {status === "on_break" && (
+              <button
+                type="button"
+                onClick={handleEndBreak}
+                disabled={actionLoading}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition hover:bg-[#162d5e] disabled:opacity-60"
+              >
+                End Break
+              </button>
+            )}
+
+            {(status === "checked_in" || status === "on_break") && (
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Today</p>
+                <dl className="mt-3 space-y-2 text-sm text-slate-700">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">Check in</dt>
+                    <dd className="font-medium">{firstCheckIn ? formatTime(firstCheckIn) : "—"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">Check out</dt>
+                    <dd className="font-medium">{lastCheckOut ? formatTime(lastCheckOut) : "—"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">Total worked</dt>
+                    <dd className="font-semibold tabular-nums">
+                      {attendance.totalWorkMinutes != null ? formatDuration(attendance.totalWorkMinutes) : "—"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+
+            {status === "checked_out" && (
+              <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5">
+                <div className="flex items-center gap-2 text-base font-bold text-emerald-800">
+                  <CheckCircle2 className="h-6 w-6 shrink-0" />
+                  Shift complete
+                </div>
+                <dl className="space-y-2 text-sm text-slate-700">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">Check in</dt>
+                    <dd className="font-medium">{firstCheckIn ? formatTime(firstCheckIn) : "—"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">Check out</dt>
+                    <dd className="font-medium">{lastCheckOut ? formatTime(lastCheckOut) : "—"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-slate-500">Total hours</dt>
+                    <dd className="font-semibold">{formatDuration(attendance.totalWorkMinutes)}</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {showCheckoutConfirm && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-stretch sm:items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 p-0 sm:items-center sm:p-4"
           onClick={() => setShowCheckoutConfirm(false)}
         >
           <div
-            className="bg-white w-full min-h-full sm:min-h-0 sm:rounded-2xl sm:shadow-xl sm:max-w-md sm:w-full mx-0 sm:mx-4 p-6 flex flex-col justify-center"
+            className="mx-0 flex min-h-full w-full flex-col justify-center bg-white p-6 sm:min-h-0 sm:max-w-md sm:rounded-2xl sm:shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-slate-800 font-semibold text-lg">Are you sure you want to check out?</p>
-            <p className="text-base text-slate-500 mt-2">This will end your work session for this shift.</p>
-            <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+            <p className="text-lg font-semibold text-slate-800">Check out now?</p>
+            <p className="mt-2 text-base text-slate-500">This will end your work session for this shift.</p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setShowCheckoutConfirm(false)}
-                className="w-full sm:flex-1 px-4 py-3 rounded-lg border border-slate-200 text-base font-semibold text-slate-700 hover:bg-slate-50 min-h-12"
+                className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-base font-semibold text-slate-700 hover:bg-slate-50 sm:flex-1"
               >
                 Cancel
               </button>
@@ -430,7 +462,7 @@ const EmployeeCheckIn = () => {
                 type="button"
                 onClick={handleCheckOut}
                 disabled={actionLoading}
-                className="w-full sm:flex-1 px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-base font-semibold disabled:opacity-60 min-h-12"
+                className="min-h-12 w-full rounded-xl bg-red-600 px-4 text-base font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:flex-1"
               >
                 Check Out
               </button>

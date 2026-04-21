@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 import {
     Pencil, Trash2, X, Search, Users,
-    UserCheck, ShieldCheck, Clock, ChevronRight,
+    UserCheck, ShieldCheck, Clock,
     Mail, Calendar, AlertTriangle, Eye, ArrowLeft,
     UserPlus, Copy,
 } from "lucide-react";
@@ -48,19 +48,6 @@ const Field = ({ label, children }) => (
 const inputCls =
     "w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm";
 
-/* ─── Stat Card ──────────────────────────────────────────── */
-const StatCard = ({ icon: Icon, label, value, color }) => (
-    <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4`}>
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-            <Icon className="h-5 w-5 text-white" />
-        </div>
-        <div>
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</p>
-            <p className="text-2xl font-bold text-slate-900 tabular-nums mt-0.5">{value}</p>
-        </div>
-    </div>
-);
-
 /* ─── Main Component ─────────────────────────────────────── */
 const Employee = () => {
     const [employees, setEmployees] = useState([]);
@@ -71,6 +58,8 @@ const Employee = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [fetchError, setFetchError] = useState(false);
+    const [dashStats, setDashStats] = useState(null);
+    const [roleFilter, setRoleFilter] = useState("all");
 
     /* modals */
     const [addModalOpen, setAddModalOpen] = useState(false);
@@ -115,6 +104,19 @@ const Employee = () => {
 
     useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
 
+    const refreshDashStats = useCallback(async () => {
+        try {
+            const res = await API.get("/api/manager/shifts/dashboard/data");
+            setDashStats(res.data?.data ?? res.data);
+        } catch {
+            setDashStats(null);
+        }
+    }, []);
+
+    useEffect(() => {
+        refreshDashStats();
+    }, [refreshDashStats]);
+
     /* ── Fetch attendance for drawer ── */
     const openDrawer = useCallback(async (emp) => {
         setViewTarget(emp);
@@ -152,6 +154,7 @@ const Employee = () => {
             setAddModalOpen(false);
             setAddForm({ username: "", email: "", password: "" });
             fetchEmployees();
+            refreshDashStats();
         } catch (err) {
             toast.error(getApiErrorMessage(err, "Failed to add employee"));
         } finally {
@@ -188,6 +191,7 @@ const Employee = () => {
             setEditTarget(null);
             setForm({ username: "", email: "", password: "" });
             fetchEmployees();
+            refreshDashStats();
         } catch (err) {
             toast.error(getApiErrorMessage(err, "Failed to update employee"));
         } finally {
@@ -206,6 +210,7 @@ const Employee = () => {
             toast.success("Employee deactivated successfully");
             setDeleteTarget(null);
             fetchEmployees();
+            refreshDashStats();
         } catch (err) {
             toast.error(getApiErrorMessage(err, "Failed to delete employee"));
         } finally {
@@ -225,57 +230,125 @@ const Employee = () => {
         return () => window.removeEventListener("keydown", h);
     }, [editTarget, deleteTarget, viewTarget]);
 
+    const activeEmployeeTotal = dashStats?.stats?.totalEmployees ?? 0;
+    const inactiveCount = Math.max(0, totalItems - activeEmployeeTotal);
+    const donutEmployeeData = useMemo(
+        () => [
+            { name: "Active", value: activeEmployeeTotal, color: "#059669" },
+            { name: "Inactive", value: inactiveCount, color: "#e5e7eb" },
+        ],
+        [activeEmployeeTotal, inactiveCount],
+    );
+
+    const filteredEmployees = useMemo(() => {
+        if (roleFilter === "all") return employees;
+        if (roleFilter === "manager") return employees.filter((e) => e.role === "manager");
+        return employees.filter((e) => (e.role || "employee") === "employee");
+    }, [employees, roleFilter]);
+
+    const pillCounts = {
+        all: totalItems,
+        manager: employees.filter((e) => e.role === "manager").length,
+        employee: totalItems,
+    };
+
     /* ─────────────────────────────────────────────────────── */
     return (
-        <div className="min-h-screen bg-[#f1f5f9] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
-            <div className="max-w-6xl mx-auto space-y-6">
+        <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-8">
+            <div className="mx-auto max-w-6xl space-y-5">
 
                 {/* ── Page header ────────────────────────────────── */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Employee Management</h1>
-                        <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Manage and track your team members.</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Employee Management</h1>
+                        <p className="mt-1 text-sm text-gray-400">Manage your team members</p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                         <button
+                            type="button"
                             onClick={() => { setInviteModalOpen(true); setInviteLink(null); setInviteEmail(""); }}
-                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 h-11 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition text-sm"
+                            className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#1B3F8B] bg-white px-4 text-sm font-semibold text-[#1B3F8B] shadow-sm transition hover:bg-[#EFF6FF] sm:w-auto"
                         >
-                            <Mail className="w-4 h-4" /> Invite Employee
+                            <Mail className="h-4 w-4" strokeWidth={2} /> Invite Employee
                         </button>
                         <button
+                            type="button"
                             onClick={() => setAddModalOpen(true)}
-                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 h-11 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#162d5e] transition text-sm"
+                            className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#162d5e] sm:w-auto"
                         >
-                            <UserPlus className="w-4 h-4" /> Add Employee
+                            <UserPlus className="h-4 w-4" strokeWidth={2} /> Add Employee
                         </button>
                     </div>
                 </div>
-                <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
-                {/* ── Stats ──────────────────────────────────────── */}
-                <div className="grid grid-cols-2 gap-4">
-                    <StatCard icon={Users} label="Total Employees" value={totalItems} color="bg-gradient-to-br from-blue-600 to-[#162d5e]" />
-                    <StatCard icon={UserCheck} label="Active" value={employees.filter((e) => e.isActive !== false).length} color="bg-gradient-to-br from-emerald-500 to-teal-600" />
+                {/* ── KPI + donut ──────────────────────────────── */}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-stretch">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:col-span-7">
+                        <KpiCard variant="navy" icon={Users} label="Total Employees" value={totalItems} />
+                        <KpiCard variant="green" icon={UserCheck} label="Active Employees" value={activeEmployeeTotal} />
+                    </div>
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 lg:col-span-5">
+                        <p className="mb-3 w-full text-center text-xs font-medium text-gray-500">Active vs inactive</p>
+                        <DonutChart
+                            data={donutEmployeeData}
+                            size={100}
+                            centerValue={String(totalItems)}
+                            centerLabel="total"
+                        />
+                    </div>
                 </div>
 
                 {/* ── Table card ─────────────────────────────────── */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                     {/* toolbar */}
-                    <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <h2 className="text-base font-semibold text-slate-900">
-                            All Employees
-                            <span className="ml-2 text-xs font-medium text-slate-400">({totalItems})</span>
-                        </h2>
-                        <div className="relative w-full sm:w-72">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { key: "all", label: "All", count: pillCounts.all },
+                                { key: "manager", label: "Manager", count: pillCounts.manager },
+                                { key: "employee", label: "Employee", count: pillCounts.employee },
+                            ].map((pill) => (
+                                <button
+                                    key={pill.key}
+                                    type="button"
+                                    onClick={() => { setRoleFilter(pill.key); setCurrentPage(1); }}
+                                    className={`inline-flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                                        roleFilter === pill.key
+                                            ? "bg-[#1B3F8B] text-white shadow-sm"
+                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    }`}
+                                >
+                                    {pill.label}
+                                    <span
+                                        className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                                            roleFilter === pill.key ? "bg-white/20 text-white" : "bg-white text-slate-500"
+                                        }`}
+                                    >
+                                        {pill.count}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="relative w-full sm:ml-auto sm:max-w-sm">
+                            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <input
-                                type="text"
-                                placeholder="Search by name or email…"
+                                type="search"
+                                placeholder="Search by name or email"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                                aria-label="Search employees"
                             />
+                            {search.trim() ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch("")}
+                                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                    aria-label="Clear search"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            ) : null}
                         </div>
                     </div>
 
@@ -294,11 +367,11 @@ const Employee = () => {
                         </div>
                     ) : (
                         <>
-                            {employees.length === 0 ? (
+                            {filteredEmployees.length === 0 ? (
                                 <EmptyState
                                     icon={Users}
                                     title="No employees found"
-                                    message="No employees match your search."
+                                    message="No employees match your search or filter."
                                     action={{
                                         label: "Add Employee",
                                         onClick: () => setAddModalOpen(true),
@@ -306,7 +379,7 @@ const Employee = () => {
                                 />
                             ) : (
                                 <EmployeeTable
-                                    employees={employees}
+                                    employees={filteredEmployees}
                                     onEdit={openEdit}
                                     onDelete={requestDeleteEmployee}
                                     onView={openDrawer}
