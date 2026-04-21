@@ -7,3 +7,5 @@ export {
 } from "./Skeleton";
 export { default as EmptyState } from "./EmptyState";
 export { default as ErrorState } from "./ErrorState";
+export { default as DonutChart } from "./DonutChart";
+export { default as KpiCard } from "./KpiCard";

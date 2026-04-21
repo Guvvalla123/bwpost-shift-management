@@ -1,21 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { SkeletonCard, ErrorState } from "@/components/ui";
+import { SkeletonCard, ErrorState, DonutChart, KpiCard } from "@/components/ui";
 import {
-  CalendarDays, CheckCircle2,
-  X, ChevronRight,
-  ArrowRightLeft, Zap, Bell,
-  LogOut as LeaveIcon, ClipboardList,
+  X,
+  ArrowRightLeft,
+  LogOut as LeaveIcon,
 } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
 import { getStatus } from "@/utils/shiftStatus";
 import { getDisplayName } from "@/utils/displayName";
 
-/* ════════════════════════════════════════════════════════════
-   HELPERS
-════════════════════════════════════════════════════════════ */
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
 const fmtTime = (d) =>
@@ -27,67 +23,76 @@ const STATUS = {
   completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
 };
 
-const BannerTimeCard = React.memo(() => {
+const SHIFT_STATUS_COLORS = {
+  ongoing: "#059669",
+  upcoming: "#1B3F8B",
+  needsStaff: "#f59e0b",
+  completed: "#d1d5db",
+};
+
+function classifyShiftForDonut(shift) {
+  const s = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+  const open = shift.slotsAvailable ?? 0;
+  if (s === "ongoing") return "ongoing";
+  if (s === "completed") return "completed";
+  if (s === "upcoming" && open > 0) return "needsStaff";
+  if (s === "upcoming") return "upcoming";
+  return "completed";
+}
+
+const BannerClock = React.memo(() => {
   const [t, setT] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setT(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-right backdrop-blur-sm shrink-0">
+    <div className="bg-white/10 border border-white/15 rounded-2xl px-5 py-3 text-right backdrop-blur-sm shrink-0">
       <p className="text-white text-xl font-bold tabular-nums tracking-tight">
         {t.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </p>
-      <p className="text-white/40 text-xs mt-0.5">
-        {t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+      <p className="text-white/70 text-xs mt-1">
+        {t.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
       </p>
       <div className="flex items-center justify-end gap-1.5 mt-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#93C5FD] animate-pulse" aria-hidden />
-        <span className="text-white/30 text-[10px]">Live</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" aria-hidden />
+        <span className="text-white/50 text-xs">Live</span>
       </div>
     </div>
   );
 });
 
-/* ════════════════════════════════════════════════════════════
-   KPI STAT CARD
-════════════════════════════════════════════════════════════ */
-const KpiCard = ({ icon: Icon, label, value, trend }) => (
-  <div className="bg-white rounded-xl border border-slate-200 border-t-2 border-t-[#1B3F8B] shadow-sm p-4 md:p-5 flex flex-col">
-    <div className="flex justify-between items-start mb-4">
-      <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center">
-        <Icon className="h-[18px] w-[18px] text-[#1B3F8B]" />
-      </div>
-      {trend != null && (
-        <span className="bg-[#EFF6FF] text-[#1B3F8B] text-[10px] font-bold px-2 py-0.5 rounded-md">{trend}</span>
-      )}
-    </div>
-    <p className="text-3xl font-extrabold text-[#0f2042] tabular-nums leading-none">{value}</p>
-    <p className="text-slate-400 text-xs font-medium mt-1">{label}</p>
-  </div>
-);
-
-/* ════════════════════════════════════════════════════════════
-   ALERT ITEM
-════════════════════════════════════════════════════════════ */
-const AlertItem = ({ message }) => {
-  const low = message.toLowerCase();
-  const warn = low.includes("pending") || low.includes("leave") || low.includes("change");
-  const good = low.includes("approved") || low.includes("complete");
-  const cls = warn ? "bg-amber-50 border-amber-400 text-amber-800"
-    : good ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : "bg-[#EFF6FF] border-[#93C5FD] text-[#1B3F8B]";
+function DonutLegendRows({ rows, total, valueMode = "count" }) {
+  const denom = total > 0 ? total : 1;
   return (
-    <div className={`flex items-center gap-2 p-3 rounded-lg mb-2 border-l-2 last:mb-0 text-sm ${cls}`}>
-      <span className={`w-2 h-2 rounded-full shrink-0 ${warn ? "bg-amber-400" : good ? "bg-emerald-500" : "bg-[#93C5FD]"}`} aria-hidden />
-      <span className="leading-relaxed">{message}</span>
-    </div>
+    <ul className="mt-4 space-y-3">
+      {rows.map((row) => {
+        const pct = total > 0 ? Math.round((row.value / denom) * 100) : 0;
+        const barPct = total > 0 ? (row.value / denom) * 100 : 0;
+        return (
+          <li key={row.name}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+                <span className="truncate text-sm text-gray-700">{row.name}</span>
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">
+                {valueMode === "percent" ? `${pct}%` : row.value}
+              </span>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${barPct}%`, backgroundColor: row.color }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
-};
+}
 
-/* ════════════════════════════════════════════════════════════
-   SHIFT DETAIL MODAL (slide-in from right — same as manager)
-════════════════════════════════════════════════════════════ */
 const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
   if (!shift) return null;
   const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
@@ -102,7 +107,6 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
     >
       <div className="bg-white h-full w-full sm:w-[420px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
         <div className="bg-gradient-to-br from-[#1B3F8B] via-[#1B3F8B] to-[#162d5e] p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
@@ -121,7 +125,6 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
           </div>
         </div>
 
-        {/* Notes */}
         {shift.shiftNotes && (
           <div className="px-6 py-4 border-b border-slate-100">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Notes</p>
@@ -129,7 +132,6 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
           </div>
         )}
 
-        {/* Manager info */}
         {shift.createdByManager && (
           <div className="px-6 py-4 border-b border-slate-100">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Posted By</p>
@@ -137,7 +139,6 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
           </div>
         )}
 
-        {/* Actions (only upcoming) */}
         {status === "upcoming" && (
           <div className="px-6 py-5 space-y-3">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Actions</p>
@@ -162,9 +163,6 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
   );
 };
 
-/* ════════════════════════════════════════════════════════════
-   MAIN EMPLOYEE DASHBOARD
-════════════════════════════════════════════════════════════ */
 const EmployeeDashboard = () => {
   const [shifts, setShifts] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -214,15 +212,23 @@ const EmployeeDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 bg-[#f1f5f9] min-h-full">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="min-h-full space-y-6 bg-[#F8F9FC] p-6">
+        <div className="h-28 animate-pulse rounded-2xl bg-slate-200/90" aria-hidden />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <SkeletonCard key={i} lines={2} />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SkeletonCard lines={5} />
-          <SkeletonCard lines={5} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <SkeletonCard lines={5} />
+          </div>
+          <div className="lg:col-span-4">
+            <SkeletonCard lines={5} />
+          </div>
+          <div className="lg:col-span-3">
+            <SkeletonCard lines={5} />
+          </div>
         </div>
       </div>
     );
@@ -230,7 +236,7 @@ const EmployeeDashboard = () => {
 
   if (fetchError) {
     return (
-      <div className="p-6 bg-[#f1f5f9] min-h-full">
+      <div className="min-h-full bg-[#F8F9FC] p-6">
         <ErrorState
           title="Failed to load dashboard"
           message="Could not load your dashboard. Please refresh."
@@ -240,135 +246,146 @@ const EmployeeDashboard = () => {
     );
   }
 
-  /* KPI values */
   const totalShifts = shifts.length;
   const upcomingShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "upcoming").length;
   const completedShifts = shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "completed").length;
-  const pendingRequests = requests.filter(r => r.status === "pending").length;
 
-  /* Next upcoming shift */
-  const nextShift = shifts
-    .filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "upcoming")
-    .sort((a, b) => new Date(a.shiftStartTime) - new Date(b.shiftStartTime))[0];
+  const raw = { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+  for (const shift of shifts) {
+    raw[classifyShiftForDonut(shift)] += 1;
+  }
 
-  /* Build alerts */
-  const alerts = [];
-  if (pendingRequests > 0) alerts.push(`${pendingRequests} request${pendingRequests > 1 ? "s" : ""} pending manager approval`);
-  requests.filter(r => r.status === "approved").slice(0, 2).forEach(r =>
-    alerts.push(`Your ${r.type === "leave" ? "leave" : "shift change"} request was approved`)
-  );
-  requests.filter(r => r.status === "rejected").slice(0, 1).forEach(r =>
-    alerts.push(`Your ${r.type === "leave" ? "leave" : "shift change"} request was rejected`)
-  );
-  if (nextShift) alerts.push(`Next shift: ${fmtDate(nextShift.shiftStartTime)} at ${fmtTime(nextShift.shiftStartTime)}`);
-  if (alerts.length === 0) alerts.push("All shifts are up to date");
+  const shiftDonutData = [
+    { name: "Ongoing", value: raw.ongoing, color: SHIFT_STATUS_COLORS.ongoing },
+    { name: "Upcoming", value: raw.upcoming, color: SHIFT_STATUS_COLORS.upcoming },
+    { name: "Needs staff", value: raw.needsStaff, color: SHIFT_STATUS_COLORS.needsStaff },
+    { name: "Completed", value: raw.completed, color: SHIFT_STATUS_COLORS.completed },
+  ];
 
-  /* Recent shifts (last 6) */
-  const recentShifts = [...shifts]
+  const present = 0;
+  const late = 0;
+  const absent = 0;
+  const attendanceTotal = present + late + absent;
+  const attendanceDonutData = [
+    { name: "On time", value: present, color: "#1B3F8B" },
+    { name: "Late", value: late, color: "#f59e0b" },
+    { name: "Absent", value: absent, color: "#ef4444" },
+  ];
+  const attendanceRows = attendanceDonutData.map((d) => ({ ...d }));
+
+  const attendanceRatePct = 0;
+
+  const recentFive = [...shifts]
     .sort((a, b) => new Date(b.shiftStartTime) - new Date(a.shiftStartTime))
-    .slice(0, 6);
+    .slice(0, 5);
 
-  const todayStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const now = new Date();
+  const dayOfWeek = now.toLocaleDateString(undefined, { weekday: "long" });
+  const dateLine = now.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+
+  const listStatus = (key) => {
+    if (key === "ongoing") return { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-800", label: "Live" };
+    if (key === "upcoming") return { dot: "bg-[#1B3F8B]", pill: "bg-blue-100 text-blue-800", label: "Soon" };
+    return { dot: "bg-gray-400", pill: "bg-gray-100 text-gray-600", label: "Done" };
+  };
 
   return (
-    <div className="min-h-full bg-[#f1f5f9]">
-      <div className="bg-[#1B3F8B] px-4 md:px-6 pt-6 pb-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="min-h-full bg-[#F8F9FC]" data-requests-loaded={requests.length}>
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-6 md:pt-8 lg:pb-8">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-[#1B3F8B] px-6 py-6 shadow-lg shadow-[#1B3F8B]/20 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-white/80 text-sm">{greeting()},</p>
-            <h1 className="text-white font-bold text-2xl sm:text-3xl mt-1">
+            <p className="text-sm text-white/80">{greeting()}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
               {getDisplayName(user, "Employee")}
             </h1>
-            <p className="text-white/40 text-xs mt-2 hidden sm:block">{todayStr} · Employee Panel</p>
+            <p className="mt-1 text-xs text-white/60">
+              {dayOfWeek}, {dateLine}
+            </p>
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+              Employee Panel
+            </p>
           </div>
-          <div className="w-full sm:w-auto sm:shrink-0 flex justify-end">
-            <BannerTimeCard />
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto pt-4 md:pt-6 px-4 md:px-6 lg:px-8 pb-20 lg:pb-6 space-y-4 md:space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={CalendarDays} label="My Total Shifts" value={totalShifts} trend="All" />
-          <KpiCard icon={Zap} label="Upcoming" value={upcomingShifts} trend="Live" />
-          <KpiCard icon={CheckCircle2} label="Completed" value={completedShifts} trend="Done" />
-          <KpiCard icon={ClipboardList} label="Pending Requests" value={pendingRequests} trend="Queue" />
+          <BannerClock />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-4 mt-4">
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-              <h2 className="font-bold text-[#0f2042] text-sm">Recent Shifts</h2>
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard variant="navy" label="My Total Shifts" value={totalShifts} />
+          <KpiCard variant="default" label="Upcoming" value={upcomingShifts} />
+          <KpiCard variant="green" label="Completed" value={completedShifts} />
+          <KpiCard variant="amber" label="My Attendance Rate" value={`${attendanceRatePct}%`} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-5">
+            <h2 className="text-sm font-semibold text-gray-900">My shifts by status</h2>
+            <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <DonutChart
+                data={shiftDonutData}
+                centerValue={String(totalShifts)}
+                centerLabel="total"
+                size={120}
+              />
+              <div className="w-full min-w-0 flex-1">
+                <DonutLegendRows rows={shiftDonutData} total={totalShifts} valueMode="count" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-4">
+            <h2 className="text-sm font-semibold text-gray-900">My attendance</h2>
+            <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <DonutChart
+                data={attendanceDonutData}
+                centerValue={`${attendanceRatePct}%`}
+                centerLabel="on time"
+                size={120}
+              />
+              <div className="w-full min-w-0 flex-1">
+                <DonutLegendRows rows={attendanceRows} total={attendanceTotal} valueMode="percent" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-3">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h2 className="text-sm font-semibold text-gray-900">My recent shifts</h2>
               <button
                 type="button"
                 onClick={() => navigate("/employee/myshifts")}
-                className="text-[#1B3F8B] text-xs font-semibold hover:underline"
+                className="text-sm font-medium text-[#1B3F8B] hover:underline"
               >
                 View all
               </button>
             </div>
-            {recentShifts.length > 0 ? (
-              <div className="divide-y divide-slate-50">
-                {recentShifts.map(shift => {
-                  const st = STATUS[getStatus(shift.shiftStartTime, shift.shiftEndTime)];
+            <div className="divide-y divide-gray-50 p-2">
+              {recentFive.length > 0 ? (
+                recentFive.map((shift) => {
+                  const key = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+                  const ls = listStatus(key);
+                  const st = STATUS[key];
                   return (
                     <button
                       type="button"
                       key={shift._id}
                       onClick={() => setSelected(shift)}
-                      className="w-full flex items-center justify-between py-3 text-left border-b border-slate-50 last:border-0 hover:bg-[#f8fafc] transition-colors rounded-lg px-1 -mx-1"
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-gray-50/80"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
-                          <CalendarDays className="h-4 w-4 text-[#1B3F8B]" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#0f2042] text-sm truncate">{shift.shiftTitle}</p>
-                          <p className="text-slate-400 text-xs mt-0.5">
-                            {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}
-                          </p>
-                        </div>
+                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ls.dot}`} aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900">{shift.shiftTitle}</p>
+                        <p className="mt-0.5 text-xs text-gray-400">
+                          {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${st.cls}`}>
-                          <span className={`w-1 h-1 rounded-full ${st.dot}`} />
-                          {st.label}
-                        </span>
-                        <ChevronRight className="h-4 w-4 text-slate-300" />
-                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${st.cls}`}>
+                        {st.label}
+                      </span>
                     </button>
                   );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-12 text-slate-400">
-                <CalendarDays className="h-10 w-10 mb-2 opacity-20" />
-                <p className="text-sm font-medium text-slate-500">No shifts yet</p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/employee/AllShifts")}
-                  className="mt-3 text-xs font-semibold text-[#1B3F8B]"
-                >
-                  Browse available shifts
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-slate-400" />
-                <h2 className="font-bold text-[#0f2042] text-sm">Alerts</h2>
-              </div>
-              {pendingRequests > 0 && (
-                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {pendingRequests}
-                </span>
+                })
+              ) : (
+                <p className="py-10 text-center text-sm text-gray-400">No recent shifts</p>
               )}
-            </div>
-            <div className="max-h-64 overflow-y-auto space-y-0">
-              {alerts.map((n, i) => <AlertItem key={i} message={n} />)}
             </div>
           </div>
         </div>

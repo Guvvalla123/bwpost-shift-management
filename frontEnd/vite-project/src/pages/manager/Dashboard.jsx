@@ -1,12 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { SkeletonCard, ErrorState } from "@/components/ui";
+import { SkeletonCard, ErrorState, DonutChart, KpiCard } from "@/components/ui";
 import {
-  Users, CalendarDays,
-  X, CheckCircle2,
-  TrendingUp, UserCheck,
-  Zap,
+  X, UserCheck,
 } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
@@ -14,9 +11,6 @@ import { getApiErrorMessage } from "@/utils/apiError";
 import { getStatus } from "@/utils/shiftStatus";
 import { getDisplayName } from "@/utils/displayName";
 
-/* ════════════════════════════════════════════════════════════
-   HELPERS
-════════════════════════════════════════════════════════════ */
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
 const fmtTime = (d) =>
@@ -28,7 +22,13 @@ const STATUS = {
   completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
 };
 
-/* Avatar gradient by name */
+const SHIFT_STATUS_COLORS = {
+  ongoing: "#059669",
+  upcoming: "#1B3F8B",
+  needsStaff: "#f59e0b",
+  completed: "#d1d5db",
+};
+
 const GRADS = [
   "from-[#1B3F8B] to-[#162d5e]", "from-[#2563EB] to-[#1B3F8B]",
   "from-emerald-500 to-teal-600", "from-orange-500 to-amber-500",
@@ -37,71 +37,81 @@ const GRADS = [
 const grad = (n = "") => GRADS[(n.charCodeAt(0) || 0) % GRADS.length];
 const initials = (n = "") => n.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
 
-const BannerTimeCard = React.memo(() => {
+function classifyShiftForDonut(shift) {
+  const s = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+  const open = shift.slotsAvailable ?? 0;
+  if (s === "ongoing") return "ongoing";
+  if (s === "completed") return "completed";
+  if (s === "upcoming" && open > 0) return "needsStaff";
+  if (s === "upcoming") return "upcoming";
+  return "completed";
+}
+
+function scaleCountsToTotal(raw, total) {
+  const keys = ["ongoing", "upcoming", "needsStaff", "completed"];
+  const sum = keys.reduce((a, k) => a + raw[k], 0);
+  if (total <= 0) return { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+  if (sum <= 0) return { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+  const scaled = keys.map((k) => Math.round((raw[k] / sum) * total));
+  let diff = total - scaled.reduce((a, b) => a + b, 0);
+  const maxIdx = scaled.indexOf(Math.max(...scaled));
+  scaled[maxIdx] += diff;
+  return { ongoing: scaled[0], upcoming: scaled[1], needsStaff: scaled[2], completed: scaled[3] };
+}
+
+const BannerClock = React.memo(() => {
   const [t, setT] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setT(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="bg-white/10 border border-white/15 rounded-xl px-5 py-3 text-right backdrop-blur-sm shrink-0">
+    <div className="bg-white/10 border border-white/15 rounded-2xl px-5 py-3 text-right backdrop-blur-sm shrink-0">
       <p className="text-white text-xl font-bold tabular-nums tracking-tight">
         {t.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </p>
-      <p className="text-white/40 text-xs mt-0.5">
-        {t.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+      <p className="text-white/70 text-xs mt-1">
+        {t.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
       </p>
       <div className="flex items-center justify-end gap-1.5 mt-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#93C5FD] animate-pulse" aria-hidden />
-        <span className="text-white/30 text-[10px]">Live</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" aria-hidden />
+        <span className="text-white/50 text-xs">Live</span>
       </div>
     </div>
   );
 });
 
-/* ════════════════════════════════════════════════════════════
-   KPI STAT CARD(KEY PERFORMANCE INDICATOR CARDS) 
-════════════════════════════════════════════════════════════ */
-const KpiCard = ({ icon: Icon, label, value, trend }) => (
-  <div className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm">
-    <div className="flex items-center gap-3 sm:gap-4">
-      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 flex items-center justify-center bg-blue-50">
-        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#1B3F8B]" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xl sm:text-2xl font-bold text-gray-900 tabular-nums leading-tight">{value}</p>
-        <p className="text-xs text-gray-500 mt-0.5 leading-snug">{label}</p>
-      </div>
-      {trend != null && (
-        <span className="ml-auto text-[10px] sm:text-xs text-gray-400 font-medium shrink-0">{trend}</span>
-      )}
-    </div>
-  </div>
-);
-
-/* ════════════════════════════════════════════════════════════
-   ALERT ITEM
-════════════════════════════════════════════════════════════ */
-const AlertItem = ({ message }) => {
-  const low = message.toLowerCase();
-  const warn = low.includes("low") || low.includes("miss") || low.includes("short");
-  const good = low.includes("full") || low.includes("complete");
-  const cls = warn
-    ? "bg-amber-50 border-amber-400 text-amber-800"
-    : good
-      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : "bg-[#EFF6FF] border-[#93C5FD] text-[#1B3F8B]";
+function DonutLegendRows({ rows, total, valueMode = "count" }) {
+  const denom = total > 0 ? total : 1;
   return (
-    <div className={`flex items-center gap-2 p-3 rounded-lg mb-2 border-l-2 last:mb-0 text-sm ${cls}`}>
-      <span className={`w-2 h-2 rounded-full shrink-0 ${warn ? "bg-amber-400" : good ? "bg-emerald-500" : "bg-[#93C5FD]"}`} aria-hidden />
-      <span className="leading-relaxed">{message}</span>
-    </div>
+    <ul className="mt-4 space-y-3">
+      {rows.map((row) => {
+        const pct = total > 0 ? Math.round((row.value / denom) * 100) : 0;
+        const barPct = total > 0 ? (row.value / denom) * 100 : 0;
+        return (
+          <li key={row.name}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+                <span className="truncate text-sm text-gray-700">{row.name}</span>
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">
+                {valueMode === "percent" ? `${pct}%` : row.value}
+              </span>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${barPct}%`, backgroundColor: row.color }}
+              />
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
-};
+}
 
-/* ════════════════════════════════════════════════════════════
-   SHIFT DETAIL MODAL (right-aligned panel style)
-════════════════════════════════════════════════════════════ */
 const ShiftModal = ({ shift, onClose }) => {
   if (!shift) return null;
   const filled = shift.acceptedEmployees?.length || 0;
@@ -121,7 +131,6 @@ const ShiftModal = ({ shift, onClose }) => {
       <div className="bg-white h-full w-full sm:w-[420px] shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300"
         onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
         <div className="bg-gradient-to-br from-[#1B3F8B] via-[#1B3F8B] to-[#162d5e] p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0 pr-3">
@@ -141,7 +150,6 @@ const ShiftModal = ({ shift, onClose }) => {
           </div>
         </div>
 
-        {/* Capacity */}
         <div className="p-6 border-b border-slate-100">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Slot Capacity</p>
           <div className="flex items-end justify-between mb-3">
@@ -159,7 +167,6 @@ const ShiftModal = ({ shift, onClose }) => {
           <p className="text-xs text-slate-400 mt-2">{total - filled} slot{total - filled !== 1 ? "s" : ""} remaining</p>
         </div>
 
-        {/* Notes */}
         {shift.shiftNotes && (
           <div className="px-6 py-4 border-b border-slate-100">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Notes</p>
@@ -167,7 +174,6 @@ const ShiftModal = ({ shift, onClose }) => {
           </div>
         )}
 
-        {/* Employee list */}
         <div className="px-6 py-5">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
             Accepted Employees ({filled})
@@ -201,9 +207,6 @@ const ShiftModal = ({ shift, onClose }) => {
   );
 };
 
-/* ════════════════════════════════════════════════════════════
-   MAIN DASHBOARD
-════════════════════════════════════════════════════════════ */
 const Dashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -250,15 +253,23 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="min-h-full space-y-6 bg-[#F8F9FC] p-6">
+        <div className="h-28 animate-pulse rounded-2xl bg-slate-200/90" aria-hidden />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <SkeletonCard key={i} lines={2} />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-          <SkeletonCard lines={5} />
-          <SkeletonCard lines={5} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <SkeletonCard lines={5} />
+          </div>
+          <div className="lg:col-span-4">
+            <SkeletonCard lines={5} />
+          </div>
+          <div className="lg:col-span-3">
+            <SkeletonCard lines={5} />
+          </div>
         </div>
       </div>
     );
@@ -266,166 +277,163 @@ const Dashboard = () => {
 
   if (fetchError) {
     return (
-      <div className="p-6">
+      <div className="min-h-full bg-[#F8F9FC] p-6">
         <ErrorState
           title="Failed to load dashboard"
           message="Could not load dashboard data. Please refresh."
-          onRetry={fetchDashboard}
+          onRetry={() => fetchDashboard()}
         />
       </div>
     );
   }
 
-  const { stats, capacity, attendance, notifications, recentShifts } = data || {};
+  const { stats, attendance, recentShifts, understaffedShifts } = data || {};
 
-  const todayStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const totalShiftCount = stats?.totalShifts ?? 0;
+  const raw = { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
+  for (const shift of recentShifts || []) {
+    const k = classifyShiftForDonut(shift);
+    raw[k] += 1;
+  }
+  const scaled = scaleCountsToTotal(raw, totalShiftCount);
+
+  const shiftDonutData = [
+    { name: "Ongoing", value: scaled.ongoing, color: SHIFT_STATUS_COLORS.ongoing },
+    { name: "Upcoming", value: scaled.upcoming, color: SHIFT_STATUS_COLORS.upcoming },
+    { name: "Needs staff", value: scaled.needsStaff, color: SHIFT_STATUS_COLORS.needsStaff },
+    { name: "Completed", value: scaled.completed, color: SHIFT_STATUS_COLORS.completed },
+  ];
+
+  const presentToday = attendance?.presentToday ?? 0;
+  const absentToday = attendance?.absentToday ?? 0;
+  const lateToday = 0;
+  const attendanceTotal = presentToday + lateToday + absentToday;
+  const attendanceDonutData = [
+    { name: "On time", value: presentToday, color: "#1B3F8B" },
+    { name: "Late", value: lateToday, color: "#f59e0b" },
+    { name: "Absent", value: absentToday, color: "#ef4444" },
+  ];
+
+  const attendanceRows = attendanceDonutData.map((d) => ({
+    ...d,
+    value: d.value,
+  }));
+
+  const now = new Date();
+  const dayOfWeek = now.toLocaleDateString(undefined, { weekday: "long" });
+  const dateLine = now.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+
+  const recentFive = (recentShifts || []).slice(0, 5);
+
+  const listStatus = (key) => {
+    if (key === "ongoing") return { dot: "bg-emerald-500", pill: "bg-emerald-100 text-emerald-800", label: "Live" };
+    if (key === "upcoming") return { dot: "bg-[#1B3F8B]", pill: "bg-blue-100 text-blue-800", label: "Soon" };
+    return { dot: "bg-gray-400", pill: "bg-gray-100 text-gray-600", label: "Done" };
+  };
 
   return (
-    <div className="min-h-full bg-[#f1f5f9]">
-
-      <div className="bg-[#1B3F8B] px-4 md:px-6 pt-6 pb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="min-h-full bg-[#F8F9FC]">
+      <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 md:px-6 md:pt-8 lg:pb-8">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-[#1B3F8B] px-6 py-6 shadow-lg shadow-[#1B3F8B]/20 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-white/60 text-sm font-normal">{greeting()},</p>
-            <p className="text-white text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
+            <p className="text-sm text-white/80">{greeting()}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
               {getDisplayName(user, "Manager")}
+            </h1>
+            <p className="mt-1 text-xs text-white/60">
+              {dayOfWeek}, {dateLine}
             </p>
-            <p className="text-white/40 text-xs mt-2 hidden sm:block">{todayStr} · Manager Panel</p>
-            <div className="hidden sm:flex gap-2 flex-wrap mt-5">
-              <button
-                type="button"
-                onClick={() => navigate("/manager/shifts")}
-                className="bg-white text-[#1B3F8B] font-semibold text-sm px-4 py-2 rounded-lg hover:bg-slate-50 transition flex-shrink-0 whitespace-nowrap"
-              >
-                Shift Management
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/manager/employees")}
-                className="bg-white/10 border border-white/15 text-white/80 text-sm px-4 py-2 rounded-lg hover:bg-white/15 transition flex-shrink-0 whitespace-nowrap"
-              >
-                Employees
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/manager/calender")}
-                className="bg-white/10 border border-white/15 text-white/80 text-sm px-4 py-2 rounded-lg hover:bg-white/15 transition flex-shrink-0 whitespace-nowrap"
-              >
-                Calendar
-              </button>
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+              Manager Panel
+            </p>
+          </div>
+          <BannerClock />
+        </div>
+
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard variant="navy" label="Total Staff" value={stats?.totalEmployees ?? 0} />
+          <KpiCard variant="default" label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} />
+          <KpiCard variant="green" label="Present Rate" value={`${attendance?.rate ?? 0}%`} />
+          <KpiCard variant="amber" label="Need Staff" value={understaffedShifts ?? 0} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-5">
+            <h2 className="text-sm font-semibold text-gray-900">Shifts by status</h2>
+            <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <DonutChart
+                data={shiftDonutData}
+                centerValue={String(totalShiftCount)}
+                centerLabel="total"
+                size={120}
+              />
+              <div className="w-full min-w-0 flex-1">
+                <DonutLegendRows rows={shiftDonutData} total={totalShiftCount} valueMode="count" />
+              </div>
             </div>
           </div>
-          <div className="w-full sm:w-auto sm:shrink-0 flex justify-end">
-            <BannerTimeCard />
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-4">
+            <h2 className="text-sm font-semibold text-gray-900">Staff presence</h2>
+            <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <DonutChart
+                data={attendanceDonutData}
+                centerValue={`${attendance?.rate ?? 0}%`}
+                centerLabel="on time"
+                size={120}
+              />
+              <div className="w-full min-w-0 flex-1">
+                <DonutLegendRows rows={attendanceRows} total={attendanceTotal} valueMode="percent" />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto pt-4 md:pt-6 px-4 md:px-6 lg:px-8 pb-20 lg:pb-6 space-y-4 md:space-y-6">
-
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard icon={Users} label="Total Employees" value={stats?.totalEmployees ?? 0} trend="Staff" />
-          <KpiCard icon={CalendarDays} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} trend="Live" />
-          <KpiCard icon={Zap} label="Capacity" value={`${capacity ?? 0}%`} trend="Fill" />
-          <KpiCard icon={TrendingUp} label="Attendance Rate" value={`${attendance?.rate ?? 0}%`} trend="Period" />
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-4 mt-4">
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-              <h2 className="font-bold text-[#0f2042] text-sm">Recent Shifts</h2>
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm lg:col-span-3">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <h2 className="text-sm font-semibold text-gray-900">Recent activity</h2>
               <button
                 type="button"
                 onClick={() => navigate("/manager/shifts")}
-                className="text-[#1B3F8B] text-xs font-semibold hover:underline"
+                className="text-sm font-medium text-[#1B3F8B] hover:underline"
               >
                 View all
               </button>
             </div>
-            {recentShifts?.length > 0 ? (
-              <div className="divide-y divide-slate-50">
-                {recentShifts.map(shift => {
+            <div className="divide-y divide-gray-50 p-2">
+              {recentFive.length > 0 ? (
+                recentFive.map((shift) => {
                   const filled = shift.acceptedEmployees?.length || 0;
                   const total = shift.slotsAvailable || 0;
-                  const st = STATUS[getStatus(shift.shiftStartTime, shift.shiftEndTime)];
+                  const key = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+                  const ls = listStatus(key);
                   return (
                     <button
                       type="button"
                       key={shift._id}
                       onClick={() => setSelected(shift)}
-                      className="w-full flex items-center justify-between py-3 text-left border-b border-slate-50 last:border-0 hover:bg-[#f8fafc] transition-colors rounded-lg px-1 -mx-1"
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-gray-50/80"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
-                          <CalendarDays className="h-4 w-4 text-[#1B3F8B]" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#0f2042] text-sm truncate">{shift.shiftTitle}</p>
-                          <p className="text-slate-400 text-xs mt-0.5">
-                            {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)}
-                          </p>
-                        </div>
+                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ls.dot}`} aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-gray-900">{shift.shiftTitle}</p>
+                        <p className="mt-0.5 text-xs text-gray-400">
+                          {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} · {filled}/{total} slots
+                        </p>
                       </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${st.cls}`}>
-                          <span className={`w-1 h-1 rounded-full ${st.dot}`} />
-                          {st.label}
-                        </span>
-                        <div className="w-16 mt-1">
-                          <div className="bg-slate-100 rounded-full h-1 overflow-hidden">
-                            <div
-                              className="bg-[#1B3F8B] h-1 rounded-full transition-all"
-                              style={{ width: `${total > 0 ? Math.min((filled / total) * 100, 100) : 0}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-slate-400 tabular-nums">{filled}/{total}</span>
-                        </div>
-                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${ls.pill}`}>
+                        {ls.label}
+                      </span>
                     </button>
                   );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-12 text-slate-400">
-                <CalendarDays className="h-10 w-10 mb-2 opacity-20" />
-                <p className="text-sm font-medium text-slate-500">No shifts recorded yet</p>
-                <button
-                  type="button"
-                  onClick={() => navigate("/manager/shifts")}
-                  className="mt-3 text-xs font-semibold text-[#1B3F8B]"
-                >
-                  Create a shift
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-              <h2 className="font-bold text-[#0f2042] text-sm">Alerts</h2>
-              {notifications?.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {notifications.length}
-                </span>
-              )}
-            </div>
-            <div className="max-h-64 overflow-y-auto">
-              {notifications?.length > 0 ? (
-                notifications.map((n, i) => <AlertItem key={i} message={n} />)
+                })
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-slate-400">
-                  <CheckCircle2 className="h-8 w-8 mb-2 opacity-30" />
-                  <p className="text-sm font-medium text-slate-500">All clear</p>
-                  <p className="text-xs text-slate-400 mt-0.5">No alerts right now</p>
-                </div>
+                <p className="py-10 text-center text-sm text-gray-400">No recent shifts</p>
               )}
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Shift Detail Drawer */}
       <ShiftModal shift={selected} onClose={() => setSelected(null)} />
     </div>
   );
