@@ -50,10 +50,29 @@ const EmployeeCheckIn = () => {
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [showBreakMenu, setShowBreakMenu] = useState(false);
+  const [weeklyInfo, setWeeklyInfo] = useState(null);
 
   useEffect(() => {
     const id = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await API.get("/api/attendance/weekly-hours");
+        const d = res.data?.data;
+        if (!cancelled && d && typeof d.totalMinutes === "number") {
+          setWeeklyInfo(d);
+        }
+      } catch {
+        if (!cancelled) setWeeklyInfo(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fetchShiftsList = useCallback(async () => {
@@ -227,6 +246,26 @@ const EmployeeCheckIn = () => {
             Record attendance for your shift
           </p>
         </div>
+
+        {weeklyInfo && (
+          <div
+            className={`rounded-2xl border px-4 py-3 shadow-sm ${
+              weeklyInfo.totalMinutes >= 40 * 60
+                ? "border-slate-200 bg-slate-100/90 text-slate-700"
+                : weeklyInfo.totalMinutes >= 35 * 60
+                  ? "border-amber-200 bg-amber-50 text-amber-950"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-950"
+            }`}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-80">This week</p>
+            <p className="mt-1 text-sm font-medium tabular-nums">
+              {(weeklyInfo.totalMinutes / 60).toFixed(1)} hrs this week
+              {weeklyInfo.totalMinutes >= 40 * 60
+                ? " (40 hr limit reached)"
+                : ` (${(weeklyInfo.remainingMinutes / 60).toFixed(1)} hrs remaining to 40hr limit)`}
+            </p>
+          </div>
+        )}
 
         {todayShifts.length > 1 && (
           <div>

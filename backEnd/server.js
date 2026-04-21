@@ -9,6 +9,8 @@ const xss = require("xss");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
+const mongoose = require("mongoose");
+const { startCronJobs } = require("./services/cronService");
 const AppError = require("./utils/AppError");
 
 dotenv.config();
@@ -28,6 +30,19 @@ app.set("trust proxy", 1);
 
 // Connect MongoDB
 connectDB();
+
+function initCronAfterDb() {
+  try {
+    startCronJobs();
+  } catch (err) {
+    console.error("Failed to start cron jobs:", err.message);
+  }
+}
+
+mongoose.connection.once("connected", initCronAfterDb);
+if (mongoose.connection.readyState === 1) {
+  initCronAfterDb();
+}
 
 /* ================= SECURITY ================= */
 
@@ -134,6 +149,7 @@ const employeeShiftRoutes = require("./routes/employeeRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const inviteRoutes = require("./routes/inviteRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 app.use("/api/users", userRoutes);
 app.use("/api/invites", inviteRoutes);
@@ -142,6 +158,7 @@ app.use("/api/manager/shifts", managerShiftRoutes);
 app.use("/api/employee/shifts", employeeShiftRoutes);
 app.use("/api/manager/requests", requestRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 /* ================= HEALTH CHECK ================= */
 
@@ -198,7 +215,6 @@ const server = app.listen(PORT, () => {
 });
 
 /* ================= GRACEFUL SHUTDOWN ================= */
-const mongoose = require("mongoose");
 
 const shutdown = async (signal) => {
   console.log(`\n${signal} received — shutting down gracefully…`);

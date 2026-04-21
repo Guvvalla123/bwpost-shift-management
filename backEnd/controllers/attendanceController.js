@@ -1,6 +1,7 @@
 const { sendSuccess } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const attendanceService = require("../services/attendanceService");
+const { getWeeklyMinutesForEmployee } = require("../utils/weeklyHours");
 
 exports.checkIn = asyncHandler(async (req, res) => {
   const { message, data } = await attendanceService.checkIn(req, req.user, req.body);
@@ -30,4 +31,19 @@ exports.getShiftAttendance = asyncHandler(async (req, res) => {
 exports.getMyAttendance = asyncHandler(async (req, res) => {
   const data = await attendanceService.getMyAttendance(req.user.id, req.params.shiftId);
   return sendSuccess(res, 200, { data });
+});
+
+const WEEKLY_LIMIT_HOURS = 40;
+
+exports.getWeeklyHours = asyncHandler(async (req, res) => {
+  const totalMinutes = await getWeeklyMinutesForEmployee(req.user.id);
+  const limitMinutes = WEEKLY_LIMIT_HOURS * 60;
+  const remainingMinutes = Math.max(0, limitMinutes - totalMinutes);
+  return sendSuccess(res, 200, {
+    data: {
+      totalMinutes,
+      limitHours: WEEKLY_LIMIT_HOURS,
+      remainingMinutes,
+    },
+  });
 });

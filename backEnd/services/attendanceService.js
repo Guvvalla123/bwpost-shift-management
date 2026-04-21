@@ -301,6 +301,33 @@ const getMyAttendance = async (userId, shiftId) => {
   };
 };
 
+/**
+ * System auto-checkout at shift end (cron). Idempotent if autoCheckout already true.
+ */
+const autoCheckoutAttendanceRecord = async (att, shift) => {
+  if (att.autoCheckout) return { skipped: true };
+  if (att.status !== "checked_in") return { skipped: true };
+  const shiftEnd = new Date(shift.shiftEndTime);
+  const openWork = [...att.workSessions].reverse().find((ws) => !ws.checkOut);
+  if (openWork) openWork.checkOut = shiftEnd;
+  att.status = "checked_out";
+  att.checkOut = shiftEnd;
+  att.autoCheckout = true;
+  att.autoCheckoutAt = new Date();
+  att.leftEarly = false;
+  recalc(att, shift.shiftStartTime, shift.shiftEndTime);
+  await att.save();
+  log(
+    "attendance.auto_checkout",
+    { ip: "cron", get: () => "" },
+    "Shift",
+    shift._id,
+    { employeeId: att.employee, shiftId: shift._id },
+    { actorId: att.employee, actorRole: "employee" }
+  );
+  return { skipped: false };
+};
+
 module.exports = {
   checkIn,
   checkOut,
@@ -308,4 +335,6 @@ module.exports = {
   endBreak,
   getShiftAttendance,
   getMyAttendance,
+  recalc,
+  autoCheckoutAttendanceRecord,
 };

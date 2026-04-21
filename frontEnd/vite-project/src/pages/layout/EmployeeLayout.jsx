@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, User, ChevronDown, ClipboardList, Menu, X, Briefcase } from "lucide-react";
 import EmployeeSidebar from "./Employeesidebar";
 import BottomNav from "@/components/ui/BottomNav";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
@@ -126,6 +127,8 @@ const EmployeeLayout = () => {
 
           {/* Right side controls */}
           <div className="flex items-center gap-3 shrink-0">
+
+            <NotificationBell />
 
             <button
               type="button"

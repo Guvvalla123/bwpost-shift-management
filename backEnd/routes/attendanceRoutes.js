@@ -16,6 +16,13 @@ router.post("/checkout", auth, validate(checkOutSchema), ctrl.checkOut);
 router.post("/break/start", auth, validate(startBreakSchema), ctrl.startBreak);
 router.post("/break/end", auth, validate(endBreakSchema), ctrl.endBreak);
 
+router.get(
+  "/weekly-hours",
+  auth,
+  authorize("employee"),
+  ctrl.getWeeklyHours
+);
+
 router.get("/my/:shiftId", auth, ctrl.getMyAttendance);
 
 router.get("/shift/:shiftId", auth, authorize("admin", "manager"), ctrl.getShiftAttendance);

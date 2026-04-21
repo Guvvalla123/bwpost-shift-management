@@ -56,6 +56,9 @@ const attendanceSchema = new Schema(
     checkOut: { type: Date },
     totalHours: { type: Number, default: 0 },
 
+    autoCheckout: { type: Boolean, default: false },
+    autoCheckoutAt: { type: Date, default: null },
+
     notes: { type: String, maxlength: 300 },
   },
   {

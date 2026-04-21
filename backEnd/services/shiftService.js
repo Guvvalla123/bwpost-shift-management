@@ -5,6 +5,8 @@ const Attendance = require("../models/attendanceModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
 const { getPaginationParams, getPaginationMeta } = require("../utils/paginate");
+const { createBulkNotifications } = require("./notificationService");
+const { isEmployeeBelowWeeklyLimit } = require("../utils/weeklyHours");
 
 const getAllShiftsPublic = async (query = {}) => {
   const { page, limit, skip } = getPaginationParams(query, 20, 50);
@@ -41,6 +43,52 @@ const createShift = async (req, userId, body) => {
     createdByManager: userId,
   });
   log("shift.create", req, "Shift", shift._id, { shiftTitle: shift.shiftTitle });
+
+  setImmediate(() => {
+    (async () => {
+      try {
+        const employees = await User.find({
+          role: "employee",
+          managerId: userId,
+          isActive: true,
+        })
+          .select("_id")
+          .lean();
+
+        const eligibleIds = [];
+        for (const e of employees) {
+          if (await isEmployeeBelowWeeklyLimit(e._id, 40)) {
+            eligibleIds.push(e._id);
+          }
+        }
+
+        if (!eligibleIds.length) {
+          console.log(
+            "[shift.notify] No eligible employees below weekly hour limit for new shift",
+            shift._id.toString()
+          );
+          return;
+        }
+
+        const startStr = new Date(shift.shiftStartTime).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        });
+        const msg = `A new shift ${shift.shiftTitle} on ${startStr} is available for you`;
+
+        await createBulkNotifications(
+          eligibleIds,
+          "new_shift",
+          "New shift available",
+          msg,
+          shift._id
+        );
+      } catch (err) {
+        console.error("[shift.notify] Failed:", err.message);
+      }
+    })();
+  });
+
   return { message: "Shift created successfully", data: shift };
 };
 
