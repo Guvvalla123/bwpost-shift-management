@@ -14,6 +14,7 @@ import BottomNav from "@/components/ui/BottomNav";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 import { getDisplayName } from "@/utils/displayName";
+import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 /* Sharp Cloudinary avatar URL (96×96 face-crop) */
 const avatarUrl = (url) => {
@@ -245,6 +246,13 @@ const NotificationBell = () => {
 /* ══════════════════════════════════════════════════════════════════
    MANAGER LAYOUT
 ══════════════════════════════════════════════════════════════════ */
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+};
+
 const ManagerLayout = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -252,6 +260,7 @@ const ManagerLayout = () => {
   const { pathname } = useLocation();
   const dropdownRef = useRef();
   const { user, logout } = useAuth();
+  const { effectiveCollapsed, toggle: toggleSidebarCollapsed } = useSidebarCollapsed();
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
@@ -277,7 +286,7 @@ const ManagerLayout = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#f1f5f9]">
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#F8F9FC]">
 
       {/* ── Mobile sidebar overlay ── */}
       {sidebarOpen && (
@@ -291,17 +300,23 @@ const ManagerLayout = () => {
       {/* ── Sidebar ─────────────────────────────────────────────── */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-40 w-64 flex flex-col h-full shrink-0
+          fixed inset-y-0 left-0 z-40 flex h-full w-[240px] shrink-0 flex-col
           transform transition-transform duration-300 ease-in-out
           lg:relative lg:translate-x-0 lg:z-0
+          lg:transition-[width] lg:duration-300
+          ${effectiveCollapsed ? "lg:w-16" : "lg:w-[240px]"}
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <Managersidebar onNavigate={() => setSidebarOpen(false)} />
+        <Managersidebar
+          onNavigate={() => setSidebarOpen(false)}
+          effectiveCollapsed={effectiveCollapsed}
+          onToggleCollapse={toggleSidebarCollapsed}
+        />
       </div>
 
       {/* ── Main area ───────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
 
         {/* ── Top Navbar ──────────────────────────────────────── */}
         <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
@@ -321,9 +336,15 @@ const ManagerLayout = () => {
               <span className="sm:hidden">{shortTitle}</span>
               <span className="hidden sm:inline">{pageTitle}</span>
             </h2>
-            <p className="text-[#94a3b8] text-xs mt-0.5 hidden sm:block truncate">
-              Manager Panel / {pageTitle}
-            </p>
+            {pathname === "/manager/dashboard" ? (
+              <p className="mt-0.5 hidden truncate text-sm text-gray-400 lg:block">
+                {greeting()}, {getDisplayName(user, "Manager")}
+              </p>
+            ) : (
+              <p className="mt-0.5 hidden truncate text-xs text-[#94a3b8] sm:block">
+                Manager Panel / {pageTitle}
+              </p>
+            )}
           </div>
           </div>
 

@@ -19,20 +19,38 @@ const valueStyles = {
   amber: "text-amber-900",
 };
 
+const iconBoxStyles = {
+  default: "bg-blue-50 text-[#1B3F8B]",
+  navy: "bg-white/15 text-white",
+  green: "bg-emerald-100/90 text-emerald-800",
+  amber: "bg-amber-100/90 text-amber-900",
+};
+
 /**
  * @param {object} props
  * @param {string} props.label
  * @param {string|number} props.value
  * @param {'default'|'navy'|'green'|'amber'} [props.variant]
+ * @param {React.ComponentType<{ className?: string; strokeWidth?: number }>} [props.icon]
  */
-export default function KpiCard({ label, value, variant = "default" }) {
+export default function KpiCard({ label, value, variant = "default", icon: Icon }) {
   const v = variants[variant] || variants.default;
   const ls = labelStyles[variant] || labelStyles.default;
   const vs = valueStyles[variant] || valueStyles.default;
+  const ib = iconBoxStyles[variant] || iconBoxStyles.default;
 
   return (
-    <div className={`rounded-2xl px-5 py-5 ${v}`}>
-      <p className={`text-xs font-medium ${ls}`}>{label}</p>
+    <div
+      className={`flex h-full min-h-[132px] flex-col rounded-2xl px-5 py-4 lg:min-h-[140px] ${v}`}
+    >
+      <div className="flex shrink-0 items-start">
+        {Icon ? (
+          <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${ib}`}>
+            <Icon className="h-4 w-4" strokeWidth={2} />
+          </div>
+        ) : null}
+      </div>
+      <p className={`mt-3 text-xs font-medium ${ls}`}>{label}</p>
       <p className={`mt-2 text-3xl font-bold tabular-nums tracking-tight ${vs}`}>{value}</p>
     </div>
   );

@@ -146,7 +146,7 @@ const getDashboardData = async (userId, role) => {
 
       const todayShiftIds = await Shift.distinct("_id", todayMatch);
 
-      const [expectedAgg, presentToday] = await Promise.all([
+      const [expectedAgg, presentToday, lateToday] = await Promise.all([
 
         Shift.aggregate([
 
@@ -174,11 +174,21 @@ const getDashboardData = async (userId, role) => {
 
         }),
 
+        Attendance.countDocuments({
+
+          shift: { $in: todayShiftIds },
+
+          status: "checked_in",
+
+          isLate: true,
+
+        }),
+
       ]);
 
       const expectedToday = expectedAgg[0]?.expectedToday || 0;
 
-      return [{ expectedToday, presentToday }];
+      return [{ expectedToday, presentToday, lateToday }];
 
     })(),
 
@@ -194,7 +204,7 @@ const getDashboardData = async (userId, role) => {
 
 
 
-  const att = attendanceAgg[0] || { expectedToday: 0, presentToday: 0 };
+  const att = attendanceAgg[0] || { expectedToday: 0, presentToday: 0, lateToday: 0 };
 
   const absentToday = Math.max(0, att.expectedToday - att.presentToday);
 
@@ -246,7 +256,17 @@ const getDashboardData = async (userId, role) => {
 
     capacity: capacityPercent,
 
-    attendance: { presentToday: att.presentToday, absentToday, rate: attendanceRate },
+    attendance: {
+
+      presentToday: att.presentToday,
+
+      absentToday,
+
+      lateToday: att.lateToday || 0,
+
+      rate: attendanceRate,
+
+    },
 
     understaffedShifts: cap.understaffedShifts,
 

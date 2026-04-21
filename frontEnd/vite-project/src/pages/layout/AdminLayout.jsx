@@ -13,10 +13,13 @@ import {
   Clock,
   FileText,
   BarChart2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
 import BottomNav from "@/components/ui/BottomNav";
+import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 const avatarUrl = (url) => {
   if (!url || !url.includes("cloudinary.com")) return url;
@@ -71,26 +74,29 @@ const NAV_GROUPS = [
   },
 ];
 
-const AdminNavItem = ({ item, isActive, onNavigate }) => {
+const AdminNavItem = ({ item, isActive, onNavigate, effectiveCollapsed }) => {
   const Icon = item.icon;
   return (
     <Link
       to={item.path}
+      title={effectiveCollapsed ? item.name : undefined}
       onClick={() => onNavigate?.()}
-      className={`flex items-center gap-2.5 px-4 py-3 mx-2 rounded-lg text-sm transition-colors min-h-[48px] ${
+      className={`mx-2 flex min-h-[48px] items-center gap-2.5 rounded-lg px-4 py-3 text-sm transition-colors ${
+        effectiveCollapsed ? "justify-center lg:justify-center lg:px-2" : ""
+      } ${
         isActive
-          ? "bg-[#1B3F8B] text-white font-semibold"
+          ? "bg-[#1B3F8B] font-semibold text-white"
           : "text-white/45 hover:bg-white/5 hover:text-white/70"
       }`}
     >
       <span
-        className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded ${
           isActive ? "bg-[#60A5FA] text-white" : "bg-white/10 text-white/70"
         }`}
       >
-        <Icon className="w-3 h-3" strokeWidth={2} />
+        <Icon className="h-3 w-3" strokeWidth={2} />
       </span>
-      <span className="truncate">{item.name}</span>
+      <span className={`truncate ${effectiveCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
     </Link>
   );
 };
@@ -102,6 +108,7 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
+  const { effectiveCollapsed, toggle: toggleSidebarCollapsed } = useSidebarCollapsed();
 
   useEffect(() => setSidebarOpen(false), [pathname]);
 
@@ -143,30 +150,40 @@ const AdminLayout = () => {
 
       <div
         className={`
-          fixed inset-y-0 left-0 z-40 w-64 flex flex-col
+          fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col
           transform transition-transform duration-300 ease-in-out
-          lg:relative lg:translate-x-0 lg:z-0 h-full shrink-0
+          lg:relative lg:translate-x-0 lg:z-0
+          lg:transition-[width] lg:duration-300
+          ${effectiveCollapsed ? "lg:w-16" : "lg:w-64"}
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <aside className="w-64 min-h-full flex flex-col bg-[#0f2042] h-full">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] lg:hidden">
-            <span className="text-white/80 text-xs font-semibold">Menu</span>
+        <aside className="flex h-full min-h-full w-full flex-col bg-[#0f2042]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 lg:hidden">
+            <span className="text-xs font-semibold text-white/80">Menu</span>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-lg text-white/70 hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-2 text-white/70 hover:bg-white/10"
               aria-label="Close menu"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="px-4 pt-4 pb-3 border-b border-white/[0.06] shrink-0">
-            <div className="flex items-baseline gap-0.5">
-              <span className="font-extrabold text-white text-[15px] tracking-tight">BW</span>
-              <span className="font-light text-[#60A5FA] text-[15px] tracking-tight">POST</span>
+          <div
+            className={`shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-4 ${effectiveCollapsed ? "lg:px-2" : ""}`}
+          >
+            <div className={`flex items-baseline gap-0.5 ${effectiveCollapsed ? "lg:justify-center" : ""}`}>
+              <span className="text-[15px] font-extrabold tracking-tight text-white">BW</span>
+              <span className={`text-[15px] font-light tracking-tight text-[#60A5FA] ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+                POST
+              </span>
             </div>
-            <span className="inline-block mt-1 text-[8px] font-bold tracking-widest uppercase text-[#60A5FA] bg-[#60A5FA]/12 px-2 py-0.5 rounded">
+            <span
+              className={`mt-1 inline-block rounded bg-[#60A5FA]/12 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-[#60A5FA] ${
+                effectiveCollapsed ? "lg:hidden" : ""
+              }`}
+            >
               Admin
             </span>
           </div>
@@ -174,7 +191,11 @@ const AdminLayout = () => {
           <nav className="flex-1 overflow-y-auto py-2">
             {NAV_GROUPS.map((group) => (
               <div key={group.label}>
-                <p className="text-[8px] font-bold tracking-widest uppercase text-white/20 px-4 pt-5 pb-1">
+                <p
+                  className={`px-4 pb-1 pt-5 text-[8px] font-bold uppercase tracking-widest text-white/20 ${
+                    effectiveCollapsed ? "lg:hidden" : ""
+                  }`}
+                >
                   {group.label}
                 </p>
                 <div className="space-y-0.5">
@@ -182,8 +203,9 @@ const AdminLayout = () => {
                     <AdminNavItem
                       key={item.path}
                       item={item}
-                      isActive={pathname === item.path || pathname.startsWith(item.path + "/")}
+                      isActive={pathname === item.path || pathname.startsWith(`${item.path}/`)}
                       onNavigate={() => setSidebarOpen(false)}
+                      effectiveCollapsed={effectiveCollapsed}
                     />
                   ))}
                 </div>
@@ -191,31 +213,64 @@ const AdminLayout = () => {
             ))}
           </nav>
 
-          <div className="mt-auto pt-3 border-t border-white/[0.06] px-3 py-2 flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-full bg-[#1B3F8B] border-2 border-[#60A5FA] flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden">
+          <div className="mt-auto flex w-full flex-col">
+            <div className="hidden shrink-0 border-t border-white/[0.06] px-3 py-2 lg:block">
+              <button
+                type="button"
+                onClick={toggleSidebarCollapsed}
+                className="flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-white/45 transition-colors hover:bg-white/5 hover:text-white/70"
+                aria-label={effectiveCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {effectiveCollapsed ? (
+                  <ChevronRight className="h-4 w-4" strokeWidth={2} />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+                )}
+              </button>
+            </div>
+
+            <div
+              className={`flex shrink-0 items-center gap-2.5 border-t border-white/[0.06] px-3 py-2 ${
+                effectiveCollapsed ? "lg:flex-col lg:px-2" : ""
+              }`}
+            >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#60A5FA] bg-[#1B3F8B] text-xs font-bold text-white">
               {user?.profileImage ? (
-                <img src={avatarUrl(user.profileImage)} alt="" className="w-full h-full object-cover" />
+                <img src={avatarUrl(user.profileImage)} alt="" className="h-full w-full object-cover" />
               ) : (
                 initials
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-white/80 text-[10px] font-medium truncate">{getDisplayName(user, "Admin")}</p>
-              <p className="text-white/30 text-[9px] capitalize">{user?.role}</p>
+            <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+              <p className="truncate text-[10px] font-medium text-white/80">{getDisplayName(user, "Admin")}</p>
+              <p className="text-[9px] capitalize text-white/30">{user?.role}</p>
             </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="ml-auto p-1.5 text-white/25 hover:text-white/60 transition-colors rounded-lg"
+              className={`ml-auto rounded-lg p-1.5 text-white/25 transition-colors hover:text-white/60 ${
+                effectiveCollapsed ? "lg:hidden" : ""
+              }`}
               aria-label="Sign out"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="h-4 w-4" />
             </button>
+            {effectiveCollapsed ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="hidden w-full items-center justify-center rounded-lg p-2 text-white/40 hover:text-white/70 lg:flex"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            ) : null}
+            </div>
           </div>
         </aside>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
         <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-10 safe-top">
           <div className="flex items-center gap-3 min-w-0">
             <button
