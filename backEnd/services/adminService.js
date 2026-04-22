@@ -2,6 +2,7 @@ const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
 const { getPaginationParams, getPaginationMeta } = require("../utils/paginate");
+const userService = require("./userService");
 
 const VALID_ROLES = ["admin", "manager", "employee"];
 
@@ -102,4 +103,25 @@ const getAllUsers = async (query) => {
   };
 };
 
-module.exports = { createUser, updateUserRole, getAllUsers };
+const generateUserPasswordResetLink = async (req, userId) => {
+  const user = await User.findOne({ _id: userId, _includeInactive: true });
+  if (!user) throw new AppError("User not found", 404);
+  if (user.role === "admin") {
+    throw new AppError("Password reset links cannot be generated for administrator accounts", 403);
+  }
+  const { resetLink, expiresAt } = await userService.savePasswordResetTokenAndGetLink(
+    req,
+    user,
+    "admin.password_reset_link"
+  );
+  return {
+    message: "Password reset link generated",
+    data: {
+      resetLink,
+      expiresAt: expiresAt.toISOString(),
+      userEmail: user.email,
+    },
+  };
+};
+
+module.exports = { createUser, updateUserRole, getAllUsers, generateUserPasswordResetLink };

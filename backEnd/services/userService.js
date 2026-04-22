@@ -4,7 +4,6 @@ const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
 
-const RESET_TOKEN_BYTES = 32;
 const isValidResetTokenFormat = (t) =>
   typeof t === "string" && /^[a-f0-9]{64}$/i.test(t);
 
@@ -15,7 +14,32 @@ const getPasswordResetTtlMs = () => {
   const raw = process.env.PASSWORD_RESET_EXPIRE_MS;
   const n = raw ? parseInt(raw, 10) : NaN;
   if (Number.isFinite(n) && n > 0) return n;
-  return 60 * 60 * 1000; // 1 hour default
+  return 60 * 60 * 1000;
+};
+
+const getFrontendBaseUrl = () => {
+  const b = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+  return b || "http://localhost:5173";
+};
+
+/**
+ * Store hashed token on user, return plain link for sharing (raw token only in link).
+ * Used by self-service forgot password and admin/manager link generation.
+ */
+const savePasswordResetTokenAndGetLink = async (req, user, auditEventName) => {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + getPasswordResetTtlMs());
+  user.passwordResetTokenHash = hashResetToken(rawToken);
+  user.passwordResetExpires = expiresAt;
+  await user.save();
+  const resetLink = `${getFrontendBaseUrl()}/reset-password?token=${rawToken}`;
+  if (auditEventName) {
+    log(auditEventName, req, "User", user._id, { email: user.email }, {
+      actorId: req.user ? req.user.id : user._id,
+      actorRole: req.user ? req.user.role : user.role,
+    });
+  }
+  return { resetLink, expiresAt };
 };
 
 const generateAccessToken = (user) =>
@@ -165,17 +189,18 @@ const isValidImageUrl = (url) => {
   }
 };
 
+const GENERIC_NO_ACCOUNT_MESSAGE =
+  "If an account exists for that email, a reset link can be generated. Contact an administrator if you do not see a link below.";
+
 /**
- * Request password reset — stores hashed token + expiry.
- * Always returns the same generic message (no email enumeration).
+ * Self-service: issue token, return link in response (no email).
+ * Inactive or unknown email: generic message, no data.
  */
 const requestPasswordReset = async (req, email) => {
   const normalized = (email || "").toLowerCase().trim();
-  const genericMessage =
-    "If an account exists for that email, you will receive password reset instructions shortly.";
 
   if (!normalized) {
-    return { message: genericMessage };
+    return { message: GENERIC_NO_ACCOUNT_MESSAGE, data: null };
   }
 
   const user = await User.findOne({ email: normalized, _includeInactive: true }).select(
@@ -183,27 +208,27 @@ const requestPasswordReset = async (req, email) => {
   );
 
   if (!user || user.isActive === false) {
-    return { message: genericMessage };
+    return { message: GENERIC_NO_ACCOUNT_MESSAGE, data: null };
   }
 
-  const rawToken = crypto.randomBytes(RESET_TOKEN_BYTES).toString("hex");
-  user.passwordResetTokenHash = hashResetToken(rawToken);
-  user.passwordResetExpires = new Date(Date.now() + getPasswordResetTtlMs());
-  await user.save();
+  const { resetLink, expiresAt } = await savePasswordResetTokenAndGetLink(
+    req,
+    user,
+    "auth.password_reset_requested"
+  );
 
-  // TODO: Send reset email via AWS SES/SNS later
-  // Include link: `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}`
-
-  log("auth.password_reset_requested", req, "User", user._id, { email: user.email }, {
-    actorId: user._id,
-    actorRole: user.role,
-  });
-
-  return { message: genericMessage };
+  return {
+    message: "Password reset link generated",
+    data: {
+      resetLink,
+      expiresAt: expiresAt.toISOString(),
+      userEmail: user.email,
+    },
+  };
 };
 
 /**
- * Validate that a reset token is still valid (optional UI step before showing the form).
+ * Validate that a reset token is still valid (UI step before showing the form).
  */
 const validatePasswordResetToken = async (rawToken) => {
   if (!isValidResetTokenFormat(rawToken)) {
@@ -215,7 +240,12 @@ const validatePasswordResetToken = async (rawToken) => {
     passwordResetExpires: { $gt: new Date() },
   });
   if (!user) throw new AppError("Invalid or expired reset token", 400);
-  return { valid: true };
+  return {
+    valid: true,
+    email: user.email,
+    username: user.username,
+    userId: user._id,
+  };
 };
 
 /**
@@ -292,4 +322,5 @@ module.exports = {
   requestPasswordReset,
   validatePasswordResetToken,
   resetPasswordWithToken,
+  savePasswordResetTokenAndGetLink,
 };

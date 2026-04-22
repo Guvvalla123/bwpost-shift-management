@@ -55,7 +55,7 @@ router.post('/register', authLimiter, validate(registerSchema), registerUser);
 // User login route
 router.post('/login', authLimiter, validate(loginSchema), loginUser);
 
-// Password reset (public; token emailed later via AWS SES/SNS)
+// Password reset (public; copy link, no email)
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), forgotPassword);
 router.get('/reset-password/validate/:token', authLimiter, validateResetPasswordToken);
 router.post('/reset-password', authLimiter, validate(resetPasswordSchema), resetPassword);

@@ -4,6 +4,7 @@ const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
 const { getPaginationParams, getPaginationMeta } = require("../utils/paginate");
+const userService = require("./userService");
 
 const getAllEmployees = async (user, query) => {
   const { page, limit, skip } = getPaginationParams(query, 20, 50);
@@ -169,6 +170,48 @@ const getEmployeeAttendanceHistory = async (user, employeeId, query) => {
   };
 };
 
+const generateEmployeePasswordResetLink = async (req, user, employeeId) => {
+  const employee = await User.findOne({ _id: employeeId, _includeInactive: true });
+  if (!employee) throw new AppError("Employee not found", 404);
+  if (employee.role === "admin") {
+    throw new AppError("Password reset links cannot be generated for administrator accounts", 403);
+  }
+  if (user.role === "admin") {
+    const { resetLink, expiresAt } = await userService.savePasswordResetTokenAndGetLink(
+      req,
+      employee,
+      "manager.password_reset_link"
+    );
+    return {
+      message: "Password reset link generated",
+      data: {
+        resetLink,
+        expiresAt: expiresAt.toISOString(),
+        userEmail: employee.email,
+      },
+    };
+  }
+  if (user.role === "manager") {
+    if (employee.role !== "employee" || employee.managerId?.toString() !== user.id) {
+      throw new AppError("This employee is not in your team", 403);
+    }
+    const { resetLink, expiresAt } = await userService.savePasswordResetTokenAndGetLink(
+      req,
+      employee,
+      "manager.password_reset_link"
+    );
+    return {
+      message: "Password reset link generated",
+      data: {
+        resetLink,
+        expiresAt: expiresAt.toISOString(),
+        userEmail: employee.email,
+      },
+    };
+  }
+  throw new AppError("Access denied", 403);
+};
+
 module.exports = {
   getAllEmployees,
   createEmployee,
@@ -176,4 +219,5 @@ module.exports = {
   deleteEmployee,
   getEmployeeById,
   getEmployeeAttendanceHistory,
+  generateEmployeePasswordResetLink,
 };

@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import ShiftRow from "./ShiftRow";
-import { Users, Eye, Pencil, Trash2 } from "lucide-react";
+import { Users, Eye, Pencil, Trash2, Key } from "lucide-react";
 
 const initialsFrom = (name = "") =>
   name
@@ -19,7 +19,7 @@ const formatJoinDate = (iso) => {
   });
 };
 
-function EmployeeTable({ employees, onEdit, onDelete, onView }) {
+function EmployeeTable({ employees, onEdit, onDelete, onView, onPasswordReset }) {
   if (employees.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -76,6 +76,16 @@ function EmployeeTable({ employees, onEdit, onDelete, onView }) {
                 >
                   <Eye className="h-4 w-4" />
                 </button>
+                {onPasswordReset ? (
+                  <button
+                    type="button"
+                    title="Generate Reset Link"
+                    onClick={() => onPasswordReset(emp)}
+                    className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
+                  >
+                    <Key className="h-4 w-4" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   title="Edit employee"
@@ -124,6 +134,7 @@ function EmployeeTable({ employees, onEdit, onDelete, onView }) {
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onView={onView}
+                onPasswordReset={onPasswordReset}
               />
             ))}
           </tbody>

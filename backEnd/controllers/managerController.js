@@ -146,3 +146,12 @@ exports.getEmployeeAttendanceHistory = asyncHandler(async (req, res) => {
   );
   return sendSuccess(res, 200, { data: result.data, pagination: result.pagination });
 });
+
+exports.generateEmployeePasswordResetLink = asyncHandler(async (req, res) => {
+  const { message, data } = await teamService.generateEmployeePasswordResetLink(
+    req,
+    req.user,
+    req.params.employeeId
+  );
+  return sendSuccess(res, 200, { message, data });
+});

@@ -6,6 +6,7 @@ const Home = lazy(() => import("./pages/layout/Home.jsx"));
 const Register = lazy(() => import("./pages/auth/Register"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
 // Layouts (lazy loaded)
 const AdminLayout = lazy(() => import("./pages/layout/AdminLayout.jsx"));
@@ -76,6 +77,7 @@ function App() {
             <PublicRoute><Register /></PublicRoute>
           } />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* ── Admin (requires login + admin role; Admin-only routes) ────────────── */}
           <Route element={<ProtectedRoute requiredRole="admin" />}>

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Pencil, Trash2, Eye } from "lucide-react";
+import { Pencil, Trash2, Eye, Key } from "lucide-react";
 
 const formatJoinDate = (iso) => {
   if (!iso) return "—";
@@ -18,7 +18,7 @@ const initialsFrom = (name = "") =>
     .toUpperCase()
     .slice(0, 2) || "?";
 
-function ShiftRow({ employee, onEdit, onDelete, onView }) {
+function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
   const initials = initialsFrom(employee.username);
   const active = employee.isActive !== false;
   const role = employee.role || "employee";
@@ -70,6 +70,16 @@ function ShiftRow({ employee, onEdit, onDelete, onView }) {
           >
             <Eye className="h-4 w-4" />
           </button>
+          {onPasswordReset ? (
+            <button
+              type="button"
+              onClick={() => onPasswordReset(employee)}
+              title="Generate Reset Link"
+              className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
+            >
+              <Key className="h-4 w-4" />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onEdit(employee)}

@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/utils/apiError";
-import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil } from "lucide-react";
+import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
+import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil, Key, Loader2 } from "lucide-react";
 import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard } from "@/components/ui";
 
 const ROLE_BADGES = {
@@ -32,6 +32,9 @@ const AdminUserManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [fetchError, setFetchError] = useState(false);
+  const [pwdResetConfirmUser, setPwdResetConfirmUser] = useState(null);
+  const [pwdResetResult, setPwdResetResult] = useState(null);
+  const [pwdResetLoading, setPwdResetLoading] = useState(false);
   const [stats, setStats] = useState({
     totalAll: 0,
     active: 0,
@@ -174,6 +177,51 @@ const AdminUserManagement = () => {
     if (createdInviteLink) {
       navigator.clipboard?.writeText(createdInviteLink).then(() => toast.success("Copied to clipboard"));
     }
+  };
+
+  const copyPwdResetLink = async () => {
+    if (!pwdResetResult?.resetLink) return;
+    try {
+      await navigator.clipboard.writeText(pwdResetResult.resetLink);
+      toast.success("Link copied to clipboard");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = pwdResetResult.resetLink;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        toast.success("Link copied to clipboard");
+      } catch {
+        toast.error("Could not copy to clipboard");
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+  };
+
+  const confirmAdminPwdReset = async () => {
+    if (!pwdResetConfirmUser) return;
+    setPwdResetLoading(true);
+    try {
+      const res = await API.post(`/api/admin/users/${pwdResetConfirmUser._id}/reset-password-link`);
+      const data = unwrapSuccessData(res);
+      setPwdResetConfirmUser(null);
+      setPwdResetResult(data);
+      toast.success("Password reset link generated");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to generate link"));
+    } finally {
+      setPwdResetLoading(false);
+    }
+  };
+
+  const shareWhatsApp = () => {
+    if (!pwdResetResult?.resetLink) return;
+    const text = `Your password reset link (expires in 1 hour): ${pwdResetResult.resetLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
   const inputCls = "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base";
@@ -328,16 +376,29 @@ const AdminUserManagement = () => {
                         {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-DE") : "—"}
                       </span>
                     </div>
-                    {u.isActive !== false && (
+                    {(u.role !== "admin" || u.isActive !== false) && (
                       <div className="flex gap-2 pt-3 border-t border-gray-100">
-                        <button
-                          type="button"
-                          onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
-                          className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 inline-flex items-center justify-center gap-1"
-                        >
-                          <Pencil size={14} />
-                          Change role
-                        </button>
+                        {u.role !== "admin" && (
+                          <button
+                            type="button"
+                            title="Generate Reset Link"
+                            onClick={() => setPwdResetConfirmUser(u)}
+                            className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-[#1B3F8B]/30 text-[#1B3F8B] bg-[#EFF6FF] hover:bg-blue-100 inline-flex items-center justify-center gap-1"
+                          >
+                            <Key size={14} />
+                            Reset link
+                          </button>
+                        )}
+                        {u.isActive !== false && (
+                          <button
+                            type="button"
+                            onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
+                            className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 inline-flex items-center justify-center gap-1"
+                          >
+                            <Pencil size={14} />
+                            Change role
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -374,15 +435,28 @@ const AdminUserManagement = () => {
                             {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
                           </td>
                           <td className="px-6 py-4">
-                            {u.isActive !== false && (
-                              <button
-                                onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
-                                className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
-                                title="Change role"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {u.role !== "admin" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPwdResetConfirmUser(u)}
+                                  className="p-2 text-slate-500 hover:text-[#1B3F8B] hover:bg-[#EFF6FF] rounded-lg transition"
+                                  title="Generate Reset Link"
+                                >
+                                  <Key size={16} />
+                                </button>
+                              )}
+                              {u.isActive !== false && (
+                                <button
+                                  type="button"
+                                  onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
+                                  className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                                  title="Change role"
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -510,6 +584,100 @@ const AdminUserManagement = () => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {pwdResetConfirmUser && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4"
+          onClick={() => setPwdResetConfirmUser(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md p-6 md:mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-gray-900">Generate Password Reset Link</h2>
+            <p className="text-sm text-slate-600 mt-2">
+              Generate a reset link for{" "}
+              <span className="font-semibold">{pwdResetConfirmUser.username}</span> ({pwdResetConfirmUser.email})?
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setPwdResetConfirmUser(null)}
+                className="w-full sm:w-auto flex-1 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pwdResetLoading}
+                onClick={confirmAdminPwdReset}
+                className="w-full sm:w-auto flex-1 py-3 min-h-12 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#152f6b] inline-flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {pwdResetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Generate Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pwdResetResult && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4"
+          onClick={() => setPwdResetResult(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-lg p-6 md:mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold text-gray-900">Password Reset Link</h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Share this link with the user via WhatsApp or any messenger.{" "}
+              <span className="font-medium text-slate-800">Link expires in 1 hour</span> (or per server setting).
+            </p>
+            {pwdResetResult.userEmail ? (
+              <p className="text-xs text-slate-500 mt-2">For: {pwdResetResult.userEmail}</p>
+            ) : null}
+            {pwdResetResult.expiresAt ? (
+              <p className="text-xs text-slate-500 mt-1">
+                Expires: {new Date(pwdResetResult.expiresAt).toLocaleString()}
+              </p>
+            ) : null}
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <input
+                type="text"
+                readOnly
+                value={pwdResetResult.resetLink || ""}
+                className={`${inputCls} flex-1 bg-slate-50 text-xs`}
+              />
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={copyPwdResetLink}
+                  className="px-4 py-2.5 min-h-11 bg-[#1B3F8B] text-white rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#152f6b]"
+                >
+                  <Copy size={16} />
+                  Copy Link
+                </button>
+                <button
+                  type="button"
+                  onClick={shareWhatsApp}
+                  className="px-3 py-2.5 min-h-11 border border-slate-200 text-slate-800 rounded-xl text-sm font-medium hover:bg-slate-50"
+                >
+                  WhatsApp
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPwdResetResult(null)}
+              className="w-full mt-4 py-2.5 bg-slate-100 text-slate-800 font-medium rounded-xl hover:bg-slate-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

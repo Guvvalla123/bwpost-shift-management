@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/utils/apiError";
+import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
 import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 import {
     Pencil, Trash2, X, Search, Users,
     UserCheck, ShieldCheck, Clock,
     Mail, Calendar, AlertTriangle, Eye, ArrowLeft,
-    UserPlus, Copy,
+    UserPlus, Copy, Loader2,
 } from "lucide-react";
 import EmployeeTable from "./EmployeeTable";
 
@@ -50,6 +51,7 @@ const inputCls =
 
 /* ─── Main Component ─────────────────────────────────────── */
 const Employee = () => {
+    const location = useLocation();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -70,6 +72,9 @@ const Employee = () => {
     const [viewTarget, setViewTarget] = useState(null);
     const [attendanceHistory, setAttendanceHistory] = useState([]);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
+    const [pwdResetConfirm, setPwdResetConfirm] = useState(null);
+    const [pwdResetResult, setPwdResetResult] = useState(null);
+    const [pwdResetLoading, setPwdResetLoading] = useState(false);
 
     /* form */
     const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -144,6 +149,56 @@ const Employee = () => {
     const requestDeleteEmployee = useCallback((emp) => {
         setDeleteTarget(emp);
     }, []);
+
+    const resetLinkPostPath = (employeeId) =>
+        location.pathname.startsWith("/admin")
+            ? `/api/admin/users/${employeeId}/reset-password-link`
+            : `/api/manager/shifts/employees/${employeeId}/reset-password-link`;
+
+    const confirmManagerPwdReset = async () => {
+        if (!pwdResetConfirm) return;
+        setPwdResetLoading(true);
+        try {
+            const res = await API.post(resetLinkPostPath(pwdResetConfirm._id));
+            const data = unwrapSuccessData(res);
+            setPwdResetConfirm(null);
+            setPwdResetResult(data);
+            toast.success("Password reset link generated");
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, "Failed to generate link"));
+        } finally {
+            setPwdResetLoading(false);
+        }
+    };
+
+    const copyManagerPwdLink = async () => {
+        if (!pwdResetResult?.resetLink) return;
+        try {
+            await navigator.clipboard.writeText(pwdResetResult.resetLink);
+            toast.success("Link copied to clipboard");
+        } catch {
+            const ta = document.createElement("textarea");
+            ta.value = pwdResetResult.resetLink;
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand("copy");
+                toast.success("Link copied to clipboard");
+            } catch {
+                toast.error("Could not copy to clipboard");
+            } finally {
+                document.body.removeChild(ta);
+            }
+        }
+    };
+
+    const shareManagerWhatsApp = () => {
+        if (!pwdResetResult?.resetLink) return;
+        const text = `Your password reset link (expires in 1 hour): ${pwdResetResult.resetLink}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    };
 
     const handleAddEmployee = async (e) => {
         e.preventDefault();
@@ -383,6 +438,7 @@ const Employee = () => {
                                     onEdit={openEdit}
                                     onDelete={requestDeleteEmployee}
                                     onView={openDrawer}
+                                    onPasswordReset={(emp) => setPwdResetConfirm(emp)}
                                 />
                             )}
                             <Pagination
@@ -498,6 +554,100 @@ const Employee = () => {
             {/* ══════════════════════════════════════════════════ */}
             {/* DELETE CONFIRMATION MODAL                          */}
             {/* ══════════════════════════════════════════════════ */}
+            {pwdResetConfirm && (
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setPwdResetConfirm(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h2 className="text-lg font-bold text-gray-900">Generate Password Reset Link</h2>
+                        <p className="text-sm text-slate-600 mt-2">
+                            Generate a reset link for{" "}
+                            <span className="font-semibold">{pwdResetConfirm.username}</span> ({pwdResetConfirm.email})?
+                        </p>
+                        <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+                            <button
+                                type="button"
+                                onClick={() => setPwdResetConfirm(null)}
+                                className="w-full sm:flex-1 py-3 min-h-12 border border-slate-200 text-slate-800 font-medium rounded-xl hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={pwdResetLoading}
+                                onClick={confirmManagerPwdReset}
+                                className="w-full sm:flex-1 py-3 min-h-12 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#152f6b] inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                            >
+                                {pwdResetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                                Generate Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {pwdResetResult && (
+                <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setPwdResetResult(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h2 className="text-lg font-bold text-gray-900">Password Reset Link</h2>
+                        <p className="text-sm text-slate-600 mt-2">
+                            Share this link with the user via WhatsApp or any messenger. Link expires in 1 hour (or per
+                            server setting).
+                        </p>
+                        {pwdResetResult.userEmail ? (
+                            <p className="text-xs text-slate-500 mt-2">For: {pwdResetResult.userEmail}</p>
+                        ) : null}
+                        {pwdResetResult.expiresAt ? (
+                            <p className="text-xs text-slate-500 mt-1">
+                                Expires: {new Date(pwdResetResult.expiresAt).toLocaleString()}
+                            </p>
+                        ) : null}
+                        <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                            <input
+                                type="text"
+                                readOnly
+                                value={pwdResetResult.resetLink || ""}
+                                className={`${inputCls} flex-1 bg-slate-50 text-xs`}
+                            />
+                            <div className="flex gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={copyManagerPwdLink}
+                                    className="px-4 py-2.5 min-h-11 bg-[#1B3F8B] text-white rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#152f6b]"
+                                >
+                                    <Copy size={16} />
+                                    Copy
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={shareManagerWhatsApp}
+                                    className="px-3 py-2.5 min-h-11 border border-slate-200 text-slate-800 rounded-xl text-sm font-medium hover:bg-slate-50"
+                                >
+                                    WhatsApp
+                                </button>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setPwdResetResult(null)}
+                            className="w-full mt-4 py-2.5 bg-slate-100 text-slate-800 font-medium rounded-xl hover:bg-slate-200"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {deleteTarget && (
                 <div
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"

@@ -34,6 +34,7 @@ const {
     assignEmployeeToShift,
     getEmployeeAttendanceHistory,
     exportShiftsCsv,
+    generateEmployeePasswordResetLink,
 } = require('../controllers/managerController');
 
 // Authenticated (any role): limited upcoming shifts for internal use
@@ -57,6 +58,12 @@ router.get('/employees/:employeeId', auth, authorize('admin', 'manager'), getEmp
 router.put('/employees/:employeeId', auth, authorize('admin', 'manager'), validate(updateEmployeeSchema), updateEmployee);
 router.delete('/employees/:employeeId', auth, authorize('admin', 'manager'), deleteEmployee);
 router.get('/employees/:employeeId/attendance', auth, authorize('admin', 'manager'), getEmployeeAttendanceHistory);
+router.post(
+  '/employees/:employeeId/reset-password-link',
+  auth,
+  authorize('admin', 'manager'),
+  generateEmployeePasswordResetLink
+);
 
 // MANAGER ROUTES - Shift Employees
 router.get('/shift-accepted-employees/:shiftId', auth, authorize('admin', 'manager'), getShiftAcceptedEmployees);

@@ -78,8 +78,8 @@ const updateProfile = asyncHandler(async (req, res) => {
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
-  const { message } = await userService.requestPasswordReset(req, req.body.email);
-  return sendSuccess(res, 200, { message });
+  const out = await userService.requestPasswordReset(req, req.body.email);
+  return sendSuccess(res, 200, { message: out.message, data: out.data });
 });
 
 const validateResetPasswordToken = asyncHandler(async (req, res) => {
