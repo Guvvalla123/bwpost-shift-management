@@ -170,8 +170,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  // Only allow health checks from same server
-  // or when a secret header is provided
+  // Only same-server checks or a secret header: see HEALTH_CHECK_SECRET
   const healthToken = process.env.HEALTH_CHECK_SECRET;
   if (healthToken) {
     const provided = req.headers["x-health-token"];
@@ -179,8 +178,6 @@ app.get("/health", (req, res) => {
       return res.status(401).json({ status: "unauthorized" });
     }
   }
-  // Return health status
-  const mongoose = require("mongoose");
   const dbState = mongoose.connection.readyState;
   const dbStatus = {
     0: "disconnected",
@@ -188,10 +185,22 @@ app.get("/health", (req, res) => {
     2: "connecting",
     3: "disconnecting",
   };
-  res.status(200).json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    db: dbStatus[dbState] || "unknown",
+  const dbString = dbStatus[dbState] || "unknown";
+  const uptime = Math.round(process.uptime() * 100) / 100;
+  const timestamp = new Date().toISOString();
+  if (dbState === 1) {
+    return res.status(200).json({
+      status: "ok",
+      timestamp,
+      db: "connected",
+      uptime,
+    });
+  }
+  return res.status(503).json({
+    status: "degraded",
+    timestamp,
+    db: dbString,
+    uptime,
   });
 });
 
