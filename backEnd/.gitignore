@@ -3,4 +3,5 @@ node_modules/
 # Environment variables — NEVER commit
 .env
 .env.*
+!.env.example
 ADMIN_CREDENTIALS.txt

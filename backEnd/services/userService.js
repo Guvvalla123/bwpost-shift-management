@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
+const { getFrontendBaseUrl } = require("../utils/frontendUrl");
 
 const isValidResetTokenFormat = (t) =>
   typeof t === "string" && /^[a-f0-9]{64}$/i.test(t);
@@ -15,11 +16,6 @@ const getPasswordResetTtlMs = () => {
   const n = raw ? parseInt(raw, 10) : NaN;
   if (Number.isFinite(n) && n > 0) return n;
   return 60 * 60 * 1000;
-};
-
-const getFrontendBaseUrl = () => {
-  const b = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
-  return b || "http://localhost:5173";
 };
 
 /**

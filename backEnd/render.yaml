@@ -7,6 +7,7 @@ services:
     rootDir: backEnd
     buildCommand: npm ci
     startCommand: node server.js
+    # FRONTEND_URL / ALLOWED_ORIGINS: production Vercel origin. Local dev is not needed on Render.
     envVars:
       - key: NODE_ENV
         value: production
@@ -22,10 +23,10 @@ services:
         value: 15m
       - key: REFRESH_TOKEN_EXPIRES_IN
         value: 8h
-      - key: ALLOWED_ORIGINS
-        sync: false
       - key: FRONTEND_URL
-        sync: false
+        value: https://bwpost-shift-management.vercel.app
+      - key: ALLOWED_ORIGINS
+        value: https://bwpost-shift-management.vercel.app
       - key: HEALTH_CHECK_SECRET
         sync: false
       - key: PASSWORD_RESET_EXPIRE_MS

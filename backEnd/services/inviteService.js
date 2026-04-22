@@ -3,6 +3,7 @@ const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
 const { getPaginationParams, getPaginationMeta } = require("../utils/paginate");
+const { getFrontendBaseUrl } = require("../utils/frontendUrl");
 
 const VALID_ROLES = ["admin", "manager", "employee"];
 
@@ -50,7 +51,7 @@ const createInvite = async (req, actor, { email, role, managerId }) => {
       email: invite.email,
       role: invite.role,
       expiresAt: invite.expiresAt,
-      inviteLink: `${process.env.FRONTEND_URL || "http://localhost:5173"}/register?invite=${invite.token}`,
+      inviteLink: `${getFrontendBaseUrl()}/register?invite=${invite.token}`,
     },
   };
 };

@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5500";
+const baseURL = import.meta.env.VITE_API_URL;
+if (baseURL == null || String(baseURL).trim() === "") {
+  throw new Error(
+    "VITE_API_URL is not set. For local dev, copy .env.example to .env. Production builds use .env.production."
+  );
+}
 
 const API = axios.create({
   baseURL,

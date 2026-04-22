@@ -16,7 +16,7 @@ const AppError = require("./utils/AppError");
 dotenv.config();
 
 /* ================= ENV VALIDATION ================= */
-const required = ["MONGO_URI", "JWT_SECRET", "REFRESH_TOKEN_SECRET"];
+const required = ["MONGO_URI", "JWT_SECRET", "REFRESH_TOKEN_SECRET", "FRONTEND_URL"];
 const missing = required.filter((k) => !process.env[k]);
 if (missing.length) {
   console.error("Missing required env vars:", missing.join(", "));
@@ -62,12 +62,17 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "short" : "dev"));
 
 /* ================= CORS ================= */
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim())
-  : [
-      "https://bwpost-shift-management.vercel.app",
-      "http://localhost:5173",
-    ];
+const buildAllowedOrigins = () => {
+  if (process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.trim()) {
+    return process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) {
+    return [process.env.FRONTEND_URL.replace(/\/$/, "")];
+  }
+  return [];
+};
+
+const allowedOrigins = buildAllowedOrigins();
 
 app.use(cors({
   origin: function (origin, callback) {
