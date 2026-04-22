@@ -249,23 +249,6 @@ const resetPasswordWithToken = async (req, { token, password }) => {
   };
 };
 
-const saveOneSignalPlayerId = async (req, userId, playerId) => {
-  const trimmed = typeof playerId === "string" ? playerId.trim() : "";
-  if (!trimmed) {
-    throw new AppError("Valid playerId is required", 400);
-  }
-  const user = await User.findByIdAndUpdate(
-    userId,
-    { $set: { oneSignalPlayerId: trimmed } },
-    { new: true }
-  );
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
-  log("user.onesignal.register", req, "User", userId, { playerIdSet: true });
-  return { message: "OneSignal player id saved" };
-};
-
 const updateProfile = async (req, userId, { username, profileImage }) => {
   const user = await User.findById(userId);
   if (!user) throw new AppError("User not found", 404);
@@ -305,7 +288,6 @@ module.exports = {
   refreshAccessToken,
   logout,
   getMe,
-  saveOneSignalPlayerId,
   updateProfile,
   requestPasswordReset,
   validatePasswordResetToken,

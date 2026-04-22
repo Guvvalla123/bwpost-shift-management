@@ -62,9 +62,6 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     deactivatedAt: { type: Date, default: null },
     deactivatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-
-    // OneSignal web push subscription id (per browser/device)
-    oneSignalPlayerId: { type: String, default: null, index: true },
   },
   {
     timestamps: true,

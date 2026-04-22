@@ -53,7 +53,3 @@ exports.updateProfileSchema = Joi.object({
   .messages({
     "object.missing": "At least one of username or profileImage is required",
   });
-
-exports.oneSignalPlayerIdSchema = Joi.object({
-  playerId: Joi.string().trim().min(1).max(512).required(),
-});

@@ -127,22 +127,6 @@ export const AuthProvider = ({ children }) => {
         return () => window.removeEventListener("auth:logout", handleAuthLogout);
     }, []);
 
-    const oneSignalUserRef = useRef(null);
-
-    useEffect(() => {
-        if (!user?.id) {
-            oneSignalUserRef.current = null;
-            return;
-        }
-        if (oneSignalUserRef.current === user.id) {
-            return;
-        }
-        oneSignalUserRef.current = user.id;
-        import("@/lib/oneSignalClient")
-            .then(({ registerOneSignalForUser }) => registerOneSignalForUser())
-            .catch(() => {});
-    }, [user?.id]);
-
     /* ── Idle auto-logout (15 min, warn at 13 min) ── */
     useEffect(() => {
         if (!user) return;

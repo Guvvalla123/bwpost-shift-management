@@ -10,7 +10,6 @@ const {
   refreshAccessToken,
   getMe,
   updateProfile,
-  saveOneSignalPlayerId,
   getRegistrationStatus,
   forgotPassword,
   validateResetPasswordToken,
@@ -23,7 +22,6 @@ const {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
-  oneSignalPlayerIdSchema,
 } = require('../validators/uservalidators');
 const { auth } = require('../middlewares/authMiddleware');
 
@@ -73,13 +71,5 @@ router.get('/me', auth, getMe);
 
 // Update profile (username + profileImage)
 router.put('/profile', auth, validate(updateProfileSchema), updateProfile);
-
-// OneSignal web push subscription id (per browser)
-router.post(
-  '/onesignal-player-id',
-  auth,
-  validate(oneSignalPlayerIdSchema),
-  saveOneSignalPlayerId
-);
 
 module.exports = router;

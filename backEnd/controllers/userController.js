@@ -77,12 +77,6 @@ const updateProfile = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, { message: "Profile updated", data });
 });
 
-const saveOneSignalPlayerId = asyncHandler(async (req, res) => {
-  const { playerId } = req.body;
-  const { message } = await userService.saveOneSignalPlayerId(req, req.user.id, playerId);
-  return sendSuccess(res, 200, { message });
-});
-
 const forgotPassword = asyncHandler(async (req, res) => {
   const { message } = await userService.requestPasswordReset(req, req.body.email);
   return sendSuccess(res, 200, { message });
@@ -105,7 +99,6 @@ module.exports = {
   logoutUser,
   getMe,
   updateProfile,
-  saveOneSignalPlayerId,
   getRegistrationStatus,
   forgotPassword,
   validateResetPasswordToken,
