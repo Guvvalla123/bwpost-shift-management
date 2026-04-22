@@ -15,6 +15,9 @@ const AppError = require("./utils/AppError");
 
 dotenv.config();
 
+const { initOneSignal } = require("./services/oneSignalService");
+initOneSignal();
+
 /* ================= ENV VALIDATION ================= */
 const required = ["MONGO_URI", "JWT_SECRET", "REFRESH_TOKEN_SECRET"];
 const missing = required.filter((k) => !process.env[k]);

@@ -1,7 +1,15 @@
 const mongoose = require("mongoose");
 const Notification = require("../models/notificationModel");
+const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { getPaginationParams, getPaginationMeta } = require("../utils/paginate");
+const { sendPushToUser, sendPushToUsers } = require("./oneSignalService");
+
+function buildPushData(type, relatedShiftId, extra) {
+  const d = { type: String(type), ...extra };
+  if (relatedShiftId) d.relatedShift = String(relatedShiftId);
+  return d;
+}
 
 async function createNotification(recipientId, type, title, message, relatedShiftId = null) {
   const doc = await Notification.create({
@@ -11,6 +19,15 @@ async function createNotification(recipientId, type, title, message, relatedShif
     message,
     relatedShift: relatedShiftId || undefined,
   });
+  try {
+    const user = await User.findById(recipientId).select("oneSignalPlayerId").lean();
+    if (user?.oneSignalPlayerId) {
+      const pushData = buildPushData(type, relatedShiftId, { notificationId: String(doc._id) });
+      await sendPushToUser(user.oneSignalPlayerId, title, message, pushData);
+    }
+  } catch (err) {
+    console.error("OneSignal createNotification side effect failed:", err.message);
+  }
   return doc;
 }
 
@@ -26,6 +43,20 @@ async function createBulkNotifications(recipientIds, type, title, message, relat
     relatedShift: relatedShiftId || undefined,
   }));
   const inserted = await Notification.insertMany(docs);
+  try {
+    const userRows = await User.find({ _id: { $in: recipientIds } })
+      .select("oneSignalPlayerId")
+      .lean();
+    const playerIds = userRows
+      .map((u) => u.oneSignalPlayerId)
+      .filter((x) => typeof x === "string" && x.trim());
+    if (playerIds.length) {
+      const pushData = buildPushData(type, relatedShiftId, { bulk: "true" });
+      await sendPushToUsers(playerIds, title, message, pushData);
+    }
+  } catch (err) {
+    console.error("OneSignal createBulkNotifications side effect failed:", err.message);
+  }
   return { created: inserted.length, count: inserted.length };
 }
 
