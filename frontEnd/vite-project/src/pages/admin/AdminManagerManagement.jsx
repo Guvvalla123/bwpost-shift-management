@@ -3,7 +3,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { toast } from "sonner";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
 import {
   UserPlus, Search, X, Briefcase, Mail, Copy,
   UserCheck, ArrowLeft, Calendar, ShieldCheck,
@@ -213,13 +213,18 @@ const AdminManagerManagement = () => {
 
           {loading ? (
             <div className="p-6">
-              <SkeletonTable rows={6} cols={4} />
+              <div className="hidden md:block">
+                <SkeletonTable rows={6} cols={4} />
+              </div>
+              <div className="md:hidden">
+                <SkeletonList count={5} />
+              </div>
             </div>
           ) : fetchError ? (
             <div className="p-6">
               <ErrorState
                 title="Failed to load managers"
-                message="Could not fetch manager list."
+                description="Could not fetch manager list. Please try again."
                 onRetry={fetchManagers}
               />
             </div>
@@ -228,12 +233,10 @@ const AdminManagerManagement = () => {
               {managers.length === 0 ? (
                 <EmptyState
                   icon={UserCheck}
-                  title="No managers found"
-                  message="No managers have been added yet."
-                  action={{
-                    label: "Invite Manager",
-                    onClick: () => { setInviteModalOpen(true); setCreatedInviteLink(null); setInviteEmail(""); },
-                  }}
+                  title="No managers yet"
+                  description="Invite your first manager to get started."
+                  actionLabel="Invite Manager"
+                  onAction={() => { setInviteModalOpen(true); setCreatedInviteLink(null); setInviteEmail(""); }}
                 />
               ) : (
                 <ManagerTable

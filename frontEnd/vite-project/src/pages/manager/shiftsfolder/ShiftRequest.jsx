@@ -3,9 +3,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, KpiCard } from "@/components/ui";
 import {
-  ClipboardList, CheckCircle2, XCircle, Calendar,
+  ClipboardList, CheckCircle, CheckCircle2, XCircle, Calendar,
   ArrowRightLeft, LogOut as LeaveIcon, Search,
   X, Loader2, MessageSquare, Clock,
 } from "lucide-react";
@@ -306,21 +306,26 @@ const ShiftRequest = () => {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6">
-            <SkeletonTable rows={6} cols={5} />
+            <div className="hidden md:block">
+              <SkeletonTable rows={6} cols={5} />
+            </div>
+            <div className="md:hidden">
+              <SkeletonList count={4} />
+            </div>
           </div>
         ) : fetchError ? (
           <div className="p-6">
             <ErrorState
               title="Failed to load requests"
-              message="Could not fetch shift requests."
+              description="Could not fetch shift requests. Please try again."
               onRetry={fetchRequests}
             />
           </div>
         ) : requests.length === 0 ? (
           <EmptyState
-            icon={ClipboardList}
-            title="No requests found"
-            message="No shift requests match your current filter."
+            icon={CheckCircle}
+            title="No pending requests"
+            description="All shift requests have been reviewed."
           />
         ) : visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">

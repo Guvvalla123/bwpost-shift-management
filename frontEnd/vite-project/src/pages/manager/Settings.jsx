@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
 import ActiveSessionsSection from "@/components/security/ActiveSessionsSection";
+import { SkeletonCard } from "@/components/ui";
 
 /* ─── Cloudinary config ──────────────────────────────────────────── */
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -83,7 +84,7 @@ const Toggle = ({ label, description, checked, onChange }) => (
    SETTINGS PAGE
 ══════════════════════════════════════════════════════════════════ */
 const Settings = () => {
-    const { user, updateUser } = useAuth();
+    const { user, loading: authLoading, updateUser } = useAuth();
 
     /* ── Profile form state ── */
     const [profile, setProfile] = useState({
@@ -204,6 +205,17 @@ const Settings = () => {
     /* ── Initials for avatar default ── */
     const initials = (user?.username || "M")
         .split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+    if (authLoading) {
+        return (
+            <div className="min-h-full bg-[#F8F9FC] px-4 py-8 md:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-4">
+                    <SkeletonCard lines={3} />
+                    <SkeletonCard lines={4} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-6 max-w-7xl mx-auto">

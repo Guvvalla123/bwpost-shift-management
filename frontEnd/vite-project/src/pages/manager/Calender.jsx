@@ -10,8 +10,9 @@ import {
   LogOut, RefreshCw, Calendar, Clock,
   MapPin, AlignLeft, Users, X, ExternalLink,
   ChevronRight, Plus, PanelLeftOpen, PanelLeftClose,
-  Briefcase, UserCheck, StickyNote,
+  Briefcase, UserCheck, StickyNote, Loader2,
 } from "lucide-react";
+import { ErrorState, SkeletonCalendarGrid } from "@/components/ui";
 import "../../calender.css";
 
 /* ─── Google Calendar API helpers ──────────────────────────── */
@@ -203,7 +204,7 @@ const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
               disabled={syncing}
               className="w-full flex items-center justify-center gap-2 mt-2 pt-3 border-t border-slate-100 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
             >
-              {syncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Plus className="w-4 h-4" />}
               {syncing ? "Syncing…" : "Sync to Google Calendar"}
             </button>
           )}
@@ -316,6 +317,8 @@ const CalendarPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   const [appShifts, setAppShifts] = useState([]);
+  const [appShiftsLoading, setAppShiftsLoading] = useState(false);
+  const [appShiftsError, setAppShiftsError] = useState(false);
   const [syncing, setSyncing] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [calendarStart, setCalendarStart] = useState(null);
@@ -323,6 +326,8 @@ const CalendarPage = () => {
 
   const fetchAppShifts = useCallback(async () => {
     if (!calendarStart || !calendarEnd) return;
+    setAppShiftsLoading(true);
+    setAppShiftsError(false);
     try {
       const params = new URLSearchParams({
         startDate: calendarStart,
@@ -343,7 +348,10 @@ const CalendarPage = () => {
         })
       );
     } catch {
-      toast.error("Failed to load shifts for calendar");
+      setAppShiftsError(true);
+      toast.error("Failed to load shifts for calendar. Please try again.");
+    } finally {
+      setAppShiftsLoading(false);
     }
   }, [calendarStart, calendarEnd]);
 
@@ -524,7 +532,7 @@ const CalendarPage = () => {
                   className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-[#1B3F8B] hover:text-white hover:border-[#1B3F8B] transition-all font-medium disabled:opacity-50"
                 >
                   {syncing === shift._id ? (
-                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
                   ) : (
                     <Plus className="w-3 h-3" />
                   )}
@@ -570,7 +578,7 @@ const CalendarPage = () => {
           )}
 
           <div className="ml-auto flex items-center gap-1.5">
-            {loadingEvents && <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />}
+            {loadingEvents && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" aria-hidden />}
 
             <button
               onClick={handleRefresh}
@@ -591,7 +599,28 @@ const CalendarPage = () => {
         </div>
 
         {/* FullCalendar */}
-        <div className="flex-1 p-2 sm:p-4 min-h-0 calendar-wrapper">
+        <div className="relative flex-1 p-2 sm:p-4 min-h-0 calendar-wrapper">
+          {appShiftsLoading && (
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/90 p-4 backdrop-blur-[1px]"
+              aria-busy="true"
+            >
+              <div className="w-full max-w-3xl rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                <SkeletonCalendarGrid />
+              </div>
+            </div>
+          )}
+          {appShiftsError && !appShiftsLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/95 p-4">
+              <div className="max-w-md">
+                <ErrorState
+                  title="Failed to load shifts"
+                  description="Could not load shifts for the calendar. Please try again."
+                  onRetry={fetchAppShifts}
+                />
+              </div>
+            </div>
+          )}
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"

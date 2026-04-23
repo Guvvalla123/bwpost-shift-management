@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
 import ActiveSessionsSection from "@/components/security/ActiveSessionsSection";
-import { SkeletonCard } from "@/components/ui";
+import { SkeletonCard, ErrorState } from "@/components/ui";
 
 /* ─── Cloudinary config ──────────────────────────────────── */
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -188,6 +188,18 @@ const EmployeeProfile = () => {
         return (
             <div className="p-6">
                 <SkeletonCard lines={4} />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="min-h-full bg-[#F8F9FC] p-6">
+                <ErrorState
+                    title="Could not load profile"
+                    description="Please try again or sign in."
+                    onRetry={() => window.location.reload()}
+                />
             </div>
         );
     }

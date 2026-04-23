@@ -53,7 +53,7 @@ function App() {
   return (
     <>
       <Sonner
-        position="top-center"
+        position="top-right"
         duration={3000}
         richColors
         closeButton={false}

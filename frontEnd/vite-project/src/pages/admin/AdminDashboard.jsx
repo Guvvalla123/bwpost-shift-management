@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { SkeletonCard, ErrorState, KpiCard, DonutChart } from "@/components/ui";
+import { SkeletonKpi, SkeletonDonutPlaceholder, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 import { Users2, UserCheck, Users, Mail } from "lucide-react";
 import API from "@/api";
 import { useAuth } from "@/context/AuthContext";
@@ -106,17 +106,24 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-full space-y-6 bg-[#F8F9FC] p-4 sm:p-6">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <SkeletonCard key={i} lines={2} />
+            <SkeletonKpi key={i} />
           ))}
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="lg:col-span-7">
-            <SkeletonCard lines={6} />
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+              <div className="h-4 w-40 max-w-full animate-pulse rounded bg-gray-200" />
+              <SkeletonDonutPlaceholder />
+            </div>
           </div>
           <div className="lg:col-span-5">
-            <SkeletonCard lines={5} />
+            <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+              <div className="h-24 animate-pulse rounded-xl bg-gray-200" />
+              <div className="h-24 animate-pulse rounded-xl bg-gray-200" />
+            </div>
           </div>
         </div>
       </div>
@@ -126,7 +133,7 @@ const AdminDashboard = () => {
   if (fetchError) {
     return (
       <div className="min-h-full bg-[#F8F9FC] p-6">
-        <ErrorState title="Failed to load dashboard" message="Could not load admin data. Please refresh." onRetry={fetchDashboard} />
+        <ErrorState title="Failed to load dashboard" description="Could not load admin data. Please try again." onRetry={fetchDashboard} />
       </div>
     );
   }

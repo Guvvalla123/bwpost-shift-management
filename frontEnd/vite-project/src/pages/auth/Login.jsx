@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, LogIn, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import API from "@/api";
@@ -211,7 +211,10 @@ export default function Login() {
               className="w-full h-12 rounded-xl bg-[#1B3F8B] text-white text-sm font-semibold hover:bg-[#152f6b] active:scale-[0.98] transition-all duration-150 shadow-lg shadow-[#1B3F8B]/25 flex items-center justify-center gap-2 disabled:pointer-events-none disabled:opacity-50"
             >
               {loading ? (
-                "Signing in…"
+                <>
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  Signing in…
+                </>
               ) : (
                 <>
                   <LogIn className="h-4 w-4" aria-hidden />

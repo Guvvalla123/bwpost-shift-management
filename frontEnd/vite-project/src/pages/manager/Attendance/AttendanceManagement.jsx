@@ -10,7 +10,7 @@ import {
   LogIn, LogOut, FlaskConical, Calendar, Loader2,
   Briefcase, FileText, X,
 } from "lucide-react";
-import { SkeletonTable, ErrorState, KpiCard, DonutChart } from "@/components/ui";
+import { SkeletonTable, SkeletonList, SkeletonKpi, EmptyState, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 
 
 /* ════════════════════════════════════════════════════════════
@@ -594,14 +594,24 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
           </div>
 
           {loading ? (
-            <div className="p-6 space-y-3">{[1, 2, 3].map(i => <Sk key={i} className="h-14 w-full" />)}</div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <UserCheck className="h-10 w-10 text-slate-200 mb-3" />
-              <p className="text-sm font-semibold text-slate-500">
-                {records.length === 0 ? "No employees accepted this shift yet" : "No results for your search"}
-              </p>
+            <div className="p-6">
+              <div className="hidden md:block">
+                <SkeletonTable rows={6} cols={6} />
+              </div>
+              <div className="md:hidden">
+                <SkeletonList count={5} />
+              </div>
             </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon={ClipboardList}
+              title={records.length === 0 ? "No attendance records" : "No matching employees"}
+              description={
+                records.length === 0
+                  ? "Attendance records will appear when employees check in."
+                  : "Try a different search term."
+              }
+            />
           ) : (
             <>
               <div className="md:hidden space-y-3 px-4 pb-4">
@@ -953,7 +963,7 @@ const TimesheetTab = () => {
         <div className="flex items-center gap-3">
           <button onClick={fetchTimesheet} disabled={!selectedEmpId || loading}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#1B3F8B] rounded-xl hover:bg-[#162d5e] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Search className="w-4 h-4" />}
             {loading ? "Generating…" : "Generate Timesheet"}
           </button>
           {data && history.length > 0 && (
@@ -969,7 +979,7 @@ const TimesheetTab = () => {
         <div className="p-6">
           <ErrorState
             title="Failed to load timesheet"
-            message="Could not fetch attendance data."
+            description="Could not fetch attendance data. Please try again."
             onRetry={fetchTimesheet}
           />
         </div>
@@ -977,7 +987,12 @@ const TimesheetTab = () => {
 
       {loading && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-          <SkeletonTable rows={5} cols={6} />
+          <div className="hidden md:block">
+            <SkeletonTable rows={5} cols={6} />
+          </div>
+          <div className="md:hidden">
+            <SkeletonList count={4} />
+          </div>
         </div>
       )}
 
@@ -1240,9 +1255,19 @@ const AttendanceManagement = () => {
 
         {shiftsLoading ? (
           <div className="space-y-4">
-            <Sk className="h-20 w-full" />
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[1, 2, 3, 4].map((i) => <Sk key={i} className="h-20" />)}</div>
-            <Sk className="h-64 w-full" />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <SkeletonKpi key={i} />
+              ))}
+            </div>
+            <div className="rounded-2xl border border-gray-100 bg-white p-4">
+              <div className="hidden md:block">
+                <SkeletonTable rows={4} cols={5} />
+              </div>
+              <div className="md:hidden">
+                <SkeletonList count={4} />
+              </div>
+            </div>
           </div>
         ) : activeTab === "attendance" ? (
           <AttendanceTab shifts={shiftsForDay} shiftSearch={shiftSearch} setShiftSearch={setShiftSearch} />

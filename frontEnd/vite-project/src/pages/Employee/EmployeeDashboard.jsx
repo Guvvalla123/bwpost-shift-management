@@ -1,7 +1,14 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { SkeletonCard, ErrorState, DonutChart, KpiCard } from "@/components/ui";
+import {
+  ErrorState,
+  DonutChart,
+  KpiCard,
+  SkeletonKpi,
+  SkeletonDonutPlaceholder,
+  SkeletonList,
+} from "@/components/ui";
 import {
   X,
   ArrowRightLeft,
@@ -212,22 +219,35 @@ const EmployeeDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-full space-y-6 bg-[#F8F9FC] p-6">
-        <div className="h-28 animate-pulse rounded-2xl bg-slate-200/90" aria-hidden />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="min-h-full space-y-6 bg-[#F8F9FC] p-4 md:p-6">
+        <div className="h-28 animate-pulse rounded-2xl bg-gray-200" aria-hidden />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <SkeletonCard key={i} lines={2} />
+            <SkeletonKpi key={i} />
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start">
           <div className="lg:col-span-5">
-            <SkeletonCard lines={5} />
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+              <SkeletonDonutPlaceholder />
+            </div>
           </div>
           <div className="lg:col-span-4">
-            <SkeletonCard lines={5} />
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+              <SkeletonDonutPlaceholder />
+            </div>
           </div>
           <div className="lg:col-span-3">
-            <SkeletonCard lines={5} />
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
+              </div>
+              <div className="p-3">
+                <SkeletonList count={4} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -239,7 +259,7 @@ const EmployeeDashboard = () => {
       <div className="min-h-full bg-[#F8F9FC] p-6">
         <ErrorState
           title="Failed to load dashboard"
-          message="Could not load your dashboard. Please refresh."
+          description="Could not load your dashboard. Please try again."
           onRetry={fetchDashboard}
         />
       </div>

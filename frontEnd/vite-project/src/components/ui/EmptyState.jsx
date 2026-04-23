@@ -1,30 +1,66 @@
-export default function EmptyState({ icon: Icon, title, message, action, className = "" }) {
+/**
+ * Centered empty state with optional primary and secondary actions.
+ * Legacy: `message` and `action={{ label, onClick }}` remain supported.
+ */
+export default function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  message,
+  actionLabel,
+  onAction,
+  secondaryLabel,
+  onSecondaryAction,
+  action,
+  className = "",
+  iconWrapperClassName = "bg-[#1B3F8B]/10",
+}) {
+  const desc = description ?? message;
+  const legacy = action && typeof action === "object" && action.onClick;
+  const primaryLabel = actionLabel ?? (legacy ? action.label : null);
+  const primaryClick = onAction ?? (legacy ? action.onClick : null);
+
   return (
     <div
-      className={`flex flex-col items-center justify-center p-8 sm:p-12 text-center ${className}`.trim()}
+      className={`flex min-h-0 flex-col items-center justify-center py-16 text-center sm:px-4 ${className}`.trim()}
       role="status"
     >
       {Icon && (
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
-          <Icon className="w-8 h-8 text-gray-400" aria-hidden />
+        <div
+          className={`mb-4 flex h-16 w-16 items-center justify-center rounded-full ${iconWrapperClassName}`.trim()}
+        >
+          <Icon className="h-8 w-8 text-[#1B3F8B]" strokeWidth={1.75} aria-hidden />
         </div>
       )}
 
-      <h3 className="text-base font-semibold text-gray-900 mb-2">{title}</h3>
+      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
 
-      {message && (
-        <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed mb-6">{message}</p>
+      {desc && (
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-gray-500">{desc}</p>
       )}
 
-      {action && (
-        <button
-          type="button"
-          onClick={action.onClick}
-          className="w-full sm:w-auto h-11 px-6 text-sm font-semibold rounded-xl bg-[#1B3F8B] text-white hover:bg-[#152f6b] transition-colors"
-        >
-          {action.label}
-        </button>
-      )}
+      {(primaryLabel && primaryClick) || (secondaryLabel && onSecondaryAction) ? (
+        <div className="mt-6 flex w-full max-w-sm flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:justify-center">
+          {primaryLabel && primaryClick ? (
+            <button
+              type="button"
+              onClick={primaryClick}
+              className="inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-xl bg-[#1B3F8B] px-6 text-sm font-semibold text-white transition hover:bg-[#152f6b] sm:w-auto"
+            >
+              {primaryLabel}
+            </button>
+          ) : null}
+          {secondaryLabel && onSecondaryAction ? (
+            <button
+              type="button"
+              onClick={onSecondaryAction}
+              className="inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 sm:w-auto"
+            >
+              {secondaryLabel}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

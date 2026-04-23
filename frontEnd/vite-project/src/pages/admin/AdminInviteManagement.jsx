@@ -3,7 +3,7 @@ import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { Mail, Copy, X, Loader2 } from "lucide-react";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
 
 const getInviteStatus = (invite) => {
   if (invite.usedAt) return "used";
@@ -158,18 +158,24 @@ const AdminInviteManagement = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6">
-            <SkeletonTable rows={6} cols={6} />
+            <div className="hidden md:block">
+              <SkeletonTable rows={6} cols={6} />
+            </div>
+            <div className="md:hidden">
+              <SkeletonList count={4} />
+            </div>
           </div>
         ) : fetchError ? (
           <div className="p-6">
-            <ErrorState title="Failed to load invites" message="Could not load invites." onRetry={fetchInvites} />
+            <ErrorState title="Failed to load invites" description="Could not load invites. Please try again." onRetry={fetchInvites} />
           </div>
         ) : invites.length === 0 ? (
           <EmptyState
             icon={Mail}
-            title="No invites found"
-            message="Send your first invite to onboard a team member."
-            action={{ label: "Send Invite", onClick: openModal }}
+            title="No invites sent yet"
+            description="Send your first invite to add team members."
+            actionLabel="New Invite"
+            onAction={openModal}
           />
         ) : filteredInvites.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-sm">No invites match this filter on this page.</div>

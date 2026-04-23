@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, CalendarDays, Users, FileText, Sparkles } from "lucide-react";
+import { X, CalendarDays, Users, FileText, Sparkles, Loader2 } from "lucide-react";
 import DateTimePicker from "@/components/DateTimePicker";
 
 const Field = ({ label, icon: Icon, hint, children }) => (
@@ -39,7 +39,7 @@ const minNowLocal = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) => {
+const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit, submitting = false }) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) =>
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="p-6 space-y-5 overflow-y-auto">
+        <form onSubmit={onSubmit} className="p-6 space-y-5 overflow-y-auto" aria-busy={submitting}>
           <Field label="Shift Title" icon={CalendarDays}>
             <input
               name="shiftTitle"
@@ -210,16 +210,27 @@ const CreateShiftModal = ({ show, setShow, createShift, onChange, onSubmit }) =>
               <button
                 type="button"
                 onClick={() => setShow(false)}
-                className="w-full sm:w-auto px-5 py-3 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition min-h-[48px]"
+                disabled={submitting}
+                className="w-full sm:w-auto px-5 py-3 border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition min-h-[48px] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md min-h-[48px]"
+                disabled={submitting}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white text-sm font-semibold rounded-xl shadow-md min-h-[48px] disabled:pointer-events-none disabled:opacity-60"
               >
-                <CalendarDays size={14} />
-                Create Shift
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                    Creating…
+                  </>
+                ) : (
+                  <>
+                    <CalendarDays size={14} />
+                    Create Shift
+                  </>
+                )}
               </button>
             </div>
           </div>

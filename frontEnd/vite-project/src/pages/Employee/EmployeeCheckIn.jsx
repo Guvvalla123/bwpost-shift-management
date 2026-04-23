@@ -5,9 +5,9 @@ import { getApiErrorMessage } from "@/utils/apiError";
 import { useAuth } from "@/context/useAuth";
 import {
   Clock, CalendarDays, LogIn, LogOut, Coffee, ChevronDown,
-  CheckCircle2, AlertCircle,
+  CheckCircle2, AlertCircle, Loader2,
 } from "lucide-react";
-import { SkeletonCard, ErrorState } from "@/components/ui";
+import { SkeletonCard, ErrorState, EmptyState } from "@/components/ui";
 
 const formatTime = (d) =>
   d ? new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true }) : "—";
@@ -215,7 +215,7 @@ const EmployeeCheckIn = () => {
   if (fetchError) {
     return (
       <div className="min-h-screen bg-[#F8F9FC] p-6">
-        <ErrorState title="Failed to load shifts" message="Could not load your shifts. Please try again." onRetry={fetchShiftsList} />
+        <ErrorState title="Failed to load shifts" description="Could not load your shifts. Please try again." onRetry={fetchShiftsList} />
       </div>
     );
   }
@@ -223,14 +223,12 @@ const EmployeeCheckIn = () => {
   if (todayShifts.length === 0) {
     return (
       <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-8">
-        <div className="mx-auto max-w-md rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-            <Clock className="h-8 w-8 text-slate-400" strokeWidth={1.5} />
-          </div>
-          <h1 className="text-lg font-bold text-slate-900">No active shift right now</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            There is no shift starting within the next two hours or in progress. Check back when you are scheduled.
-          </p>
+        <div className="mx-auto max-w-md rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <EmptyState
+            icon={Clock}
+            title="No active shift right now"
+            description="You will be able to check in when your shift starts."
+          />
         </div>
       </div>
     );
@@ -322,7 +320,7 @@ const EmployeeCheckIn = () => {
         {selectedShiftId && attendanceLoading && <SkeletonCard lines={3} />}
 
         {selectedShiftId && attendanceError && !attendanceLoading && (
-          <ErrorState title="Failed to load attendance" message="Could not load your attendance for this shift." onRetry={fetchAttendance} />
+          <ErrorState title="Failed to load attendance" description="Could not load your attendance for this shift. Please try again." onRetry={fetchAttendance} />
         )}
 
         {selectedShiftId && !attendanceLoading && !attendanceError && shiftInfo && attendance && (
@@ -339,8 +337,12 @@ const EmployeeCheckIn = () => {
                 disabled={actionLoading}
                 className="flex h-14 min-h-[56px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] text-white shadow-md transition hover:bg-[#162d5e] disabled:opacity-60"
               >
-                <Clock className="h-5 w-5 shrink-0" strokeWidth={2} />
-                <span className="text-sm font-bold">Check In</span>
+                {actionLoading ? (
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
+                ) : (
+                  <Clock className="h-5 w-5 shrink-0" strokeWidth={2} />
+                )}
+                <span className="text-sm font-bold">{actionLoading ? "Checking in…" : "Check In"}</span>
               </button>
             )}
 
@@ -413,8 +415,8 @@ const EmployeeCheckIn = () => {
                   disabled={actionLoading}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition hover:bg-[#162d5e] disabled:opacity-60 sm:flex-1"
                 >
-                  <Clock className="h-5 w-5 shrink-0" />
-                  Check Out
+                  {actionLoading ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden /> : <Clock className="h-5 w-5 shrink-0" />}
+                  {actionLoading ? "Processing…" : "Check Out"}
                 </button>
               </div>
             )}
@@ -426,7 +428,8 @@ const EmployeeCheckIn = () => {
                 disabled={actionLoading}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition hover:bg-[#162d5e] disabled:opacity-60"
               >
-                End Break
+                {actionLoading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+                {actionLoading ? "Ending break…" : "End Break"}
               </button>
             )}
 
@@ -501,9 +504,10 @@ const EmployeeCheckIn = () => {
                 type="button"
                 onClick={handleCheckOut}
                 disabled={actionLoading}
-                className="min-h-12 w-full rounded-xl bg-red-600 px-4 text-base font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:flex-1"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-base font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:flex-1"
               >
-                Check Out
+                {actionLoading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
+                {actionLoading ? "Checking out…" : "Check Out"}
               </button>
             </div>
           </div>

@@ -4,7 +4,7 @@ import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
 import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil, Key, Loader2 } from "lucide-react";
-import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, KpiCard } from "@/components/ui";
 
 const ROLE_BADGES = {
   admin: "bg-purple-50 text-purple-700 border border-purple-200",
@@ -331,13 +331,18 @@ const AdminUserManagement = () => {
 
           {loading ? (
             <div className="p-6">
-              <SkeletonTable rows={8} cols={5} />
+              <div className="hidden md:block">
+                <SkeletonTable rows={8} cols={5} />
+              </div>
+              <div className="md:hidden">
+                <SkeletonList count={5} />
+              </div>
             </div>
           ) : fetchError ? (
             <div className="p-6">
               <ErrorState
                 title="Failed to load users"
-                message="Could not fetch user list. Please try again."
+                description="Could not fetch user list. Please try again."
                 onRetry={fetchUsers}
               />
             </div>
@@ -347,7 +352,9 @@ const AdminUserManagement = () => {
                 <EmptyState
                   icon={Users}
                   title="No users found"
-                  message="No users match your current filters."
+                  description="Create your first user to get started."
+                  actionLabel="Add user"
+                  onAction={() => setModalOpen(true)}
                 />
               ) : (
                 <>

@@ -7,7 +7,7 @@ import {
     Calendar, Search, X,
     FileText,
 } from "lucide-react";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
@@ -193,21 +193,26 @@ const MyRequests = () => {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 {loading ? (
                     <div className="p-6">
-                        <SkeletonTable rows={5} cols={4} />
+                        <div className="hidden md:block">
+                            <SkeletonTable rows={5} cols={4} />
+                        </div>
+                        <div className="md:hidden">
+                            <SkeletonList count={4} />
+                        </div>
                     </div>
                 ) : fetchError ? (
                     <div className="p-6">
                         <ErrorState
                             title="Failed to load requests"
-                            message="Could not load your requests."
+                            description="Could not load your requests. Please try again."
                             onRetry={fetchRequests}
                         />
                     </div>
                 ) : requests.length === 0 ? (
                     <EmptyState
                         icon={FileText}
-                        title="No requests found"
-                        message="You have not submitted any requests yet."
+                        title="No requests submitted"
+                        description="Submit a leave or shift change request to see it here."
                     />
                 ) : visible.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16">

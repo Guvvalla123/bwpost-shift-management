@@ -5,12 +5,20 @@ import {
 } from "recharts";
 import {
   TrendingUp, Users, CalendarDays,
-  AlertCircle, Download,
+  Download,
   AlertTriangle,
+  BarChart2,
+  Loader2,
 } from "lucide-react";
 import API from "@/api";
 import { toast } from "sonner";
-import { SkeletonCard, KpiCard } from "@/components/ui";
+import {
+  KpiCard,
+  SkeletonKpi,
+  SkeletonChartBlock,
+  ErrorState,
+  EmptyState,
+} from "@/components/ui";
 
 const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7"];
 
@@ -65,7 +73,7 @@ const Reports = () => {
       setDashData(dashRes.data?.data ?? dashRes.data);
     } catch {
       setLoadError(true);
-      toast.error("Failed to load report data");
+      toast.error("Failed to load report data. Please try again.");
       setShifts([]);
       setEmployeeTotal(0);
       setDashData(null);
@@ -172,11 +180,28 @@ const Reports = () => {
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl space-y-4 px-4 pb-20 pt-4 md:px-6 md:py-6 lg:px-8 lg:pb-6">
-        <SkeletonCard lines={3} />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <SkeletonCard lines={8} />
-          <SkeletonCard lines={8} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonKpi key={i} />
+          ))}
         </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <SkeletonChartBlock />
+          <SkeletonChartBlock />
+        </div>
+        <SkeletonChartBlock />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-full bg-[#F8F9FC] px-4 py-8 md:px-6 lg:px-8">
+        <ErrorState
+          title="Failed to load report data"
+          description="Could not load report data. Please try again."
+          onRetry={fetchData}
+        />
       </div>
     );
   }
@@ -194,7 +219,11 @@ const Reports = () => {
           disabled={exporting}
           className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#162d5e] disabled:pointer-events-none disabled:opacity-60 sm:w-auto"
         >
-          <Download size={16} strokeWidth={2} />
+          {exporting ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+          ) : (
+            <Download size={16} strokeWidth={2} />
+          )}
           {exporting ? "Exporting…" : "Export CSV"}
         </button>
       </div>
@@ -239,10 +268,16 @@ const Reports = () => {
         </div>
       </div>
 
-      {loadError && (
-        <div className="rounded-xl bg-red-50 p-4 text-red-700">Failed to load report data. Please try again.</div>
-      )}
-
+      {shifts.length === 0 ? (
+        <EmptyState
+          icon={BarChart2}
+          title="No data for selected period"
+          description="Try selecting a different date range or check back when shifts are scheduled."
+          actionLabel="Apply current range"
+          onAction={() => setAppliedRange({ ...draftRange })}
+        />
+      ) : (
+        <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard variant="navy" icon={CalendarDays} label="Total shifts (period)" value={summaryStats.totalShifts} />
         <KpiCard variant="default" icon={TrendingUp} label="Avg. attendance rate" value={`${summaryStats.attendanceRate}%`} />
@@ -293,8 +328,7 @@ const Reports = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-slate-400">
-                <AlertCircle size={32} className="mb-2 opacity-40" />
-                <p className="text-sm">No shift data in range</p>
+                <p className="text-sm">No shift status data in this range</p>
               </div>
             )}
           </div>
@@ -316,6 +350,8 @@ const Reports = () => {
           </ResponsiveContainer>
         </div>
       </div>
+        </>
+      )}
 
       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-5 sm:p-6">
         <h3 className="text-sm font-semibold text-slate-900">Export data</h3>
@@ -329,7 +365,11 @@ const Reports = () => {
           disabled={exporting}
           className="mt-4 inline-flex h-11 min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#1B3F8B] bg-white px-5 text-sm font-semibold text-[#1B3F8B] hover:bg-[#EFF6FF] disabled:opacity-60"
         >
-          <Download size={16} />
+          {exporting ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+          ) : (
+            <Download size={16} />
+          )}
           {exporting ? "Preparing…" : "Download CSV"}
         </button>
       </div>

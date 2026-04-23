@@ -1,7 +1,14 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { SkeletonCard, ErrorState, DonutChart, KpiCard } from "@/components/ui";
+import {
+  ErrorState,
+  DonutChart,
+  KpiCard,
+  SkeletonKpi,
+  SkeletonDonutPlaceholder,
+  SkeletonList,
+} from "@/components/ui";
 import {
   Users,
   Calendar,
@@ -253,16 +260,29 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-full space-y-6 bg-[#F8F9FC] p-6">
-        <div className="grid grid-cols-2 gap-4 lg:h-40 lg:grid-cols-4">
+      <div className="min-h-full space-y-6 bg-[#F8F9FC] p-4 md:p-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:items-stretch">
           {[...Array(4)].map((_, i) => (
-            <SkeletonCard key={i} lines={2} />
+            <SkeletonKpi key={i} />
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <SkeletonCard lines={5} />
-          <SkeletonCard lines={5} />
-          <SkeletonCard lines={5} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
+          <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="h-4 w-36 max-w-full animate-pulse rounded bg-gray-200" />
+            <SkeletonDonutPlaceholder />
+          </div>
+          <div className="flex flex-col rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="h-4 w-36 max-w-full animate-pulse rounded bg-gray-200" />
+            <SkeletonDonutPlaceholder />
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-5 py-4">
+              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="p-3">
+              <SkeletonList count={4} />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -273,7 +293,7 @@ const Dashboard = () => {
       <div className="min-h-full bg-[#F8F9FC] p-6">
         <ErrorState
           title="Failed to load dashboard"
-          message="Could not load dashboard data. Please refresh."
+          description="Could not load dashboard data. Please try again."
           onRetry={() => fetchDashboard()}
         />
       </div>

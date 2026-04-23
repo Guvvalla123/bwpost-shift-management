@@ -3,7 +3,7 @@ import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { Calendar } from "lucide-react";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
 import ShiftTable from "./ShiftTable";
 
 const EmployeeShifts = () => {
@@ -104,13 +104,18 @@ const EmployeeShifts = () => {
 
         {loading ? (
           <div className="p-6">
-            <SkeletonTable rows={6} cols={4} />
+            <div className="hidden md:block">
+              <SkeletonTable rows={6} cols={4} />
+            </div>
+            <div className="md:hidden">
+              <SkeletonList count={5} />
+            </div>
           </div>
         ) : fetchError ? (
           <div className="p-6">
             <ErrorState
               title="Failed to load shifts"
-              message="Could not load available shifts. Please try again."
+              description="Could not load available shifts. Please try again."
               onRetry={() => fetchShifts(false)}
             />
           </div>
@@ -118,7 +123,7 @@ const EmployeeShifts = () => {
           <EmptyState
             icon={Calendar}
             title="No shifts available"
-            message="There are no open shifts at the moment. Check back later."
+            description="Check back later for new shift opportunities."
           />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

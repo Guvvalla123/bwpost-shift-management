@@ -1,12 +1,19 @@
 import API from "@/api";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
-import { DonutChart, SkeletonTable } from "@/components/ui";
+import {
+  DonutChart,
+  SkeletonTable,
+  SkeletonKpi,
+  SkeletonList,
+  ErrorState,
+  EmptyState,
+} from "@/components/ui";
 import {
   Plus, CalendarDays, Clock, Trash2,
   Pencil, Search, X, AlignLeft, AlertTriangle,
   CheckCircle2, Timer, CalendarX, ChevronRight,
-  UserCheck, Eye,
+  UserCheck, Eye, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -420,6 +427,9 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
 const ManagerShifts = () => {
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -451,6 +461,7 @@ const ManagerShifts = () => {
   const fetchShifts = useCallback(async (pageNum, silent = false) => {
     try {
       if (!silent) setLoading(true);
+      if (!silent) setFetchError(false);
       const params = new URLSearchParams({ page: String(pageNum), limit: "20" });
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (statusFilter !== "all") params.set("status", statusFilter);
@@ -461,7 +472,10 @@ const ManagerShifts = () => {
       setShiftListTotal(pagination?.total ?? 0);
       setLastUpdated(new Date());
     } catch (err) {
-      if (!silent) toast.error("Failed to load shifts");
+      if (!silent) {
+        setFetchError(true);
+        toast.error(getApiErrorMessage(err, "Failed to load shifts. Please try again."));
+      }
       if (import.meta.env.DEV) console.error("Refresh error:", err);
     } finally {
       if (!silent) setLoading(false);
@@ -553,6 +567,7 @@ const ManagerShifts = () => {
     if (diffHours > 24) {
       return toast.error("Shift cannot be longer than 24 hours");
     }
+    setCreateSubmitting(true);
     try {
       await API.post("/api/manager/shifts", createShift);
       toast.success("Shift created successfully");
@@ -560,7 +575,11 @@ const ManagerShifts = () => {
       setShowCreate(false);
       fetchShifts(currentPage, false);
       fetchShiftMeta();
-    } catch (err) { toast.error(getApiErrorMessage(err, "Failed to create shift")); }
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to create shift. Please try again."));
+    } finally {
+      setCreateSubmitting(false);
+    }
   };
 
   /* ── Edit ── */
@@ -594,13 +613,18 @@ const ManagerShifts = () => {
     if (diffHours > 24) {
       return toast.error("Shift cannot be longer than 24 hours");
     }
+    setEditSubmitting(true);
     try {
       await API.put(`/api/manager/shifts/${editingShift._id}`, editingShift);
-      toast.success("Shift updated");
+      toast.success("Shift updated successfully");
       setEditingShift(null);
       fetchShifts(currentPage, false);
       fetchShiftMeta();
-    } catch { toast.error("Update failed"); }
+    } catch {
+      toast.error("Failed to update shift. Please try again.");
+    } finally {
+      setEditSubmitting(false);
+    }
   };
 
   /* ── Delete ── */
@@ -689,48 +713,56 @@ const ManagerShifts = () => {
         </div>
 
         {/* ── Stat summary (clickable) ─────────────────── */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <FilterStatCard
-            label="Total Shifts"
-            value={statusCounts.all}
-            icon={CalendarDays}
-            active={statusFilter === "all"}
-            onClick={() => {
-              setStatusFilter("all");
-              setCurrentPage(1);
-            }}
-          />
-          <FilterStatCard
-            label="Ongoing"
-            value={statusCounts.ongoing}
-            icon={CheckCircle2}
-            active={statusFilter === "ongoing"}
-            onClick={() => {
-              setStatusFilter("ongoing");
-              setCurrentPage(1);
-            }}
-          />
-          <FilterStatCard
-            label="Upcoming"
-            value={statusCounts.upcoming}
-            icon={Timer}
-            active={statusFilter === "upcoming"}
-            onClick={() => {
-              setStatusFilter("upcoming");
-              setCurrentPage(1);
-            }}
-          />
-          <FilterStatCard
-            label="Completed"
-            value={statusCounts.completed}
-            icon={CalendarX}
-            active={statusFilter === "completed"}
-            onClick={() => {
-              setStatusFilter("completed");
-              setCurrentPage(1);
-            }}
-          />
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonKpi key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+            <FilterStatCard
+              label="Total Shifts"
+              value={statusCounts.all}
+              icon={CalendarDays}
+              active={statusFilter === "all"}
+              onClick={() => {
+                setStatusFilter("all");
+                setCurrentPage(1);
+              }}
+            />
+            <FilterStatCard
+              label="Ongoing"
+              value={statusCounts.ongoing}
+              icon={CheckCircle2}
+              active={statusFilter === "ongoing"}
+              onClick={() => {
+                setStatusFilter("ongoing");
+                setCurrentPage(1);
+              }}
+            />
+            <FilterStatCard
+              label="Upcoming"
+              value={statusCounts.upcoming}
+              icon={Timer}
+              active={statusFilter === "upcoming"}
+              onClick={() => {
+                setStatusFilter("upcoming");
+                setCurrentPage(1);
+              }}
+            />
+            <FilterStatCard
+              label="Completed"
+              value={statusCounts.completed}
+              icon={CalendarX}
+              active={statusFilter === "completed"}
+              onClick={() => {
+                setStatusFilter("completed");
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
           {/* ── Table Card ─────────────────────────────────── */}
@@ -785,16 +817,31 @@ const ManagerShifts = () => {
 
             {/* Table */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 sm:px-6">
-                <SkeletonTable rows={3} cols={5} />
+              <div className="px-4 py-8 sm:px-6">
+                <div className="hidden md:block">
+                  <SkeletonTable rows={5} cols={5} />
+                </div>
+                <div className="md:hidden">
+                  <SkeletonList count={4} />
+                </div>
+              </div>
+            ) : fetchError ? (
+              <div className="px-4 py-8 sm:px-6">
+                <ErrorState
+                  title="Failed to load shifts"
+                  description="Could not load shifts. Please try again."
+                  onRetry={() => fetchShifts(currentPage, false)}
+                />
               </div>
             ) : filteredShifts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-              <CalendarDays className="h-12 w-12 mb-3 opacity-25" />
-              <p className="text-base font-medium text-slate-600">No shifts found</p>
-              <p className="text-sm text-slate-400 mt-1">Try a different filter or create a new shift.</p>
-            </div>
-          ) : (
+              <EmptyState
+                icon={CalendarDays}
+                title="No shifts found"
+                description="Create your first shift to get started."
+                actionLabel="Create Shift"
+                onAction={() => setShowCreate(true)}
+              />
+            ) : (
             <>
               <div className="space-y-3 px-4 pb-4 md:hidden">
                 {filteredShifts.map((shift) => {
@@ -931,7 +978,7 @@ const ManagerShifts = () => {
           )}
 
           {/* Footer count */}
-          {!loading && filteredShifts.length > 0 && (
+          {!loading && !fetchError && filteredShifts.length > 0 && (
             <div className="px-6 py-3 border-t border-slate-50 bg-slate-50/50 space-y-3">
               <p className="text-xs text-slate-400">
                 Showing <span className="font-semibold text-slate-600">{filteredShifts.length}</span> of{" "}
@@ -991,6 +1038,7 @@ const ManagerShifts = () => {
         createShift={createShift}
         onChange={onChange}
         onSubmit={onSubmit}
+        submitting={createSubmitting}
       />
 
       {editingShift && (
@@ -999,6 +1047,7 @@ const ManagerShifts = () => {
           setEditingShift={setEditingShift}
           onEditChange={onEditChange}
           onUpdateHandler={onUpdateHandler}
+          submitting={editSubmitting}
         />
       )}
 
@@ -1044,7 +1093,14 @@ const ManagerShifts = () => {
                   disabled={deleting}
                   className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition text-sm disabled:opacity-60"
                 >
-                  {deleting ? "Deleting…" : "Yes, Delete"}
+                  {deleting ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Deleting…
+                    </span>
+                  ) : (
+                    "Yes, Delete"
+                  )}
                 </button>
               </div>
             </div>

@@ -4,7 +4,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
-import { Pagination, SkeletonTable, EmptyState, ErrorState, KpiCard, DonutChart } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 import {
     Pencil, Trash2, X, Search, Users,
     UserCheck, ShieldCheck, Clock,
@@ -410,13 +410,18 @@ const Employee = () => {
                     {/* table body */}
                     {loading ? (
                         <div className="p-6">
-                            <SkeletonTable rows={8} cols={5} />
+                            <div className="hidden md:block">
+                                <SkeletonTable rows={8} cols={5} />
+                            </div>
+                            <div className="md:hidden">
+                                <SkeletonList count={5} />
+                            </div>
                         </div>
                     ) : fetchError ? (
                         <div className="p-6">
                             <ErrorState
                                 title="Failed to load employees"
-                                message="Could not fetch employee list."
+                                description="Could not fetch employee list. Please try again."
                                 onRetry={fetchEmployees}
                             />
                         </div>
@@ -425,12 +430,14 @@ const Employee = () => {
                             {filteredEmployees.length === 0 ? (
                                 <EmptyState
                                     icon={Users}
-                                    title="No employees found"
-                                    message="No employees match your search or filter."
-                                    action={{
-                                        label: "Add Employee",
-                                        onClick: () => setAddModalOpen(true),
-                                    }}
+                                    title={search.trim() ? "No employees found" : "No employees yet"}
+                                    description={
+                                        search.trim()
+                                            ? "No employees match your search. Try a different term."
+                                            : "Invite your first employee to get started."
+                                    }
+                                    actionLabel={search.trim() ? "Add Employee" : "Invite Employee"}
+                                    onAction={() => (search.trim() ? setAddModalOpen(true) : setInviteModalOpen(true))}
                                 />
                             ) : (
                                 <EmployeeTable
@@ -824,9 +831,16 @@ const ModalFooter = ({ onCancel, submitLabel, loading }) => (
         <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-200 text-sm disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-200 text-sm disabled:pointer-events-none disabled:opacity-60"
         >
-            {loading ? "Saving…" : submitLabel}
+            {loading ? (
+                <>
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                    Saving…
+                </>
+            ) : (
+                submitLabel
+            )}
         </button>
     </div>
 );

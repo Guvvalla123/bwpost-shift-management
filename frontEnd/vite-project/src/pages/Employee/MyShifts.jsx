@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { Pagination, SkeletonTable, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
 import {
-    Calendar, Clock, Loader2,
+    Calendar, Clock, Loader2, Briefcase,
     ArrowRightLeft, LogOut as LeaveIcon,
-    CalendarX,
 } from "lucide-react";
 import { getStatus } from "@/utils/shiftStatus";
 
@@ -225,21 +224,30 @@ const MyShifts = () => {
         completed: shifts.filter(s => getStatus(s.shiftStartTime, s.shiftEndTime) === "completed").length,
     };
 
-    if (loading) return (
-        <div className="p-6">
-            <SkeletonTable rows={5} cols={5} />
-        </div>
-    );
+    if (loading) {
+        return (
+            <div className="p-6">
+                <div className="hidden md:block">
+                    <SkeletonTable rows={5} cols={5} />
+                </div>
+                <div className="md:hidden">
+                    <SkeletonList count={5} />
+                </div>
+            </div>
+        );
+    }
 
-    if (fetchError) return (
-        <div className="p-6">
-            <ErrorState
-                title="Failed to load your shifts"
-                message="Could not load your shift history. Please try again."
-                onRetry={() => fetchMyShifts(false)}
-            />
-        </div>
-    );
+    if (fetchError) {
+        return (
+            <div className="p-6">
+                <ErrorState
+                    title="Failed to load your shifts"
+                    description="Could not load your shift history. Please try again."
+                    onRetry={() => fetchMyShifts(false)}
+                />
+            </div>
+        );
+    }
 
     const managerLabel = (shift) => {
         const m = shift?.manager || shift?.managerId;
@@ -288,13 +296,11 @@ const MyShifts = () => {
             {/* Shifts list */}
             {shifts.length === 0 ? (
                 <EmptyState
-                    icon={CalendarX}
-                    title="No shifts assigned"
-                    message="You have no upcoming or past shifts. Apply for available shifts."
-                    action={{
-                        label: "Browse Shifts",
-                        onClick: () => navigate("/employee/AllShifts"),
-                    }}
+                    icon={Briefcase}
+                    title="No shifts yet"
+                    description="You have not been assigned to any shifts yet."
+                    actionLabel="Browse available shifts"
+                    onAction={() => navigate("/employee/AllShifts")}
                 />
             ) : filtered.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center py-16">
