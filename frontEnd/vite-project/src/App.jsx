@@ -1,5 +1,5 @@
-import React, { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { lazy, Suspense, useEffect, useState } from "react";
+import { Routes, Route, Navigate, Link } from "react-router-dom";
 
 // Public pages (lazy loaded — smaller initial bundle)
 const Home = lazy(() => import("./pages/layout/Home.jsx"));
@@ -28,6 +28,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 const AdminUserManagement = lazy(() => import("./pages/admin/AdminUserManagement.jsx"));
 const AdminManagerManagement = lazy(() => import("./pages/admin/AdminManagerManagement.jsx"));
 const AdminInviteManagement = lazy(() => import("./pages/admin/AdminInviteManagement.jsx"));
+const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog.jsx"));
 
 // Employee Pages (lazy loaded)
 const EmployeeDashboard = lazy(() => import("./pages/Employee/EmployeeDashboard.jsx"));
@@ -42,27 +43,46 @@ import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute.jsx";
 
 // Toast notifications (single library)
 import { Toaster as Sonner } from "sonner";
-
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  <div className="flex min-h-screen items-center justify-center bg-[#F8F9FC]">
+    <div className="flex flex-col items-center gap-3">
+      <p className="text-2xl font-bold tracking-tight text-[#1B3F8B] animate-pulse" aria-label="Loading">
+        BW
+        <span className="font-extralight">POST</span>
+      </p>
+    </div>
   </div>
 );
+
+function ToasterRouted() {
+  const [isMdUp, setIsMdUp] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const f = () => setIsMdUp(mq.matches);
+    mq.addEventListener("change", f);
+    return () => mq.removeEventListener("change", f);
+  }, []);
+  return (
+    <Sonner
+      position={isMdUp ? "top-right" : "top-center"}
+      duration={3000}
+      richColors
+      closeButton={false}
+      swipeDirection="right"
+      toastOptions={{
+        duration: 3000,
+        style: { maxWidth: "90vw" },
+      }}
+    />
+  );
+}
 
 function App() {
   return (
     <>
-      <Sonner
-        position="top-right"
-        duration={3000}
-        richColors
-        closeButton={false}
-        swipeDirection="right"
-        toastOptions={{
-          duration: 3000,
-          style: { maxWidth: "90vw" },
-        }}
-      />
+      <ToasterRouted />
 
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -87,6 +107,7 @@ function App() {
               <Route path="users" element={<AdminUserManagement />} />
               <Route path="managers" element={<AdminManagerManagement />} />
               <Route path="invites" element={<AdminInviteManagement />} />
+              <Route path="audit-log" element={<AdminAuditLog />} />
               <Route path="employees" element={<Employee />} />
               <Route path="calendar" element={<Calender />} />
               <Route path="attendance" element={<AttendanceManagement />} />
@@ -125,12 +146,17 @@ function App() {
 
         {/* ── 404 fallback ──────────────────────────────────────── */}
         <Route path="*" element={
-          <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+          <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC] px-6">
             <div className="text-center max-w-md">
-              <p className="text-7xl font-black text-slate-200 mb-4">404</p>
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">Page not found</h1>
-              <p className="text-slate-500 mb-6">The page you're looking for doesn't exist or has been moved.</p>
-              <a href="/" className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition inline-block">Go Home</a>
+              <p className="text-7xl font-black text-gray-200 mb-4">404</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Page not found</h1>
+              <p className="text-gray-500 mb-6">The page you are looking for does not exist or has been moved.</p>
+              <Link
+                to="/"
+                className="inline-block rounded-xl bg-[#1B3F8B] px-6 py-2.5 font-medium text-white transition-all duration-150 hover:bg-[#1B3F8B]/90 active:scale-95"
+              >
+                Go Home
+              </Link>
             </div>
           </div>
         } />

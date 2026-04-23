@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -30,7 +31,7 @@ const fmtTime = (d) =>
 const STATUS = {
   upcoming: { label: "Upcoming", cls: "bg-[#EFF6FF] text-[#1B3F8B]", dot: "bg-[#1B3F8B]" },
   ongoing: { label: "Ongoing", cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
-  completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
+  completed: { label: "Completed", cls: "bg-slate-100 text-gray-500", dot: "bg-slate-400" },
 };
 
 const SHIFT_STATUS_COLORS = {
@@ -147,19 +148,19 @@ const ShiftModal = ({ shift, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-xl p-2 text-white transition hover:bg-white/20"
+              className="shrink-0 rounded-xl p-2 text-white transition hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="border-b border-slate-100 p-6">
-          <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Slot Capacity</p>
+        <div className="border-b border-gray-100 p-6">
+          <p className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">Slot Capacity</p>
           <div className="mb-3 flex items-end justify-between">
             <div>
-              <span className="text-3xl font-bold tabular-nums text-slate-900">{filled}</span>
-              <span className="text-lg font-medium text-slate-400">/{total}</span>
+              <span className="text-3xl font-bold tabular-nums text-gray-900">{filled}</span>
+              <span className="text-lg font-medium text-gray-400">/{total}</span>
             </div>
             <span
               className="text-2xl font-bold tabular-nums"
@@ -173,20 +174,20 @@ const ShiftModal = ({ shift, onClose }) => {
           <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
             <div className={`h-full rounded-full transition-all duration-700 ${bar}`} style={{ width: `${pct}%` }} />
           </div>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-gray-400">
             {total - filled} slot{total - filled !== 1 ? "s" : ""} remaining
           </p>
         </div>
 
         {shift.shiftNotes && (
-          <div className="border-b border-slate-100 px-6 py-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Notes</p>
-            <p className="text-sm leading-relaxed text-slate-700">{shift.shiftNotes}</p>
+          <div className="border-b border-gray-100 px-6 py-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400">Notes</p>
+            <p className="text-sm leading-relaxed text-gray-700">{shift.shiftNotes}</p>
           </div>
         )}
 
         <div className="px-6 py-5">
-          <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <p className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">
             Accepted Employees ({filled})
           </p>
           {shift.acceptedEmployees?.length > 0 ? (
@@ -194,7 +195,7 @@ const ShiftModal = ({ shift, onClose }) => {
               {shift.acceptedEmployees.map((emp, idx) => (
                 <div
                   key={emp._id}
-                  className="hover:bg-slate-50 group flex items-center gap-3 rounded-xl p-3 transition-colors"
+                  className="hover:bg-gray-50 group flex items-center gap-3 rounded-xl p-3 transition-colors"
                 >
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${grad(emp.username)} text-sm font-bold text-white shadow-sm`}
@@ -202,18 +203,18 @@ const ShiftModal = ({ shift, onClose }) => {
                     {initials(emp.username)}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-900">{emp.username}</p>
-                    <p className="truncate text-xs text-slate-400">{emp.email}</p>
+                    <p className="truncate text-sm font-semibold text-gray-900">{emp.username}</p>
+                    <p className="truncate text-xs text-gray-400">{emp.email}</p>
                   </div>
-                  <span className="text-xs font-medium tabular-nums text-slate-300">#{idx + 1}</span>
+                  <span className="text-xs font-medium tabular-nums text-gray-300">#{idx + 1}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-10 text-gray-400">
               <UserCheck className="mb-3 h-10 w-10 opacity-20" />
-              <p className="text-sm font-medium text-slate-500">No employees yet</p>
-              <p className="mt-1 text-xs text-slate-400">Employees will appear once they accept this shift.</p>
+              <p className="text-sm font-medium text-gray-500">No employees yet</p>
+              <p className="mt-1 text-xs text-gray-400">Employees will appear once they accept this shift.</p>
             </div>
           )}
         </div>
@@ -248,9 +249,20 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
+  const fetchDashboardSilent = useCallback(async () => {
+    try {
+      const res = await API.get("/api/manager/shifts/dashboard/data");
+      setData(res.data?.data ?? res.data);
+    } catch {
+      /* silent — keep previous data */
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
+
+  useAutoRefresh(fetchDashboardSilent, 60_000);
 
   useEffect(() => {
     const h = (e) => e.key === "Escape" && setSelected(null);
@@ -343,6 +355,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-full bg-[#F8F9FC]">
       <div className="mx-auto max-w-7xl px-4 pb-20 pt-4 md:px-6 md:pt-4 lg:pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">Welcome back, here is your overview</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap"></div>
+        </div>
         <div className="mb-4 grid h-auto grid-cols-2 gap-3 lg:grid-cols-4 lg:items-stretch">
           <KpiCard variant="navy" icon={Users} label="Total Staff" value={stats?.totalEmployees ?? 0} />
           <KpiCard variant="default" icon={Calendar} label="Upcoming Shifts" value={stats?.upcomingCount ?? 0} />
@@ -382,7 +401,7 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => navigate("/manager/shifts")}
-                className="text-sm font-medium text-[#1B3F8B] hover:underline"
+                className="text-sm font-medium text-[#1B3F8B] hover:underline transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1 rounded"
               >
                 View all
               </button>
@@ -401,7 +420,7 @@ const Dashboard = () => {
                       type="button"
                       key={shift._id}
                       onClick={() => setSelected(shift)}
-                      className="flex w-full items-start gap-3 rounded-xl px-2 py-3 text-left transition-colors first:pt-2 last:pb-2 hover:bg-gray-50/80"
+                      className="flex w-full items-start gap-3 rounded-xl px-2 py-3 text-left transition-colors duration-100 first:pt-2 last:pb-2 hover:bg-gray-50/80 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-gray-900">{shift.shiftTitle}</p>

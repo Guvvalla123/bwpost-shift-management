@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const SHORT_PAGE_TITLES = {
   "Shift Management": "Shifts",
@@ -51,7 +52,7 @@ const ManagerLayout = () => {
   const { pathname } = useLocation();
   const dropdownRef = useRef();
   const { user, logout } = useAuth();
-  const { effectiveCollapsed, toggle: toggleSidebarCollapsed } = useSidebarCollapsed();
+  const { effectiveCollapsed, toggle: toggleSidebarCollapsed, isMobile, isDesktop } = useSidebarCollapsed();
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
@@ -79,25 +80,24 @@ const ManagerLayout = () => {
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#F8F9FC]">
 
-      {/* ── Mobile sidebar overlay ── */}
-      {sidebarOpen && (
+      {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
       )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────── */}
       <div
-        className={`
-          fixed inset-y-0 left-0 z-40 flex h-full w-[240px] shrink-0 flex-col
-          transform transition-transform duration-300 ease-in-out
-          lg:relative lg:translate-x-0 lg:z-0
-          lg:transition-[width] lg:duration-300
-          ${effectiveCollapsed ? "lg:w-16" : "lg:w-[240px]"}
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={cn(
+          "z-40 flex h-full min-h-0 flex-col",
+          isMobile &&
+            "fixed inset-y-0 left-0 w-[240px] max-w-[min(20rem,90vw)] -translate-x-full transform transition-transform duration-300 ease-in-out",
+          isMobile && sidebarOpen && "translate-x-0",
+          !isMobile && "relative shrink-0 translate-x-0",
+          (isMobile === false) && (effectiveCollapsed ? "w-16" : "w-[240px]"),
+          isDesktop && "transition-[width] duration-300"
+        )}
       >
         <Managersidebar
           onNavigate={() => setSidebarOpen(false)}
@@ -110,14 +110,14 @@ const ManagerLayout = () => {
       <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
 
         {/* ── Top Navbar ──────────────────────────────────────── */}
-        <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
+        <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
 
           {/* Hamburger + Page title */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSidebarOpen((o) => !o)}
-              className="lg:hidden -ml-2 p-3 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center justify-center shrink-0 min-h-[48px] min-w-[48px]"
+              className="md:hidden -ml-2 p-3 rounded-lg text-gray-600 hover:bg-gray-100 transition flex items-center justify-center shrink-0 min-h-[48px] min-w-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -191,32 +191,32 @@ const ManagerLayout = () => {
                 >
 
                   {/* Mini profile header */}
-                  <div className="px-4 py-3 border-b border-slate-100">
+                  <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-bold text-[#0f2042]">{getDisplayName(user, "Manager")}</p>
-                    <p className="text-xs text-slate-500">{user?.email || ""}</p>
+                    <p className="text-xs text-gray-500">{user?.email || ""}</p>
                   </div>
 
                   <div className="py-1">
                     <button
                       type="button"
                       onClick={() => { navigate("/manager/settings"); setProfileOpen(false); }}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
-                      <User size={15} className="text-slate-400" />
+                      <User size={15} className="text-gray-400" />
                       My Profile
                     </button>
 
                     <button
                       type="button"
                       onClick={() => { navigate("/manager/settings"); setProfileOpen(false); }}
-                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
-                      <Settings size={15} className="text-slate-400" />
+                      <Settings size={15} className="text-gray-400" />
                       Settings
                     </button>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-1">
+                  <div className="border-t border-gray-100 pt-1">
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -233,7 +233,13 @@ const ManagerLayout = () => {
         </header>
 
         {/* ── Page content ────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 lg:pb-0">
+        <main
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden min-h-0",
+            "animate-in fade-in duration-200",
+            "md:pb-0 pb-20"
+          )}
+        >
           <Outlet />
         </main>
 

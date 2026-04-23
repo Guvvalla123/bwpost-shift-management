@@ -6,6 +6,7 @@ const {
   getAllUsers,
   updateUserRole,
   generateUserPasswordResetLink,
+  getAuditLogs,
 } = require("../controllers/adminController");
 const { createUserSchema, updateUserRoleSchema } = require("../validators/adminValidators");
 
@@ -15,6 +16,7 @@ const router = express.Router();
 router.use(auth, authorize("admin"));
 
 router.get("/users", getAllUsers);
+router.get("/audit-logs", getAuditLogs);
 router.post("/users", validate(createUserSchema), createUser);
 router.put("/users/:userId/role", validate(updateUserRoleSchema), updateUserRole);
 router.post("/users/:userId/reset-password-link", generateUserPasswordResetLink);

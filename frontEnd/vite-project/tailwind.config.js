@@ -7,6 +7,9 @@ export default {
   ],
   theme: {
     extend: {
+      /* Typography scale (use across pages): page title text-2xl font-bold text-gray-900;
+         section text-lg font-semibold text-gray-900; body text-sm text-gray-700;
+         caption text-xs text-gray-500; links text-sm text-[#1B3F8B] hover:underline */
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

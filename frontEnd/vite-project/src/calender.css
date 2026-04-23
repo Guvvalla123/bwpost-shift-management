@@ -21,7 +21,7 @@
   --fc-event-bg-color: var(--gc-blue);
   --fc-event-border-color: transparent;
   --fc-event-text-color: #ffffff;
-  --fc-today-bg-color: #f0f4ff;
+  --fc-today-bg-color: rgba(27, 63, 139, 0.08);
   --fc-now-indicator-color: #ef4444;
 }
 
@@ -280,6 +280,22 @@
   margin-top: -4px;
 }
 
+.fc-daygrid-day.fc-day-today:not(.fc-day-disabled) {
+  background-color: rgba(27, 63, 139, 0.08) !important;
+}
+
+.fc .fc-daygrid-block-event,
+.fc .fc-daygrid-event {
+  min-height: 44px;
+}
+
+/* ===== MOBILE EVENT TOUCH TARGETS ===== */
+@media (max-width: 767px) {
+  .fc-event {
+    min-height: 44px;
+  }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
   .fc .fc-toolbar.fc-header-toolbar {
@@ -320,4 +336,5 @@
     max-width: 100%;
     display: block;
   }
+
 }

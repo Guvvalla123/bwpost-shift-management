@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
@@ -47,7 +48,7 @@ const Field = ({ label, children }) => (
 );
 
 const inputCls =
-    "w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm";
+    "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm";
 
 /* ─── Main Component ─────────────────────────────────────── */
 const Employee = () => {
@@ -107,7 +108,25 @@ const Employee = () => {
         }
     }, [currentPage, debouncedSearch]);
 
+    const fetchEmployeesSilent = useCallback(async () => {
+        try {
+            const params = new URLSearchParams();
+            params.set("page", String(currentPage));
+            params.set("limit", "20");
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            const res = await API.get(`/api/manager/shifts/employees?${params}`);
+            const { data, pagination } = res.data;
+            setEmployees(Array.isArray(data) ? data : []);
+            setTotalPages(pagination?.totalPages ?? 1);
+            setTotalItems(pagination?.total ?? 0);
+        } catch {
+            /* silent — keep previous data */
+        }
+    }, [currentPage, debouncedSearch]);
+
     useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+
+    useAutoRefresh(fetchEmployeesSilent, 60_000);
 
     const refreshDashStats = useCallback(async () => {
         try {
@@ -322,14 +341,14 @@ const Employee = () => {
                         <button
                             type="button"
                             onClick={() => { setInviteModalOpen(true); setInviteLink(null); setInviteEmail(""); }}
-                            className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#1B3F8B] bg-white px-4 text-sm font-semibold text-[#1B3F8B] shadow-sm transition hover:bg-[#EFF6FF] sm:w-auto"
+                            className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#1B3F8B] bg-white px-4 text-sm font-semibold text-[#1B3F8B] shadow-sm transition-all duration-150 hover:bg-[#EFF6FF] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1 sm:w-auto"
                         >
                             <Mail className="h-4 w-4" strokeWidth={2} /> Invite Employee
                         </button>
                         <button
                             type="button"
                             onClick={() => setAddModalOpen(true)}
-                            className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#162d5e] sm:w-auto"
+                            className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#162d5e] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1 sm:w-auto"
                         >
                             <UserPlus className="h-4 w-4" strokeWidth={2} /> Add Employee
                         </button>
@@ -356,7 +375,7 @@ const Employee = () => {
                 {/* ── Table card ─────────────────────────────────── */}
                 <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                     {/* toolbar */}
-                    <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+                    <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:px-6">
                         <div className="flex flex-wrap gap-2">
                             {[
                                 { key: "all", label: "All", count: pillCounts.all },
@@ -370,13 +389,13 @@ const Employee = () => {
                                     className={`inline-flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
                                         roleFilter === pill.key
                                             ? "bg-[#1B3F8B] text-white shadow-sm"
-                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                            : "bg-slate-100 text-gray-600 hover:bg-slate-200"
                                     }`}
                                 >
                                     {pill.label}
                                     <span
                                         className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                                            roleFilter === pill.key ? "bg-white/20 text-white" : "bg-white text-slate-500"
+                                            roleFilter === pill.key ? "bg-white/20 text-white" : "bg-white text-gray-500"
                                         }`}
                                     >
                                         {pill.count}
@@ -385,20 +404,20 @@ const Employee = () => {
                             ))}
                         </div>
                         <div className="relative w-full sm:ml-auto sm:max-w-sm">
-                            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                             <input
                                 type="search"
                                 placeholder="Search by name or email"
                                 value={search}
                                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
                                 aria-label="Search employees"
                             />
                             {search.trim() ? (
                                 <button
                                     type="button"
                                     onClick={() => setSearch("")}
-                                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                                     aria-label="Clear search"
                                 >
                                     <X className="h-4 w-4" />
@@ -471,16 +490,16 @@ const Employee = () => {
                 <Modal title="Invite Employee" onClose={() => { setInviteModalOpen(false); setInviteLink(null); setInviteEmail(""); }}>
                     {inviteLink ? (
                         <div className="space-y-4">
-                            <p className="text-sm text-slate-600">Invite created. Share this link with the employee:</p>
+                            <p className="text-sm text-gray-600">Invite created. Share this link with the employee:</p>
                             <div className="flex gap-2">
-                                <input type="text" readOnly value={inviteLink} className={`${inputCls} flex-1 bg-slate-50`} />
+                                <input type="text" readOnly value={inviteLink} className={`${inputCls} flex-1 bg-gray-50`} />
                                 <button type="button" onClick={() => { navigator.clipboard?.writeText(inviteLink); toast.success("Copied"); }}
                                     className="px-4 py-2.5 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 flex items-center gap-2 shrink-0">
                                     <Copy size={16} /> Copy
                                 </button>
                             </div>
                             <button type="button" onClick={() => { setInviteModalOpen(false); setInviteLink(null); setInviteEmail(""); }}
-                                className="w-full py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200">Close</button>
+                                className="w-full py-2.5 bg-slate-100 text-gray-700 font-medium rounded-xl hover:bg-slate-200">Close</button>
                         </div>
                     ) : (
                         <form onSubmit={handleInviteEmployee} className="space-y-4">
@@ -571,7 +590,7 @@ const Employee = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-lg font-bold text-gray-900">Generate Password Reset Link</h2>
-                        <p className="text-sm text-slate-600 mt-2">
+                        <p className="text-sm text-gray-600 mt-2">
                             Generate a reset link for{" "}
                             <span className="font-semibold">{pwdResetConfirm.username}</span> ({pwdResetConfirm.email})?
                         </p>
@@ -579,7 +598,7 @@ const Employee = () => {
                             <button
                                 type="button"
                                 onClick={() => setPwdResetConfirm(null)}
-                                className="w-full sm:flex-1 py-3 min-h-12 border border-slate-200 text-slate-800 font-medium rounded-xl hover:bg-slate-50"
+                                className="w-full sm:flex-1 py-3 min-h-12 border border-gray-200 text-gray-800 font-medium rounded-xl hover:bg-gray-50"
                             >
                                 Cancel
                             </button>
@@ -607,15 +626,15 @@ const Employee = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-lg font-bold text-gray-900">Password Reset Link</h2>
-                        <p className="text-sm text-slate-600 mt-2">
+                        <p className="text-sm text-gray-600 mt-2">
                             Share this link with the user via WhatsApp or any messenger. Link expires in 1 hour (or per
                             server setting).
                         </p>
                         {pwdResetResult.userEmail ? (
-                            <p className="text-xs text-slate-500 mt-2">For: {pwdResetResult.userEmail}</p>
+                            <p className="text-xs text-gray-500 mt-2">For: {pwdResetResult.userEmail}</p>
                         ) : null}
                         {pwdResetResult.expiresAt ? (
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1">
                                 Expires: {new Date(pwdResetResult.expiresAt).toLocaleString()}
                             </p>
                         ) : null}
@@ -624,7 +643,7 @@ const Employee = () => {
                                 type="text"
                                 readOnly
                                 value={pwdResetResult.resetLink || ""}
-                                className={`${inputCls} flex-1 bg-slate-50 text-xs`}
+                                className={`${inputCls} flex-1 bg-gray-50 text-xs`}
                             />
                             <div className="flex gap-2 shrink-0">
                                 <button
@@ -638,7 +657,7 @@ const Employee = () => {
                                 <button
                                     type="button"
                                     onClick={shareManagerWhatsApp}
-                                    className="px-3 py-2.5 min-h-11 border border-slate-200 text-slate-800 rounded-xl text-sm font-medium hover:bg-slate-50"
+                                    className="px-3 py-2.5 min-h-11 border border-gray-200 text-gray-800 rounded-xl text-sm font-medium hover:bg-gray-50"
                                 >
                                     WhatsApp
                                 </button>
@@ -647,7 +666,7 @@ const Employee = () => {
                         <button
                             type="button"
                             onClick={() => setPwdResetResult(null)}
-                            className="w-full mt-4 py-2.5 bg-slate-100 text-slate-800 font-medium rounded-xl hover:bg-slate-200"
+                            className="w-full mt-4 py-2.5 bg-slate-100 text-gray-800 font-medium rounded-xl hover:bg-slate-200"
                         >
                             Close
                         </button>
@@ -668,16 +687,16 @@ const Employee = () => {
                             <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
                                 <AlertTriangle className="h-7 w-7 text-red-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900">Deactivate Employee?</h3>
-                            <p className="text-sm text-slate-500 mt-2 mb-6">
+                            <h3 className="text-lg font-bold text-gray-900">Deactivate Employee?</h3>
+                            <p className="text-sm text-gray-500 mt-2 mb-6">
                                 Are you sure you want to deactivate{" "}
-                                <span className="font-semibold text-slate-800">{deleteTarget.username}</span>?
+                                <span className="font-semibold text-gray-800">{deleteTarget.username}</span>?
                                 They will no longer be able to log in.
                             </p>
                             <div className="flex gap-3 w-full">
                                 <button
                                     onClick={() => setDeleteTarget(null)}
-                                    className="flex-1 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition text-sm"
+                                    className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition text-sm"
                                 >
                                     Cancel
                                 </button>
@@ -733,7 +752,7 @@ const Employee = () => {
 
                         {/* Attendance history */}
                         <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6">
-                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
                                 Attendance History
                             </p>
 
@@ -742,30 +761,30 @@ const Employee = () => {
                                     <div className="w-8 h-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
                                 </div>
                             ) : attendanceHistory.length === 0 ? (
-                                <div className="flex flex-col items-center py-10 text-slate-400">
+                                <div className="flex flex-col items-center py-10 text-gray-400">
                                     <Clock className="h-10 w-10 mb-2 opacity-30" />
                                     <p className="text-sm">No attendance records yet</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
                                     {attendanceHistory.map((rec, i) => (
-                                        <div key={i} className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                        <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                                             <div className="flex items-center justify-between mb-2">
-                                                <p className="text-sm font-semibold text-slate-800 truncate pr-2">
+                                                <p className="text-sm font-semibold text-gray-800 truncate pr-2">
                                                     {rec.shiftTitle || "Shift"}
                                                 </p>
                                                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">
                                                     {rec.totalHours != null ? `${rec.totalHours}h` : "—"}
                                                 </span>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                                                 <div>
-                                                    <p className="text-slate-400 mb-0.5">Check In</p>
-                                                    <p className="font-medium text-slate-700">{fmtDate(rec.checkIn)} {fmtTime(rec.checkIn)}</p>
+                                                    <p className="text-gray-400 mb-0.5">Check In</p>
+                                                    <p className="font-medium text-gray-700">{fmtDate(rec.checkIn)} {fmtTime(rec.checkIn)}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-slate-400 mb-0.5">Check Out</p>
-                                                    <p className="font-medium text-slate-700">{fmtDate(rec.checkOut)} {fmtTime(rec.checkOut)}</p>
+                                                    <p className="text-gray-400 mb-0.5">Check Out</p>
+                                                    <p className="font-medium text-gray-700">{fmtDate(rec.checkOut)} {fmtTime(rec.checkOut)}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -775,7 +794,7 @@ const Employee = () => {
                         </div>
 
                         {/* Drawer footer actions */}
-                        <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+                        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
                             <button
                                 onClick={() => { setViewTarget(null); openEdit(viewTarget); }}
                                 className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl text-sm hover:shadow-md transition"
@@ -847,13 +866,13 @@ const ModalFooter = ({ onCancel, submitLabel, loading }) => (
 
 /* ─── Info pill (used in drawer) ─────────────────────────── */
 const InfoPill = ({ icon: Icon, label, value }) => (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
             <Icon className="h-4 w-4 text-blue-600" />
         </div>
         <div className="min-w-0">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-            <p className="text-sm font-semibold text-slate-800 truncate">{value}</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+            <p className="text-sm font-semibold text-gray-800 truncate">{value}</p>
         </div>
     </div>
 );

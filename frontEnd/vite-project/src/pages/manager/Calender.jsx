@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
 import { useGoogleLogin, googleLogout } from "@react-oauth/google";
 import API from "@/api";
 import FullCalendar from "@fullcalendar/react";
@@ -100,13 +100,13 @@ const SignInScreen = ({ onLogin }) => (
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Google Calendar</h1>
-        <p className="text-slate-500 text-sm mt-2">
+        <h1 className="text-2xl font-bold text-gray-900">Google Calendar</h1>
+        <p className="text-gray-500 text-sm mt-2">
           Sign in with your Google account to view calendar events and sync work shifts.
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-50 text-left">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-slate-50 text-left">
         {[
           { icon: Calendar, text: "View your calendar events" },
           { icon: Plus, text: "Create and manage events" },
@@ -116,15 +116,15 @@ const SignInScreen = ({ onLogin }) => (
             <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
               <Icon className="w-4 h-4 text-blue-600" />
             </div>
-            <p className="text-sm text-slate-700">{text}</p>
-            <ChevronRight className="w-4 h-4 text-slate-300 ml-auto" />
+            <p className="text-sm text-gray-700">{text}</p>
+            <ChevronRight className="w-4 h-4 text-gray-300 ml-auto" />
           </div>
         ))}
       </div>
 
       <button
         onClick={onLogin}
-        className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 shadow-sm hover:shadow-md py-3.5 rounded-xl font-medium text-slate-700 hover:bg-slate-50 transition-all duration-200"
+        className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 shadow-sm hover:shadow-md py-3.5 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -135,7 +135,7 @@ const SignInScreen = ({ onLogin }) => (
         Sign in with Google
       </button>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-gray-400">
         We only request read/write access to your Google Calendar.
       </p>
     </div>
@@ -151,31 +151,35 @@ const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-[2px] md:items-center md:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="max-h-[60vh] w-full max-w-full overflow-hidden overflow-y-auto rounded-t-2xl bg-white shadow-2xl animate-in fade-in slide-in-from-bottom duration-200 md:max-h-[90vh] md:max-w-sm md:rounded-2xl md:zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="h-2 w-full bg-[#2563EB]" />
+        {/* Drag handle — mobile bottom sheet indicator */}
+        <div className="flex justify-center pt-3 pb-1 md:hidden">
+          <div className="h-1 w-10 rounded-full bg-gray-300" />
+        </div>
+        <div className="h-1 w-full bg-[#1B3F8B] md:h-2" />
 
         <div className="flex items-start justify-between px-5 pt-4 pb-2">
-          <h2 className="text-lg font-semibold text-slate-900 leading-tight pr-4">
+          <h2 className="text-lg font-semibold text-gray-900 leading-tight pr-4">
             {event.title}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="px-5 pb-5 space-y-3">
           <div className="flex items-start gap-3">
-            <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-            <div className="text-sm text-slate-700">
+            <Clock className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+            <div className="text-sm text-gray-700">
               <p>{fmtDate(event.start)}</p>
               {!event.allDay && (
-                <p className="text-slate-500 text-xs mt-0.5">
+                <p className="text-gray-500 text-xs mt-0.5">
                   {fmtTime(event.startStr)} — {fmtTime(event.endStr)}
                 </p>
               )}
@@ -183,16 +187,16 @@ const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
           </div>
 
           <div className="flex items-start gap-3">
-            <UserCheck className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-            <p className="text-sm text-slate-700">
+            <UserCheck className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+            <p className="text-sm text-gray-700">
               {p.accepted || 0} assigned · {p.slots || 0} slots remaining
             </p>
           </div>
 
           {p.notes && (
             <div className="flex items-start gap-3">
-              <StickyNote className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed line-clamp-4">
+              <StickyNote className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed line-clamp-4">
                 {p.notes}
               </p>
             </div>
@@ -202,7 +206,7 @@ const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
             <button
               onClick={() => onSync(p.shiftId)}
               disabled={syncing}
-              className="w-full flex items-center justify-center gap-2 mt-2 pt-3 border-t border-slate-100 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 mt-2 pt-3 border-t border-gray-100 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
             >
               {syncing ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Plus className="w-4 h-4" />}
               {syncing ? "Syncing…" : "Sync to Google Calendar"}
@@ -223,31 +227,35 @@ const GooglePopup = ({ event, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-[2px] md:items-center md:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        className="max-h-[60vh] w-full max-w-full overflow-hidden overflow-y-auto rounded-t-2xl bg-white shadow-2xl animate-in fade-in slide-in-from-bottom duration-200 md:max-h-[90vh] md:max-w-sm md:rounded-2xl md:zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="h-2 w-full bg-sky-500" />
+        {/* Drag handle — mobile bottom sheet indicator */}
+        <div className="flex justify-center pt-3 pb-1 md:hidden">
+          <div className="h-1 w-10 rounded-full bg-gray-300" />
+        </div>
+        <div className="h-1 w-full bg-sky-500 md:h-2" />
 
         <div className="flex items-start justify-between px-5 pt-4 pb-2">
-          <h2 className="text-lg font-semibold text-slate-900 leading-tight pr-4">
+          <h2 className="text-lg font-semibold text-gray-900 leading-tight pr-4">
             {event.title}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 transition-colors shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="px-5 pb-5 space-y-3">
           <div className="flex items-start gap-3">
-            <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-            <div className="text-sm text-slate-700">
+            <Clock className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+            <div className="text-sm text-gray-700">
               <p>{fmtDate(event.start)}</p>
               {!event.allDay && (
-                <p className="text-slate-500 text-xs mt-0.5">
+                <p className="text-gray-500 text-xs mt-0.5">
                   {fmtTime(event.startStr)} — {fmtTime(event.endStr)}
                 </p>
               )}
@@ -256,15 +264,15 @@ const GooglePopup = ({ event, onClose }) => {
 
           {p.location && (
             <div className="flex items-start gap-3">
-              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-slate-700">{p.location}</p>
+              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-gray-700">{p.location}</p>
             </div>
           )}
 
           {p.description && (
             <div className="flex items-start gap-3">
-              <AlignLeft className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed line-clamp-4">
+              <AlignLeft className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed line-clamp-4">
                 {p.description}
               </p>
             </div>
@@ -272,17 +280,17 @@ const GooglePopup = ({ event, onClose }) => {
 
           {p.attendees?.length > 0 && (
             <div className="flex items-start gap-3">
-              <Users className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+              <Users className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs text-slate-400 mb-1">{p.attendees.length} guests</p>
+                <p className="text-xs text-gray-400 mb-1">{p.attendees.length} guests</p>
                 <div className="flex flex-wrap gap-1.5">
                   {p.attendees.slice(0, 4).map((a, i) => (
-                    <span key={i} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                    <span key={i} className="text-xs bg-slate-100 text-gray-600 px-2 py-0.5 rounded-full">
                       {a.displayName || a.email}
                     </span>
                   ))}
                   {p.attendees.length > 4 && (
-                    <span className="text-xs text-slate-400">+{p.attendees.length - 4} more</span>
+                    <span className="text-xs text-gray-400">+{p.attendees.length - 4} more</span>
                   )}
                 </div>
               </div>
@@ -294,7 +302,7 @@ const GooglePopup = ({ event, onClose }) => {
               href={p.htmlLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-blue-600 font-medium hover:underline mt-2 pt-3 border-t border-slate-100"
+              className="flex items-center gap-2 text-sm text-blue-600 font-medium hover:underline mt-2 pt-3 border-t border-gray-100"
             >
               <ExternalLink className="w-4 h-4" />
               Open in Google Calendar
@@ -310,11 +318,15 @@ const GooglePopup = ({ event, onClose }) => {
 /* MAIN COMPONENT                                                  */
 /* ═══════════════════════════════════════════════════════════════ */
 const CalendarPage = () => {
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const defaultView = isMobile ? "dayGridMonth" : "dayGridMonth";
+
   const [token, setToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [appShifts, setAppShifts] = useState([]);
   const [appShiftsLoading, setAppShiftsLoading] = useState(false);
@@ -438,6 +450,9 @@ const CalendarPage = () => {
 
   const handleEventClick = (info) => {
     setSelectedEvent(info.event);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setMobileSidebarOpen(true);
+    }
   };
 
   const handleRefresh = async () => {
@@ -461,53 +476,53 @@ const CalendarPage = () => {
   const selectedSource = selectedEvent?.extendedProps?.source;
 
   return (
-    <div className="flex min-h-[calc(100dvh-9rem)] lg:min-h-[calc(100vh-4rem)] max-h-[calc(100dvh-9rem)] lg:max-h-[calc(100vh-4rem)] bg-[#f1f5f9] overflow-hidden">
+    <div className="flex max-h-[calc(100dvh-9rem)] min-h-[calc(100dvh-9rem)] flex-col overflow-hidden bg-[#F8F9FC] md:max-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4rem)] md:flex-row lg:min-h-[calc(100vh-4rem)] lg:max-h-[calc(100vh-4rem)]">
 
-      {/* ── Mobile sidebar overlay ────────────────────────────── */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* ── Left Panel: Shift Sync List ───────────────────────── */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-100 flex flex-col
+      <div
+        className={`
+        fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-gray-100 bg-white
         transform transition-transform duration-300 ease-in-out
-        lg:relative lg:translate-x-0 lg:z-auto
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-      `}>
+        md:relative md:z-auto md:w-[35%] md:min-w-0 md:max-w-none md:translate-x-0 md:shrink-0
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+      `}
+      >
         {/* User Profile */}
         {userInfo && (
-          <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+          <div className="p-4 border-b border-gray-100 flex items-center gap-3">
             <img
               src={userInfo.picture}
               alt={userInfo.name}
               className="w-9 h-9 rounded-full ring-2 ring-white shadow"
             />
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">{userInfo.name}</p>
-              <p className="text-xs text-slate-400 truncate">{userInfo.email}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{userInfo.name}</p>
+              <p className="text-xs text-gray-400 truncate">{userInfo.email}</p>
             </div>
             <button
               onClick={handleLogout}
               title="Sign out"
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors shrink-0 ml-auto"
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors shrink-0 ml-auto"
             >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        <div className="p-4 border-b border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sync Shifts</p>
-          <p className="text-xs text-slate-400">Push work shifts into Google Calendar</p>
+        <div className="p-4 border-b border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Sync Shifts</p>
+          <p className="text-xs text-gray-400">Push work shifts into Google Calendar</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {appShifts.length === 0 ? (
-            <div className="py-10 text-center text-slate-300">
+            <div className="py-10 text-center text-gray-300">
               <Briefcase className="w-8 h-8 mx-auto mb-2" />
               <p className="text-xs">No shifts found</p>
             </div>
@@ -515,21 +530,21 @@ const CalendarPage = () => {
             appShifts.map((shift) => (
               <div
                 key={shift._id}
-                className="bg-slate-50 hover:bg-[#EFF6FF] border border-slate-100 hover:border-[#BFDBFE] rounded-xl p-3 transition-all group"
+                className="bg-gray-50 hover:bg-[#EFF6FF] border border-gray-100 hover:border-[#BFDBFE] rounded-xl p-3 transition-all group"
               >
-                <p className="text-xs font-semibold text-slate-800 truncate mb-1 group-hover:text-[#1B3F8B]">
+                <p className="text-xs font-semibold text-gray-800 truncate mb-1 group-hover:text-[#1B3F8B]">
                   {shift.shiftTitle}
                 </p>
-                <p className="text-[11px] text-slate-400 mb-0.5">
+                <p className="text-[11px] text-gray-400 mb-0.5">
                   {fmtDate(shift.shiftStartTime)}
                 </p>
-                <p className="text-[11px] text-slate-400 mb-2">
+                <p className="text-[11px] text-gray-400 mb-2">
                   {shift.acceptedEmployees?.length || 0} assigned · {shift.slotsAvailable} slots left
                 </p>
                 <button
                   onClick={() => syncShiftToGoogle(shift)}
                   disabled={syncing === shift._id}
-                  className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-[#1B3F8B] hover:text-white hover:border-[#1B3F8B] transition-all font-medium disabled:opacity-50"
+                  className="w-full text-xs flex items-center justify-center gap-1.5 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-[#1B3F8B] hover:text-white hover:border-[#1B3F8B] transition-all font-medium disabled:opacity-50"
                 >
                   {syncing === shift._id ? (
                     <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
@@ -544,28 +559,37 @@ const CalendarPage = () => {
         </div>
 
         {/* Legend */}
-        <div className="p-4 border-t border-slate-100 space-y-2">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Legend</p>
+        <div className="p-4 border-t border-gray-100 space-y-2">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Legend</p>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-[#2563EB] shrink-0" />
-            <span className="text-xs text-slate-600">Work shifts</span>
+            <span className="text-xs text-gray-600">Work shifts</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-sky-500 shrink-0" />
-            <span className="text-xs text-slate-600">Google Calendar</span>
+            <span className="text-xs text-gray-600">Google Calendar</span>
           </div>
         </div>
       </div>
 
-      {/* ── Main Calendar ─────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white md:w-[65%]">
 
-        {/* Single header bar */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 shrink-0 min-h-[56px]">
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 pt-4 pb-3 shrink-0 border-b border-gray-100">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
+            <p className="text-sm text-gray-500 mt-1">Visual shift schedule and planning</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap"></div>
+        </div>
+
+        {/* Calendar controls bar */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 shrink-0 min-h-[56px]">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden -ml-2 p-3 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors min-h-[48px] min-w-[48px] flex items-center justify-center"
+            className="md:hidden -ml-2 flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg p-3 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
             title="Toggle sidebar"
+            type="button"
           >
             {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
           </button>
@@ -573,16 +597,16 @@ const CalendarPage = () => {
           {userInfo && (
             <div className="hidden sm:flex items-center gap-2">
               <img src={userInfo.picture} alt="" className="w-7 h-7 rounded-full" />
-              <span className="text-sm font-medium text-slate-700 truncate max-w-[120px]">{userInfo.name}</span>
+              <span className="text-sm font-medium text-gray-700 truncate max-w-[120px]">{userInfo.name}</span>
             </div>
           )}
 
           <div className="ml-auto flex items-center gap-1.5">
-            {loadingEvents && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" aria-hidden />}
+            {loadingEvents && <Loader2 className="w-4 h-4 text-gray-400 animate-spin" aria-hidden />}
 
             <button
               onClick={handleRefresh}
-              className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               title="Refresh"
             >
               <RefreshCw className="w-4 h-4" />
@@ -590,7 +614,7 @@ const CalendarPage = () => {
 
             <button
               onClick={handleLogout}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />
@@ -623,23 +647,24 @@ const CalendarPage = () => {
           )}
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
+            initialView={defaultView}
             height="100%"
             selectable={false}
             nowIndicator
             editable={false}
             allDaySlot
-            dayMaxEvents={3}
+            dayMaxEvents={isMobile ? 2 : 3}
             slotMinTime="06:00:00"
             slotMaxTime="23:00:00"
             slotDuration="00:30"
             slotLabelInterval="01:00"
-            dayHeaderFormat={{ weekday: "short", day: "numeric" }}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
+            dayHeaderFormat={{ weekday: "short" }}
+            eventDisplay="block"
+            headerToolbar={
+              isMobile
+                ? { left: "prev,next", center: "title", right: "today" }
+                : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
+            }
             datesSet={handleDatesSet}
             events={[...shiftEvents, ...events]}
             eventClick={handleEventClick}
@@ -652,7 +677,7 @@ const CalendarPage = () => {
       {selectedEvent && selectedSource === "app" && (
         <ShiftPopup
           event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
+          onClose={() => { setSelectedEvent(null); setMobileSidebarOpen(false); }}
           onSync={token ? (id) => syncShiftToGoogle(id) : null}
           syncing={syncing === selectedEvent.extendedProps?.shiftId}
         />
@@ -660,7 +685,7 @@ const CalendarPage = () => {
       {selectedEvent && selectedSource === "google" && (
         <GooglePopup
           event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
+          onClose={() => { setSelectedEvent(null); setMobileSidebarOpen(false); }}
         />
       )}
     </div>

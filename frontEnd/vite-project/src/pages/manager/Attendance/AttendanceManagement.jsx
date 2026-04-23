@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+﻿import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -39,22 +40,23 @@ const Avatar = ({ name }) => (
 );
 
 function attendanceBorderClass(status) {
-  if (status === "checked_out") return "border-l-emerald-500";
-  if (status === "checked_in" || status === "on_break") return "border-l-[#1B3F8B]";
-  return "border-l-slate-300";
+  if (status === "checked_in") return "border-l-green-500";
+  if (status === "checked_out") return "border-l-gray-300";
+  if (status === "on_break") return "border-l-amber-500";
+  return "border-l-gray-200";
 }
 
 /* ════════════════════════════════════════════════════════════
    STAT STRIP CARD  (compact horizontal)
 ════════════════════════════════════════════════════════════ */
 const StatPill = ({ icon: Icon, label, value, color }) => (
-  <div className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 min-w-0">
+  <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 min-w-0">
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
       <Icon className="w-4.5 h-4.5 text-white w-[18px] h-[18px]" />
     </div>
     <div className="min-w-0">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{label}</p>
-      <p className="text-xl font-bold text-slate-900 tabular-nums leading-tight mt-0.5">{value}</p>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{label}</p>
+      <p className="text-xl font-bold text-gray-900 tabular-nums leading-tight mt-0.5">{value}</p>
     </div>
   </div>
 );
@@ -67,8 +69,8 @@ const StatusBadge = ({ status }) => {
     checked_out: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
     checked_in: { label: "In Progress", cls: "bg-blue-50 text-blue-700 ring-1 ring-blue-200", dot: "bg-blue-500 animate-pulse" },
     on_break: { label: "On Break", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200", dot: "bg-amber-500 animate-pulse" },
-    not_started: { label: "Not Started", cls: "bg-slate-100 text-slate-500 ring-1 ring-slate-200", dot: "bg-slate-400" },
-    not_checked_in: { label: "Not Started", cls: "bg-slate-100 text-slate-500 ring-1 ring-slate-200", dot: "bg-slate-400" },
+    not_started: { label: "Not Started", cls: "bg-slate-100 text-gray-500 ring-1 ring-gray-200", dot: "bg-slate-400" },
+    not_checked_in: { label: "Not Started", cls: "bg-slate-100 text-gray-500 ring-1 ring-gray-200", dot: "bg-slate-400" },
   }[status] ?? { label: "Unknown", cls: "bg-gray-100 text-gray-500", dot: "bg-gray-400" };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.cls}`}>
@@ -89,25 +91,25 @@ const ShiftSelect = ({ shifts, value, onChange }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 transition-all shadow-sm"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 transition-all shadow-sm"
       >
         <span className="flex items-center gap-2 truncate">
-          <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+          <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
           {selected ? (
             <span className="truncate">
-              <span className="font-semibold text-slate-800">{selected.shiftTitle}</span>
-              <span className="text-slate-400 ml-2">{fmtDate(selected.shiftStartTime)} · {fmtTime(selected.shiftStartTime)}</span>
+              <span className="font-semibold text-gray-800">{selected.shiftTitle}</span>
+              <span className="text-gray-400 ml-2">{fmtDate(selected.shiftStartTime)} · {fmtTime(selected.shiftStartTime)}</span>
             </span>
-          ) : <span className="text-slate-400">Select a shift…</span>}
+          ) : <span className="text-gray-400">Select a shift…</span>}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-72 overflow-auto">
+          <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-72 overflow-auto">
             {shifts.length === 0 ? (
-              <p className="px-4 py-4 text-sm text-slate-400 text-center">No shifts found</p>
+              <p className="px-4 py-4 text-sm text-gray-400 text-center">No shifts found</p>
             ) : shifts.map((s) => (
               <button
                 key={s._id}
@@ -118,8 +120,8 @@ const ShiftSelect = ({ shifts, value, onChange }) => {
                   <CalendarDays className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-sm font-semibold truncate ${value === s._id ? "text-[#1B3F8B]" : "text-slate-800"}`}>{s.shiftTitle}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{fmtDate(s.shiftStartTime)} · {fmtTime(s.shiftStartTime)} — {fmtTime(s.shiftEndTime)}</p>
+                  <p className={`text-sm font-semibold truncate ${value === s._id ? "text-[#1B3F8B]" : "text-gray-800"}`}>{s.shiftTitle}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{fmtDate(s.shiftStartTime)} · {fmtTime(s.shiftStartTime)} — {fmtTime(s.shiftEndTime)}</p>
                 </div>
               </button>
             ))}
@@ -146,7 +148,7 @@ const EmployeeSelect = ({ employees, value, onChange }) => {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 transition-all shadow-sm"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 transition-all shadow-sm"
       >
         <span className="flex items-center gap-2 truncate">
           {selected ? (
@@ -154,28 +156,28 @@ const EmployeeSelect = ({ employees, value, onChange }) => {
               <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${grad(selected.username)} flex items-center justify-center text-white text-[10px] font-bold shrink-0`}>
                 {initials(selected.username)}
               </div>
-              <span className="font-semibold text-slate-800 truncate">{selected.username}</span>
-              <span className="text-slate-400 text-xs truncate">{selected.email}</span>
+              <span className="font-semibold text-gray-800 truncate">{selected.username}</span>
+              <span className="text-gray-400 text-xs truncate">{selected.email}</span>
             </>
-          ) : <span className="flex items-center gap-2 text-slate-400"><Users className="w-4 h-4" />Select employee…</span>}
+          ) : <span className="flex items-center gap-2 text-gray-400"><Users className="w-4 h-4" />Select employee…</span>}
         </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl">
-            <div className="p-2.5 border-b border-slate-100">
+          <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl">
+            <div className="p-2.5 border-b border-gray-100">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search employees…"
-                  className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none" />
+                  className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none" />
               </div>
             </div>
             <div className="max-h-56 overflow-auto">
               {filtered.length === 0
-                ? <p className="px-4 py-3 text-sm text-slate-400 text-center">No employees found</p>
+                ? <p className="px-4 py-3 text-sm text-gray-400 text-center">No employees found</p>
                 : filtered.map((e) => (
                   <button key={e._id} onClick={() => { onChange(e._id); setOpen(false); setSearch(""); }}
                     className={`w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-[#EFF6FF] transition-colors border-b border-slate-50 last:border-0 ${value === e._id ? "bg-[#EFF6FF]" : ""}`}>
@@ -183,8 +185,8 @@ const EmployeeSelect = ({ employees, value, onChange }) => {
                       {initials(e.username)}
                     </div>
                     <div className="min-w-0">
-                      <p className={`text-sm font-semibold truncate ${value === e._id ? "text-[#1B3F8B]" : "text-slate-800"}`}>{e.username}</p>
-                      <p className="text-xs text-slate-400 truncate">{e.email}</p>
+                      <p className={`text-sm font-semibold truncate ${value === e._id ? "text-[#1B3F8B]" : "text-gray-800"}`}>{e.username}</p>
+                      <p className="text-xs text-gray-400 truncate">{e.email}</p>
                     </div>
                   </button>
                 ))}
@@ -217,8 +219,8 @@ const TimePickerModal = ({ mode, employeeName, defaultTime, onConfirm, onClose }
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-sm ${isIn ? "bg-emerald-500" : "bg-blue-600"}`}>
             {isIn ? <LogIn className="w-5 h-5 text-white" /> : <LogOut className="w-5 h-5 text-white" />}
           </div>
-          <h3 className="text-lg font-bold text-slate-900">{isIn ? "Record Check-In" : "Record Check-Out"}</h3>
-          <p className="text-sm text-slate-500 mt-0.5 font-medium">{employeeName}</p>
+          <h3 className="text-lg font-bold text-gray-900">{isIn ? "Record Check-In" : "Record Check-Out"}</h3>
+          <p className="text-sm text-gray-500 mt-0.5 font-medium">{employeeName}</p>
         </div>
 
         <div className="p-6 space-y-5">
@@ -232,21 +234,21 @@ const TimePickerModal = ({ mode, employeeName, defaultTime, onConfirm, onClose }
 
           {/* Input */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
               {isIn ? "Check-In Date & Time" : "Check-Out Date & Time"}
             </label>
             <input
               type="datetime-local"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] transition bg-slate-50 text-slate-800 font-medium"
+              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] transition bg-gray-50 text-gray-800 font-medium"
             />
           </div>
 
           {/* Buttons */}
           <div className="flex gap-3 pt-1">
             <button onClick={onClose}
-              className="flex-1 py-3 border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition text-sm">
+              className="flex-1 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition text-sm">
               Cancel
             </button>
             <button
@@ -350,17 +352,13 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
   useEffect(() => {
     if (!selectedShiftId) return;
     fetchAttendance(false);
-    const id = setInterval(() => fetchAttendance(true), 30_000);
-    return () => clearInterval(id);
   }, [selectedShiftId, fetchAttendance]);
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && selectedShiftId) fetchAttendance(true);
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [selectedShiftId, fetchAttendance]);
+  const fetchAttendanceSilent = useCallback(() => {
+    fetchAttendance(true);
+  }, [fetchAttendance]);
+
+  useAutoRefresh(fetchAttendanceSilent, 60_000, !!selectedShiftId);
 
   /* ── Action helpers ── */
   const doAction = async (endpoint, empId, extra = {}) => {
@@ -418,16 +416,16 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
     <div className="space-y-5">
 
       {/* ── Shift selector ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Select Shift</p>
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Select Shift</p>
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search shifts..."
             value={shiftSearch}
             onChange={(e) => setShiftSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-[#1B3F8B] transition"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-[#1B3F8B] transition"
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -448,7 +446,7 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                 }));
                 downloadCSV(rows, `Attendance_${selectedShift?.shiftTitle?.replace(/\s+/g, "_")}.csv`);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition shrink-0">
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:ring-offset-1 shrink-0">
               <Download className="w-4 h-4" /> Export CSV
             </button>
           )}
@@ -457,7 +455,7 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
 
       {/* ── Shift Details card (full context when shift selected) ── */}
       {selectedShiftId && loading && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-slate-100 px-6 py-5 animate-pulse">
             <Sk className="h-5 w-32" />
             <Sk className="h-3 w-48 mt-2" />
@@ -474,7 +472,7 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
         </div>
       )}
       {selectedShiftId && !loading && shiftFromApi && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-[#1B3F8B] via-[#2563EB] to-blue-600 px-6 py-5">
             <h2 className="text-lg font-bold text-white">Shift Details</h2>
             <p className="text-indigo-100 text-sm mt-0.5">Complete overview of the selected shift</p>
@@ -483,52 +481,52 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Shift name & timing */}
               <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                   <CalendarDays className="w-3.5 h-3.5" /> Shift
                 </p>
-                <p className="text-base font-bold text-slate-900">{shiftFromApi.shiftTitle}</p>
-                <p className="text-sm text-slate-600">
+                <p className="text-base font-bold text-gray-900">{shiftFromApi.shiftTitle}</p>
+                <p className="text-sm text-gray-600">
                   {fmtTime(shiftFromApi.shiftStartTime)} – {fmtTime(shiftFromApi.shiftEndTime)}
                 </p>
               </div>
               {/* Date */}
               <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" /> Date
                 </p>
-                <p className="text-base font-semibold text-slate-800">{fmtDate(shiftFromApi.shiftStartTime)}</p>
+                <p className="text-base font-semibold text-gray-800">{fmtDate(shiftFromApi.shiftStartTime)}</p>
               </div>
               {/* Manager */}
               <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5" /> Manager
                 </p>
                 {shiftFromApi.manager ? (
                   <>
-                    <p className="text-base font-semibold text-slate-800">{shiftFromApi.manager.username}</p>
-                    <p className="text-xs text-slate-500 truncate">{shiftFromApi.manager.email}</p>
+                    <p className="text-base font-semibold text-gray-800">{shiftFromApi.manager.username}</p>
+                    <p className="text-xs text-gray-500 truncate">{shiftFromApi.manager.email}</p>
                   </>
                 ) : (
-                  <p className="text-sm text-slate-400">—</p>
+                  <p className="text-sm text-gray-400">—</p>
                 )}
               </div>
               {/* Employees assigned */}
               <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" /> Employees Assigned
                 </p>
-                <p className="text-base font-bold text-slate-900">{records.length}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-base font-bold text-gray-900">{records.length}</p>
+                <p className="text-xs text-gray-500">
                   {records.filter(r => r.status !== "not_started").length} present · {records.filter(r => r.status === "not_started").length} not started
                 </p>
               </div>
             </div>
             {shiftFromApi.shiftNotes && (
-              <div className="mt-5 pt-5 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+              <div className="mt-5 pt-5 border-t border-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                   <FileText className="w-3.5 h-3.5" /> Notes
                 </p>
-                <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
                   {shiftFromApi.shiftNotes}
                 </p>
               </div>
@@ -559,32 +557,32 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
 
       {/* ── Table ── */}
       {selectedShiftId && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-slate-800">Employee Attendance</h2>
+              <h2 className="text-sm font-bold text-gray-800">Employee Attendance</h2>
               {selectedShift && (
-                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
                   <CalendarDays className="w-3 h-3" />
                   {selectedShift.shiftTitle} · {fmtDate(selectedShift.shiftStartTime)} · {fmtTime(selectedShift.shiftStartTime)}–{fmtTime(selectedShift.shiftEndTime)}
                 </p>
               )}
             </div>
             <div className="relative w-full sm:w-72">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="search"
                 placeholder="Search employees…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
                 aria-label="Search employees"
               />
               {search.trim() ? (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                   aria-label="Clear search"
                 >
                   <X className="h-4 w-4" />
@@ -623,77 +621,87 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                   const timeOpts = { hour: "2-digit", minute: "2-digit" };
                   const checkInDisp = firstIn
                     ? new Date(firstIn).toLocaleTimeString("en-DE", timeOpts)
-                    : "Not recorded";
+                    : null;
                   const checkOutDisp = lastOut
                     ? new Date(lastOut).toLocaleTimeString("en-DE", timeOpts)
-                    : "Not recorded";
+                    : null;
                   const workMins = rec.totalWorkMinutes || 0;
-                  const breakMins = rec.totalBreakMinutes || 0;
                   return (
                     <div
                       key={emp._id}
-                      className={`rounded-xl border border-gray-200 border-l-4 bg-white p-4 shadow-sm ${attendanceBorderClass(rec.status)}`}
+                      className={`rounded-2xl border border-gray-100 border-l-4 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md ${attendanceBorderClass(rec.status)}`}
                     >
-                      <div className="mb-3 flex items-start gap-3">
+                      {/* TOP ROW: avatar + name + shift name */}
+                      <div className="mb-3 flex items-center gap-3">
                         <Avatar name={emp.username || "?"} />
-                        <div className="min-w-0 flex-1 pr-2">
-                          <p className="text-sm font-bold text-gray-900">{emp.username || "Employee"}</p>
-                          <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">{selectedShift?.shiftTitle || "Shift"}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-gray-900 truncate">{emp.username || "Employee"}</p>
+                          <p className="mt-0.5 truncate text-xs text-gray-500">{selectedShift?.shiftTitle || "Shift"}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
+                      </div>
+
+                      {/* SECOND ROW: check in + check out with clock icons */}
+                      <div className="mb-3 space-y-1.5">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                          <span className="text-gray-400 text-xs w-14 shrink-0">Check in</span>
+                          <span className="font-medium">{checkInDisp ?? "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                          <span className="text-gray-400 text-xs w-14 shrink-0">Check out</span>
+                          <span className={`font-medium ${!checkOutDisp ? "text-gray-400 italic text-xs" : ""}`}>
+                            {checkOutDisp ?? "Still working"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* THIRD ROW: duration + flag badges */}
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          {formatWorkDuration(workMins)} worked
+                        </span>
+                        {rec.isLate && (
+                          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                            Late
+                          </span>
+                        )}
+                        {rec.leftEarly && (
+                          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                            Left Early
+                          </span>
+                        )}
+                      </div>
+
+                      {/* BOTTOM ROW: status badge + action buttons */}
+                      <div className="flex flex-col gap-2 border-t border-gray-100 pt-3">
+                        <div className="flex items-center justify-end">
                           <StatusBadge status={rec.status || "not_started"} />
-                          {rec.isLate ? (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
-                              Late
-                            </span>
-                          ) : null}
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                        <div>
-                          <span className="text-gray-400">Check In</span>
-                          <p className="mt-0.5 font-medium">{checkInDisp}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Check Out</span>
-                          <p className="mt-0.5 font-medium">{checkOutDisp}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Work Time</span>
-                          <p className="mt-0.5 font-medium">{formatWorkDuration(workMins)}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Break Time</span>
-                          <p className="font-medium mt-0.5">
-                            {breakMins ? `${breakMins}m` : "0m"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100">
                         {rec.status === "not_started" && (
                           <button type="button" onClick={() => handleCheckIn(emp._id)} disabled={busy}
-                            className="w-full min-h-11 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 inline-flex items-center justify-center gap-1">
+                            className="w-full min-h-11 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 inline-flex items-center justify-center gap-1 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30">
                             <LogIn className="w-4 h-4" /> Check In
                           </button>
                         )}
                         {rec.status === "checked_in" && (
                           <>
                             <button type="button" onClick={() => handleStartBreak(emp._id, "short_break")} disabled={busy}
-                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 disabled:opacity-50">Break</button>
+                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 disabled:opacity-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30">Break</button>
                             <button type="button" onClick={() => handleStartBreak(emp._id, "lunch")} disabled={busy}
-                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-orange-700 bg-orange-50 border border-orange-200 disabled:opacity-50">Lunch</button>
+                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-orange-700 bg-orange-50 border border-orange-200 hover:bg-orange-100 disabled:opacity-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/30">Lunch</button>
                             <button type="button" onClick={() => handleCheckOut(emp._id)} disabled={busy}
-                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 disabled:opacity-50 inline-flex items-center justify-center gap-1">
+                              className="w-full min-h-11 rounded-xl text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 disabled:opacity-50 inline-flex items-center justify-center gap-1 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30">
                               <LogOut className="w-4 h-4" /> Out
                             </button>
                           </>
                         )}
                         {rec.status === "on_break" && (
                           <button type="button" onClick={() => handleEndBreak(emp._id)} disabled={busy}
-                            className="w-full min-h-11 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 disabled:opacity-50">Resume</button>
+                            className="w-full min-h-11 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30">Resume</button>
                         )}
                         {rec.status === "checked_out" && (
-                          <span className="text-xs text-center text-slate-500 py-2 inline-flex items-center justify-center gap-1">
+                          <span className="text-xs text-center text-gray-500 py-1 inline-flex items-center justify-center gap-1">
                             <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Completed
                           </span>
                         )}
@@ -706,9 +714,9 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
               <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
+                  <tr className="bg-gray-50 border-b border-gray-100">
                     {["Employee", "Status", "Sessions", "Work", "Break", "Flags", "Action"].map((h, i) => (
-                      <th key={h} className={`px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>
+                      <th key={h} className={`px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -722,14 +730,14 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                     const lastOut = rec.workSessions?.[rec.workSessions.length - 1]?.checkOut;
 
                     return (
-                      <tr key={emp._id} className="hover:bg-slate-50/60 transition-colors">
+                      <tr key={emp._id} className="hover:bg-slate-50/60 transition-colors duration-100">
                         {/* Employee */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
                             <Avatar name={emp.username || "?"} />
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">{emp.username}</p>
-                              <p className="text-xs text-slate-400 truncate">{emp.email}</p>
+                              <p className="text-sm font-semibold text-gray-800 truncate">{emp.username}</p>
+                              <p className="text-xs text-gray-400 truncate">{emp.email}</p>
                             </div>
                           </div>
                         </td>
@@ -744,12 +752,12 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                           <div className="text-xs">
                             {firstIn
                               ? <span className="text-emerald-600 font-medium">{fmtTime(firstIn)}</span>
-                              : <span className="text-slate-300">—</span>}
+                              : <span className="text-gray-300">—</span>}
                             {lastOut && (
-                              <> <span className="text-slate-300">→</span> <span className="text-blue-600 font-medium">{fmtTime(lastOut)}</span></>
+                              <> <span className="text-gray-300">→</span> <span className="text-blue-600 font-medium">{fmtTime(lastOut)}</span></>
                             )}
                             {rec.workSessions?.length > 1 && (
-                              <span className="ml-1 text-[10px] bg-slate-100 text-slate-500 px-1 rounded">{rec.workSessions.length} sessions</span>
+                              <span className="ml-1 text-[10px] bg-slate-100 text-gray-500 px-1 rounded">{rec.workSessions.length} sessions</span>
                             )}
                           </div>
                         </td>
@@ -760,14 +768,14 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                             ? <span className="inline-flex items-center gap-1 text-sm font-bold text-[#1B3F8B] bg-[#EFF6FF] px-2 py-0.5 rounded-lg">
                               <Timer className="w-3 h-3" />{fmtMins(rec.totalWorkMinutes)}
                             </span>
-                            : <span className="text-slate-300 text-sm">—</span>}
+                            : <span className="text-gray-300 text-sm">—</span>}
                         </td>
 
                         {/* Break time */}
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           {rec.totalBreakMinutes > 0
                             ? <span className="text-xs font-semibold text-amber-600">{fmtMins(rec.totalBreakMinutes)}</span>
-                            : <span className="text-slate-300 text-xs">—</span>}
+                            : <span className="text-gray-300 text-xs">—</span>}
                         </td>
 
                         {/* Flags: late / left early */}
@@ -789,7 +797,7 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                               </span>
                             )}
                             {!rec.isLate && !rec.leftEarly && rec.overtimeMinutes === 0 && (
-                              <span className="text-slate-300 text-xs">—</span>
+                              <span className="text-gray-300 text-xs">—</span>
                             )}
                           </div>
                         </td>
@@ -824,7 +832,7 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
                               </button>
                             )}
                             {rec.status === "checked_out" && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-400 bg-slate-100 rounded-lg">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-gray-400 bg-slate-100 rounded-lg">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Done
                               </span>
                             )}
@@ -842,11 +850,11 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
 
           {!loading && filtered.length > 0 && (
             <>
-              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
-                <p className="text-xs text-slate-400">
-                  <span className="font-semibold text-slate-600">{filtered.length}</span> employees · auto-refreshes every 30s
+              <div className="px-5 py-3 border-t border-gray-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
+                <p className="text-xs text-gray-400">
+                  <span className="font-semibold text-gray-600">{filtered.length}</span> employees · auto-refreshes every 30s
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-gray-400">
                   <span className="font-semibold text-emerald-600">{completed}</span> completed ·{" "}
                   <span className="font-semibold text-amber-500">{onBreak}</span> on break ·{" "}
                   <span className="font-semibold text-rose-500">{absent}</span> not started
@@ -865,12 +873,12 @@ const AttendanceTab = ({ shifts, shiftSearch, setShiftSearch }) => {
       )}
 
       {!selectedShiftId && (
-        <div className="bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center py-24">
+        <div className="bg-white rounded-2xl border border-gray-200 border-dashed flex flex-col items-center justify-center py-24">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-            <CalendarDays className="h-7 w-7 text-slate-300" />
+            <CalendarDays className="h-7 w-7 text-gray-300" />
           </div>
-          <p className="text-base font-bold text-slate-600">Please select a shift to view details</p>
-          <p className="text-sm text-slate-400 mt-1 max-w-sm text-center">
+          <p className="text-base font-bold text-gray-600">Please select a shift to view details</p>
+          <p className="text-sm text-gray-400 mt-1 max-w-sm text-center">
             Choose a shift from the dropdown above to see shift details, assigned manager, employees, and attendance status.
           </p>
         </div>
@@ -931,18 +939,18 @@ const TimesheetTab = () => {
     <div className="space-y-5">
 
       {/* ── Filter card ────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Timesheet Filters</p>
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Timesheet Filters</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
           <div className="lg:col-span-2 space-y-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search employees to load…"
                 value={empSearch}
                 onChange={(e) => setEmpSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-slate-700 transition"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-gray-700 transition"
               />
             </div>
             {empLoading
@@ -950,14 +958,14 @@ const TimesheetTab = () => {
               : <EmployeeSelect employees={employees} value={selectedEmpId} onChange={setSelectedEmpId} />}
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">From</label>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">From</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-slate-700 transition" />
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-gray-700 transition" />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">To</label>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">To</label>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-slate-700 transition" />
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/40 focus:border-[#2563EB] bg-white text-gray-700 transition" />
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -986,7 +994,7 @@ const TimesheetTab = () => {
       )}
 
       {loading && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="hidden md:block">
             <SkeletonTable rows={5} cols={6} />
           </div>
@@ -1008,26 +1016,26 @@ const TimesheetTab = () => {
 
       {/* ── Timesheet table ────────────────────────────────────── */}
       {data && !loading && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-800">Timesheet Records</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h2 className="text-sm font-bold text-gray-800">Timesheet Records</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
                 {data.employee?.username}
                 {(startDate || endDate) &&
                   ` · ${startDate ? fmtDate(startDate) : "All"} → ${endDate ? fmtDate(endDate) : "Now"}`}
               </p>
             </div>
-            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+            <span className="text-xs font-semibold text-gray-500 bg-slate-100 px-3 py-1.5 rounded-full">
               {history.length} record{history.length !== 1 ? "s" : ""}
             </span>
           </div>
 
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <Calendar className="h-10 w-10 text-slate-200 mb-3" />
-              <p className="text-sm font-semibold text-slate-500">No records found</p>
-              <p className="text-xs text-slate-400 mt-1">No attendance data for the selected range.</p>
+              <Calendar className="h-10 w-10 text-gray-200 mb-3" />
+              <p className="text-sm font-semibold text-gray-500">No records found</p>
+              <p className="text-xs text-gray-400 mt-1">No attendance data for the selected range.</p>
             </div>
           ) : (
             <>
@@ -1039,7 +1047,7 @@ const TimesheetTab = () => {
                     <div key={rec.shiftId || idx} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                       <div className="flex justify-between items-start gap-2">
                         <p className="font-semibold text-gray-900 text-sm flex-1">{rec.shiftTitle}</p>
-                        <span className="text-xs text-slate-400 shrink-0">#{String(idx + 1).padStart(2, "0")}</span>
+                        <span className="text-xs text-gray-400 shrink-0">#{String(idx + 1).padStart(2, "0")}</span>
                       </div>
                       <p className="text-xs text-gray-500 mt-1">{fmtDate(rec.shiftDate)}</p>
                       <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-600">
@@ -1077,9 +1085,9 @@ const TimesheetTab = () => {
               <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
+                  <tr className="bg-gray-50 border-b border-gray-100">
                     {["#", "Shift", "Date", "Check-In", "Check-Out", "Hours"].map((h, i) => (
-                      <th key={h} className="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -1090,31 +1098,31 @@ const TimesheetTab = () => {
                     return (
                       <tr key={rec.shiftId || idx} className="hover:bg-slate-50/60 transition-colors group">
                         <td className="px-5 py-3.5">
-                          <span className="text-xs font-semibold text-slate-300 tabular-nums">#{String(idx + 1).padStart(2, "0")}</span>
+                          <span className="text-xs font-semibold text-gray-300 tabular-nums">#{String(idx + 1).padStart(2, "0")}</span>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563EB] to-blue-600 flex items-center justify-center shrink-0">
                               <CalendarDays className="w-3.5 h-3.5 text-white" />
                             </div>
-                            <p className="text-sm font-semibold text-slate-800 group-hover:text-[#1B3F8B] transition-colors">{rec.shiftTitle}</p>
+                            <p className="text-sm font-semibold text-gray-800 group-hover:text-[#1B3F8B] transition-colors">{rec.shiftTitle}</p>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <p className="text-sm font-medium text-slate-700">{fmtDate(rec.shiftDate)}</p>
+                          <p className="text-sm font-medium text-gray-700">{fmtDate(rec.shiftDate)}</p>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <span className="text-sm font-medium text-slate-700">{fmtTime(rec.checkIn)}</span>
+                          <span className="text-sm font-medium text-gray-700">{fmtTime(rec.checkIn)}</span>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           {outValid
-                            ? <span className="text-sm font-medium text-slate-700">{fmtTime(rec.checkOut)}</span>
+                            ? <span className="text-sm font-medium text-gray-700">{fmtTime(rec.checkOut)}</span>
                             : <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg"><Clock className="w-3 h-3" />In Progress</span>}
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           {rec.totalHours
                             ? <span className="inline-flex items-center gap-1 text-sm font-bold text-[#1B3F8B] bg-[#EFF6FF] px-2.5 py-1 rounded-lg"><Timer className="w-3 h-3" />{rec.totalHours}h</span>
-                            : <span className="text-slate-300 text-sm">—</span>}
+                            : <span className="text-gray-300 text-sm">—</span>}
                         </td>
                       </tr>
                     );
@@ -1142,12 +1150,12 @@ const TimesheetTab = () => {
 
       {/* empty prompt */}
       {!data && !loading && !timesheetFetchError && (
-        <div className="bg-white rounded-2xl border border-slate-200 border-dashed flex flex-col items-center justify-center py-24">
+        <div className="bg-white rounded-2xl border border-gray-200 border-dashed flex flex-col items-center justify-center py-24">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-            <ClipboardList className="h-7 w-7 text-slate-300" />
+            <ClipboardList className="h-7 w-7 text-gray-300" />
           </div>
-          <p className="text-base font-bold text-slate-600">No timesheet generated</p>
-          <p className="text-sm text-slate-400 mt-1">Select an employee and click Generate.</p>
+          <p className="text-base font-bold text-gray-600">No timesheet generated</p>
+          <p className="text-sm text-gray-400 mt-1">Select an employee and click Generate.</p>
         </div>
       )}
     </div>
@@ -1202,27 +1210,30 @@ const AttendanceManagement = () => {
     <div className="min-h-full bg-[#F8F9FC]">
 
       {/* ── Page header ───────────────────────────────────────── */}
-      <div className="border-b border-slate-200 bg-white px-4 pb-0 pt-6 sm:px-6 md:px-8">
+      <div className="border-b border-gray-200 bg-white px-4 pb-0 pt-6 sm:px-6 md:px-8">
         <div className="mx-auto max-w-6xl">
 
           {/* Title row */}
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Attendance</h1>
-              <p className="mt-1 text-sm text-gray-400">Track daily staff attendance</p>
+              <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
+              <p className="text-sm text-gray-500 mt-1">Track daily team attendance</p>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[200px]">
-              <label className="text-xs font-medium text-slate-500" htmlFor="attendance-date">
-                Filter by date
-              </label>
-              <input
-                id="attendance-date"
-                type="date"
-                value={listDate}
-                onChange={(e) => setListDate(e.target.value)}
-                className="h-11 min-h-[44px] w-full rounded-xl border border-gray-200 px-3 text-sm text-slate-900 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
-              />
-            </div>
+            <div className="flex items-center gap-3 flex-wrap"></div>
+          </div>
+
+          {/* Date filter */}
+          <div className="mb-5 flex w-full flex-col gap-1 sm:w-auto sm:min-w-[200px]">
+            <label className="text-xs font-medium text-gray-500" htmlFor="attendance-date">
+              Filter by date
+            </label>
+            <input
+              id="attendance-date"
+              type="date"
+              value={listDate}
+              onChange={(e) => setListDate(e.target.value)}
+              className="h-11 min-h-[44px] w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-900 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30 sm:w-[200px]"
+            />
           </div>
 
           {/* Tab bar */}
@@ -1232,8 +1243,8 @@ const AttendanceManagement = () => {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-t-xl border border-b-0 transition-all duration-150 ${activeTab === tab.key
-                  ? "bg-slate-50 border-slate-200 text-[#1B3F8B] border-b-slate-50"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/60"
+                  ? "bg-gray-50 border-gray-200 text-[#1B3F8B] border-b-slate-50"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-slate-50/60"
                   }`}
               >
                 <tab.icon className="w-4 h-4" />
@@ -1248,7 +1259,7 @@ const AttendanceManagement = () => {
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 md:px-8">
 
         {/* Active tab description */}
-        <div className="mb-5 flex items-center gap-2 text-xs text-slate-400">
+        <div className="mb-5 flex items-center gap-2 text-xs text-gray-400">
           {activeTabCfg && <activeTabCfg.icon className="h-3.5 w-3.5 text-indigo-400" />}
           <span>{activeTabCfg?.desc}</span>
         </div>

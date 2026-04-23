@@ -1,14 +1,14 @@
-import React from "react";
+﻿import React from "react";
 import { Briefcase, Eye, Pencil, Trash2 } from "lucide-react";
 import ManagerRow from "./ManagerRow";
 
 const ManagerTable = ({ managers, onEdit, onDelete, onView }) => {
   if (managers.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
         <Briefcase className="h-12 w-12 mb-3 opacity-30" />
         <p className="text-base font-medium">No managers found</p>
-        <p className="text-sm mt-1 text-slate-400">Try adjusting your search or add a new manager.</p>
+        <p className="text-sm mt-1 text-gray-400">Try adjusting your search or add a new manager.</p>
       </div>
     );
   }
@@ -55,7 +55,7 @@ const ManagerTable = ({ managers, onEdit, onDelete, onView }) => {
                 <button
                   type="button"
                   onClick={() => onView(manager)}
-                  className="w-full min-h-11 inline-flex items-center justify-center gap-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="w-full min-h-11 inline-flex items-center justify-center gap-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                 >
                   <Eye className="w-4 h-4" />
                   View
@@ -65,7 +65,7 @@ const ManagerTable = ({ managers, onEdit, onDelete, onView }) => {
                     <button
                       type="button"
                       onClick={() => onEdit(manager)}
-                      className="flex-1 min-h-11 inline-flex items-center justify-center gap-2 text-sm font-medium rounded-lg border border-gray-300 text-[#1B3F8B] hover:bg-gray-50"
+                      className="flex-1 min-h-11 inline-flex items-center justify-center gap-2 text-sm font-medium rounded-lg border border-gray-300 text-[#1B3F8B] hover:bg-gray-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                     >
                       <Pencil className="w-4 h-4" />
                       Edit
@@ -75,7 +75,7 @@ const ManagerTable = ({ managers, onEdit, onDelete, onView }) => {
                     <button
                       type="button"
                       onClick={() => onDelete(manager)}
-                      className="flex-1 min-h-11 inline-flex items-center justify-center gap-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                      className="flex-1 min-h-11 inline-flex items-center justify-center gap-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
                     >
                       <Trash2 className="w-4 h-4" />
                       Deactivate
@@ -91,20 +91,20 @@ const ManagerTable = ({ managers, onEdit, onDelete, onView }) => {
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Manager
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Role
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Joined
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>

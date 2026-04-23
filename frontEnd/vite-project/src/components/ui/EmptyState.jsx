@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Centered empty state with optional primary and secondary actions.
  * Legacy: `message` and `action={{ label, onClick }}` remain supported.
  */
@@ -54,7 +54,7 @@ export default function EmptyState({
             <button
               type="button"
               onClick={onSecondaryAction}
-              className="inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 sm:w-auto"
+              className="inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-6 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 sm:w-auto"
             >
               {secondaryLabel}
             </button>

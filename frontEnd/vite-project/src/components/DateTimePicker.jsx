@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+﻿import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -123,20 +123,20 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                 onClick={() => setOpen((o) => !o)}
                 className={`
           w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm text-left
-          bg-slate-50 border transition-all duration-150
-          hover:bg-white hover:border-slate-300
+          bg-gray-50 border transition-all duration-150
+          hover:bg-white hover:border-gray-300
           focus:outline-none focus:ring-2 ${acc.ring}
-          ${label ? "border-slate-200 text-slate-800 font-medium" : "border-slate-200 text-slate-400"}
+          ${label ? "border-gray-200 text-gray-800 font-medium" : "border-gray-200 text-gray-400"}
         `}
             >
-                <CalendarDays size={15} className={label ? "text-[#2563EB] shrink-0" : "text-slate-400 shrink-0"} />
+                <CalendarDays size={15} className={label ? "text-[#2563EB] shrink-0" : "text-gray-400 shrink-0"} />
                 <span className="flex-1 truncate">{label ?? placeholder}</span>
                 {label && (
                     <span
                         role="button"
                         tabIndex={0}
                         onClick={(e) => { e.stopPropagation(); onChange(""); }}
-                        className="text-slate-300 hover:text-slate-500 transition cursor-pointer text-base leading-none"
+                        className="text-gray-300 hover:text-gray-500 transition cursor-pointer text-base leading-none"
                     >
                         ×
                     </span>
@@ -163,14 +163,14 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                     {/* Month nav */}
                     <div className="flex items-center justify-between px-4 pt-4 pb-2">
                         <button type="button" onClick={prevMonth}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition">
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition">
                             <ChevronLeft size={16} />
                         </button>
-                        <span className="text-sm font-bold text-slate-800">
+                        <span className="text-sm font-bold text-gray-800">
                             {MONTHS[viewMonth]} {viewYear}
                         </span>
                         <button type="button" onClick={nextMonth}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition">
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition">
                             <ChevronRight size={16} />
                         </button>
                     </div>
@@ -178,7 +178,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                     {/* Weekday headers */}
                     <div className="grid grid-cols-7 px-4 mb-1">
                         {WEEKDAYS.map((d, i) => (
-                            <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
+                            <div key={i} className="text-center text-xs font-semibold text-gray-400 py-1">{d}</div>
                         ))}
                     </div>
 
@@ -197,7 +197,7 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                     mx-auto flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all duration-100
                     ${isSelected ? acc.sel + " shadow-sm"
                                             : isToday ? "text-[#1B3F8B] font-bold ring-2 ring-[#93C5FD] ring-offset-1"
-                                                : "text-slate-700 hover:bg-slate-100"}
+                                                : "text-gray-700 hover:bg-gray-100"}
                   `}
                                 >
                                     {day}
@@ -207,39 +207,39 @@ const DateTimePicker = ({ value, onChange, placeholder = "Select date & time", a
                     </div>
 
                     {/* Time picker */}
-                    <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 rounded-b-2xl">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Time</p>
+                    <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 rounded-b-2xl">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Time</p>
                         <div className="flex items-center gap-2">
                             {/* Hour */}
                             <div className="flex-1">
-                                <p className="text-[10px] text-slate-400 mb-1 text-center">Hour</p>
+                                <p className="text-[10px] text-gray-400 mb-1 text-center">Hour</p>
                                 <input
                                     type="number" min={0} max={23}
                                     value={pad(hour)}
                                     onChange={(e) => applyHour(parseInt(e.target.value))}
                                     onBlur={(e) => applyHour(parseInt(e.target.value))}
-                                    className="w-full text-center px-2 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] transition"
+                                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-2 py-2 text-center text-base font-bold text-gray-800 transition focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 md:text-sm"
                                 />
                             </div>
-                            <span className="text-slate-400 font-bold text-xl mt-3">:</span>
+                            <span className="text-gray-400 font-bold text-xl mt-3">:</span>
                             {/* Minute */}
                             <div className="flex-1">
-                                <p className="text-[10px] text-slate-400 mb-1 text-center">Min</p>
+                                <p className="text-[10px] text-gray-400 mb-1 text-center">Min</p>
                                 <input
                                     type="number" min={0} max={59} step={5}
                                     value={pad(min)}
                                     onChange={(e) => applyMin(parseInt(e.target.value))}
                                     onBlur={(e) => applyMin(parseInt(e.target.value))}
-                                    className="w-full text-center px-2 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] transition"
+                                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-2 py-2 text-center text-base font-bold text-gray-800 transition focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 md:text-sm"
                                 />
                             </div>
                             {/* Done */}
                             <div className="flex-1">
-                                <p className="text-[10px] text-slate-400 mb-1 text-center opacity-0">-</p>
+                                <p className="text-[10px] text-gray-400 mb-1 text-center opacity-0">-</p>
                                 <button
                                     type="button"
                                     onClick={() => setOpen(false)}
-                                    className="w-full py-2 rounded-xl text-sm font-bold bg-slate-800 hover:bg-slate-700 text-white transition"
+                                    className="w-full py-2 rounded-xl text-sm font-bold bg-gray-800 hover:bg-gray-700 text-white transition"
                                 >
                                     Done
                                 </button>

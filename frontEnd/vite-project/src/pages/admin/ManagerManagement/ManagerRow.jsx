@@ -43,8 +43,8 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
             {initials}
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">{manager.username}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{manager.email}</p>
+            <p className="text-sm font-semibold text-gray-900">{manager.username}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{manager.email}</p>
           </div>
         </div>
       </td>
@@ -57,7 +57,7 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
 
       <td className="px-6 py-4 whitespace-nowrap">
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-          isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+          isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-gray-600"
         }`}>
           {isActive ? (
             <>
@@ -70,7 +70,7 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
         </span>
       </td>
 
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {formatJoinDate(manager.createdAt)}
       </td>
 
@@ -79,7 +79,7 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
           <button
             onClick={() => onView(manager)}
             title="View Details"
-            className="p-2 rounded-lg text-slate-400 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+            className="p-2 rounded-lg text-gray-400 hover:bg-blue-100 hover:text-blue-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
           >
             <Eye className="h-4 w-4" />
           </button>
@@ -87,7 +87,7 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
             <button
               onClick={() => onEdit(manager)}
               title="Edit Manager"
-              className="p-2 rounded-lg text-slate-400 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
             >
               <Pencil className="h-4 w-4" />
             </button>
@@ -96,7 +96,7 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
             <button
               onClick={() => onDelete(manager)}
               title="Deactivate Manager"
-              className="p-2 rounded-lg text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:bg-red-100 hover:text-red-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
             >
               <Trash2 className="h-4 w-4" />
             </button>

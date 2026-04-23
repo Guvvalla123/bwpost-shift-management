@@ -41,22 +41,27 @@ const NavItem = ({ item, isActive, onNavigate, effectiveCollapsed }) => {
       to={item.path}
       title={effectiveCollapsed ? item.name : undefined}
       onClick={() => onNavigate?.()}
-      className={`mx-2 flex min-h-[48px] items-center gap-2.5 rounded-lg px-4 py-3 text-sm transition-colors ${
-        effectiveCollapsed ? "justify-center lg:justify-center lg:px-2" : ""
+      className={`group relative mx-2 flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+        effectiveCollapsed ? "justify-center px-2" : ""
       } ${
         isActive
-          ? "bg-[#1B3F8B] font-semibold text-white"
-          : "text-white/45 hover:bg-white/5 hover:text-white/70"
+          ? "bg-white/10 text-white"
+          : "text-white/60 hover:bg-white/5 hover:text-white"
       }`}
     >
-      <span
-        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded ${
-          isActive ? "bg-[#60A5FA] text-white" : "bg-white/10 text-white/70"
+      {isActive && (
+        <span
+          className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-white"
+          aria-hidden
+        />
+      )}
+      <Icon
+        className={`h-5 w-5 shrink-0 ${
+          isActive ? "text-white" : "text-white/50 group-hover:text-white"
         }`}
-      >
-        <Icon className="h-3 w-3" strokeWidth={2} />
-      </span>
-      <span className={`truncate ${effectiveCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
+        strokeWidth={2}
+      />
+      <span className={`truncate ${effectiveCollapsed ? "hidden" : ""}`}>{item.name}</span>
     </Link>
   );
 };
@@ -80,7 +85,7 @@ const EmployeeSidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =
 
   return (
     <aside className="flex h-full min-h-full w-full flex-col bg-[#0f2042]">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 lg:hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 md:hidden">
         <span className="text-xs font-semibold text-white/80">Menu</span>
         <button
           type="button"
@@ -92,17 +97,17 @@ const EmployeeSidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =
         </button>
       </div>
       <div
-        className={`shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-4 ${effectiveCollapsed ? "lg:px-2" : ""}`}
+        className={`shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-4 ${effectiveCollapsed ? "px-2" : ""}`}
       >
-        <div className={`flex items-baseline gap-0.5 ${effectiveCollapsed ? "lg:justify-center" : ""}`}>
+        <div className={`flex items-baseline gap-0.5 ${effectiveCollapsed ? "justify-center" : ""}`}>
           <span className="text-[15px] font-extrabold tracking-tight text-white">BW</span>
-          <span className={`text-[15px] font-light tracking-tight text-[#60A5FA] ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+          <span className={`text-[15px] font-light tracking-tight text-[#60A5FA] ${effectiveCollapsed ? "hidden" : ""}`}>
             POST
           </span>
         </div>
         <span
           className={`mt-1 inline-block rounded bg-[#60A5FA]/12 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-[#60A5FA] ${
-            effectiveCollapsed ? "lg:hidden" : ""
+            effectiveCollapsed ? "hidden" : ""
           }`}
         >
           Employee
@@ -113,8 +118,8 @@ const EmployeeSidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
             <p
-              className={`px-4 pb-1 pt-5 text-[8px] font-bold uppercase tracking-widest text-white/20 ${
-                effectiveCollapsed ? "lg:hidden" : ""
+              className={`px-4 pb-1 pt-5 text-[10px] font-semibold uppercase tracking-wider text-white/30 ${
+                effectiveCollapsed ? "hidden" : ""
               }`}
             >
               {group.label}
@@ -148,13 +153,13 @@ const EmployeeSidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =
 
         <div
           className={`flex shrink-0 items-center gap-2.5 border-t border-white/[0.06] px-3 py-2 ${
-            effectiveCollapsed ? "lg:flex-col lg:px-2" : ""
+            effectiveCollapsed ? "flex-col px-2" : ""
           }`}
         >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#60A5FA] bg-[#1B3F8B] text-xs font-bold text-white">
           {initials}
         </div>
-        <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+        <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "hidden" : ""}`}>
           <p className="truncate text-[10px] font-medium text-white/80">{getDisplayName(user, "Employee")}</p>
           <p className="text-[9px] capitalize text-white/30">{user?.role || "Employee"}</p>
         </div>
@@ -162,7 +167,7 @@ const EmployeeSidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =
           type="button"
           onClick={handleLogout}
           className={`ml-auto rounded-lg p-1.5 text-white/25 transition-colors hover:text-white/60 ${
-            effectiveCollapsed ? "lg:hidden" : ""
+            effectiveCollapsed ? "hidden" : ""
           }`}
           aria-label="Sign out"
         >
@@ -172,7 +177,7 @@ const EmployeeSidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =
           <button
             type="button"
             onClick={handleLogout}
-            className="hidden w-full items-center justify-center rounded-lg p-2 text-white/40 hover:text-white/70 lg:flex"
+            className="flex w-full items-center justify-center rounded-lg p-2 text-white/40 hover:text-white/70"
             aria-label="Sign out"
           >
             <LogOut className="h-4 w-4" />

@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
-import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, Badge } from "@/components/ui";
 import {
-    Calendar, Clock, Loader2, Briefcase,
-    ArrowRightLeft, LogOut as LeaveIcon,
+    Calendar, CalendarDays, Clock, Loader2, Briefcase,
+    ArrowRightLeft, LogOut as LeaveIcon, Eye,
 } from "lucide-react";
 import { getStatus } from "@/utils/shiftStatus";
 
@@ -17,7 +18,7 @@ const fmtTime = (d) => new Date(d).toLocaleTimeString(undefined, { hour: "2-digi
 const STATUS_CFG = {
     upcoming: { label: "Upcoming", cls: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
     ongoing: { label: "Ongoing", cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500 animate-pulse" },
-    completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
+    completed: { label: "Completed", cls: "bg-slate-100 text-gray-500", dot: "bg-slate-400" },
 };
 
 /* ─── Leave / Change Request Modal ───────────────────────── */
@@ -80,19 +81,19 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
 
                 <div className="p-6 space-y-4">
                     {/* Current shift info */}
-                    <div className="bg-slate-50 rounded-xl p-4 text-sm">
-                        <p className="font-semibold text-slate-700 mb-1">Current Shift</p>
-                        <p className="text-slate-500">{fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}</p>
+                    <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                        <p className="font-semibold text-gray-700 mb-1">Current Shift</p>
+                        <p className="text-gray-500">{fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}</p>
                     </div>
 
                     {/* Shift to switch to (only for shift_change) */}
                     {type === "shift_change" && (
                         <div>
-                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Switch to Shift</label>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Switch to Shift</label>
                             <select
                                 value={requestedShiftId}
                                 onChange={e => setRequestedShiftId(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 bg-slate-50"
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 bg-gray-50"
                             >
                                 <option value="">— Select a shift —</option>
                                 {switchable.map(s => (
@@ -106,19 +107,19 @@ const RequestModal = ({ shift, allShifts, type, onClose, onSuccess }) => {
 
                     {/* Reason */}
                     <div>
-                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Reason (optional)</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Reason (optional)</label>
                         <textarea
                             value={reason}
                             onChange={e => setReason(e.target.value)}
                             rows={3}
                             placeholder="Briefly explain why..."
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] bg-slate-50"
+                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] bg-gray-50"
                         />
                     </div>
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-1">
-                        <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                        <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
                             Cancel
                         </button>
                         <button
@@ -200,18 +201,11 @@ const MyShifts = () => {
 
     useEffect(() => { fetchMyShifts(false); }, [fetchMyShifts]);
 
-    useEffect(() => {
-        const interval = setInterval(() => fetchMyShifts(true), 30000);
-        return () => clearInterval(interval);
+    const fetchMyShiftsSilent = useCallback(() => {
+        fetchMyShifts(true);
     }, [fetchMyShifts]);
 
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === "visible") fetchMyShifts(true);
-        };
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }, [fetchMyShifts]);
+    useAutoRefresh(fetchMyShiftsSilent, 60_000);
 
     const filtered = filter === "all"
         ? shifts
@@ -260,11 +254,12 @@ const MyShifts = () => {
         <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-6 max-w-7xl mx-auto">
 
             {/* Header */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Shifts</h1>
-                    <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">All shifts you are assigned to</p>
+                    <h1 className="text-2xl font-bold text-gray-900">My Shifts</h1>
+                    <p className="text-sm text-gray-500 mt-1">All shifts you are assigned to</p>
                 </div>
+                <div className="flex items-center gap-3 flex-wrap"></div>
             </div>
             {/* Filter tabs */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -303,96 +298,97 @@ const MyShifts = () => {
                     onAction={() => navigate("/employee/AllShifts")}
                 />
             ) : filtered.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center py-16">
-                    <Calendar size={40} className="text-slate-300 mb-3" />
-                    <p className="text-slate-500 font-medium">No {filter !== "all" ? filter : ""} shifts on this page</p>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-16">
+                    <Calendar size={40} className="text-gray-300 mb-3" />
+                    <p className="text-gray-500 font-medium">No {filter !== "all" ? filter : ""} shifts on this page</p>
                 </div>
             ) : (
                 <>
                     <div className="md:hidden space-y-3">
                         {filtered.map((shift) => {
-                            const now = new Date();
-                            const start = new Date(shift.shiftStartTime);
-                            const end = new Date(shift.shiftEndTime);
-                            const timelineStatus =
-                                now < start ? "Upcoming" : now > end ? "Completed" : "Ongoing";
-                            const badgeCls =
-                                timelineStatus === "Upcoming"
-                                    ? "bg-blue-50 text-blue-700 border border-blue-100"
-                                    : timelineStatus === "Ongoing"
-                                        ? "bg-green-50 text-green-700 border border-green-100"
-                                        : "bg-gray-100 text-gray-600 border border-gray-200";
                             const apiStatus = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+                            const borderCls =
+                                apiStatus === "ongoing"
+                                    ? "border-l-4 border-l-green-500"
+                                    : apiStatus === "upcoming"
+                                    ? "border-l-4 border-l-[#1B3F8B]"
+                                    : "border-l-4 border-l-gray-300";
+                            const badgeVariant =
+                                apiStatus === "ongoing" ? "success" : apiStatus === "upcoming" ? "navy" : "gray";
+                            const badgeLabel =
+                                apiStatus === "ongoing" ? "Ongoing" : apiStatus === "upcoming" ? "Upcoming" : "Completed";
                             return (
                                 <div
                                     key={shift._id}
-                                    className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+                                    className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-all duration-200 ${borderCls}`}
                                 >
-                                    <div className="p-4 pb-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-gray-900 text-sm leading-tight truncate">
-                                                    {shift.shiftTitle}
-                                                </h3>
-                                            </div>
-                                            <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${badgeCls}`}>
-                                                {timelineStatus}
-                                            </span>
+                                    {/* TOP ROW */}
+                                    <div className="flex items-start justify-between gap-2 mb-3">
+                                        <p className="font-bold text-base text-gray-900 leading-tight flex-1 min-w-0 truncate">
+                                            {shift.shiftTitle}
+                                        </p>
+                                        <Badge variant={badgeVariant} size="sm">{badgeLabel}</Badge>
+                                    </div>
+                                    {/* SECOND ROW */}
+                                    <div className="space-y-1.5 mb-3">
+                                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                                            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                            <span>{fmtDate(shift.shiftStartTime)}</span>
                                         </div>
-                                        <div className="mt-3 space-y-1.5">
-                                            <div className="flex items-center gap-3 text-xs text-gray-600">
-                                                <span className="text-gray-400 w-8 flex-shrink-0 font-medium">Start</span>
-                                                <span className="font-medium text-gray-800">{formatCardDateTime(shift.shiftStartTime)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 text-xs text-gray-600">
-                                                <span className="text-gray-400 w-8 flex-shrink-0 font-medium">End</span>
-                                                <span className="font-medium text-gray-800">{formatCardDateTime(shift.shiftEndTime)}</span>
-                                            </div>
+                                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                                            <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                            <span>{fmtTime(shift.shiftStartTime)} – {fmtTime(shift.shiftEndTime)}</span>
                                         </div>
-                                        {managerLabel(shift) && (
-                                            <p className="mt-2 text-xs text-gray-500">
-                                                Manager: <span className="font-medium text-gray-800">{managerLabel(shift)}</span>
-                                            </p>
-                                        )}
-                                        {shift.shiftNotes && (
-                                            <p className="mt-2 text-xs text-gray-500 leading-relaxed line-clamp-2">{shift.shiftNotes}</p>
+                                    </div>
+                                    {/* THIRD ROW: notes */}
+                                    {shift.shiftNotes && (
+                                        <p className="text-sm text-gray-400 italic truncate mb-3">{shift.shiftNotes}</p>
+                                    )}
+                                    {/* BOTTOM ROW */}
+                                    <div className="flex items-center justify-end gap-0.5 border-t border-gray-100 pt-3">
+                                        <button
+                                            type="button"
+                                            title="View details"
+                                            className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#1B3F8B] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </button>
+                                        {apiStatus === "upcoming" && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    title="Change shift"
+                                                    onClick={() => setModal({ shift, type: "shift_change" })}
+                                                    className="p-2 rounded-lg text-amber-500 hover:bg-amber-50 hover:text-amber-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
+                                                >
+                                                    <ArrowRightLeft className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="Request leave"
+                                                    onClick={() => setModal({ shift, type: "leave" })}
+                                                    className="p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                                                >
+                                                    <LeaveIcon className="h-4 w-4" />
+                                                </button>
+                                            </>
                                         )}
                                     </div>
-                                    {apiStatus === "upcoming" && (
-                                        <div className="px-4 pb-4 pt-3 border-t border-gray-100 flex flex-col gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setModal({ shift, type: "shift_change" })}
-                                                className="w-full min-h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-colors inline-flex items-center justify-center gap-2"
-                                            >
-                                                <ArrowRightLeft size={16} />
-                                                Change shift
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setModal({ shift, type: "leave" })}
-                                                className="w-full min-h-11 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors inline-flex items-center justify-center gap-2"
-                                            >
-                                                <LeaveIcon size={16} />
-                                                Request leave
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}
                     </div>
 
-                    <div className="hidden md:block overflow-x-auto bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="hidden md:block overflow-x-auto bg-white rounded-2xl border border-gray-100 shadow-sm">
                         <table className="w-full min-w-full">
                             <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/50">
-                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Start</th>
-                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">End</th>
-                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Manager</th>
-                                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                                <tr className="border-b border-gray-100 bg-slate-50/50">
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Shift</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Start</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">End</th>
+                                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Manager</th>
+                                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -400,11 +396,11 @@ const MyShifts = () => {
                                     const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
                                     const cfg = STATUS_CFG[status];
                                     return (
-                                        <tr key={shift._id} className="hover:bg-slate-50/60">
+                                        <tr key={shift._id} className="hover:bg-slate-50/60 transition-colors duration-100 cursor-pointer">
                                             <td className="px-6 py-4">
-                                                <p className="text-sm font-semibold text-slate-900">{shift.shiftTitle}</p>
+                                                <p className="text-sm font-semibold text-gray-900">{shift.shiftTitle}</p>
                                                 {shift.shiftNotes && (
-                                                    <p className="text-xs text-slate-400 truncate max-w-xs mt-0.5">{shift.shiftNotes}</p>
+                                                    <p className="text-xs text-gray-400 truncate max-w-xs mt-0.5">{shift.shiftNotes}</p>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
@@ -413,13 +409,13 @@ const MyShifts = () => {
                                                     {cfg.label}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 {fmtDate(shift.shiftStartTime)} {fmtTime(shift.shiftStartTime)}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 {fmtTime(shift.shiftEndTime)}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-600">
+                                            <td className="px-6 py-4 text-sm text-gray-600">
                                                 {managerLabel(shift) || "—"}
                                             </td>
                                             <td className="px-6 py-4 text-right whitespace-nowrap">
@@ -428,7 +424,7 @@ const MyShifts = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => setModal({ shift, type: "shift_change" })}
-                                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100"
+                                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
                                                         >
                                                             <ArrowRightLeft size={13} />
                                                             Change
@@ -436,14 +432,14 @@ const MyShifts = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => setModal({ shift, type: "leave" })}
-                                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100"
+                                                            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
                                                         >
                                                             <LeaveIcon size={13} />
                                                             Leave
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-slate-300">—</span>
+                                                    <span className="text-xs text-gray-300">—</span>
                                                 )}
                                             </td>
                                         </tr>

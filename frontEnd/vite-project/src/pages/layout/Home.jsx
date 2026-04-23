@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { LogIn, CalendarDays, Clock, FileText } from "lucide-react";
 
 function scrollToSection(e, id) {
@@ -31,34 +31,34 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-baseline gap-0.5 shrink-0">
             <span className="font-extrabold text-[#1B3F8B] text-xl">BW</span>
-            <span className="font-light text-slate-400 text-xl">POST</span>
+            <span className="font-light text-gray-400 text-xl">POST</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <a
               href="#home"
               onClick={(e) => scrollToSection(e, "home")}
-              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+              className="text-gray-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
             >
               Home
             </a>
             <a
               href="#about"
               onClick={(e) => scrollToSection(e, "about")}
-              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+              className="text-gray-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
             >
               About
             </a>
             <a
               href="#services"
               onClick={(e) => scrollToSection(e, "services")}
-              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+              className="text-gray-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
             >
               Services
             </a>
             <a
               href="#contact"
               onClick={(e) => scrollToSection(e, "contact")}
-              className="text-slate-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
+              className="text-gray-700 text-sm font-medium hover:text-[#1B3F8B] transition-colors cursor-pointer"
             >
               Contact
             </a>
@@ -117,7 +117,7 @@ export default function Home() {
             <div className="text-center mb-14">
               <p className="text-[#1B3F8B] text-xs font-bold tracking-widest uppercase mb-3">What we offer</p>
               <h2 className="text-[#0f2042] text-4xl font-extrabold">Everything your team needs</h2>
-              <p className="text-slate-400 text-base mt-3 max-w-xl mx-auto">
+              <p className="text-gray-400 text-base mt-3 max-w-xl mx-auto">
                 Built for BWPost&apos;s internal HR and operations teams.
               </p>
             </div>
@@ -125,13 +125,13 @@ export default function Home() {
               {features.map((f) => (
                 <div
                   key={f.title}
-                  className="p-8 rounded-2xl border border-slate-200 hover:border-[#1B3F8B]/30 hover:shadow-lg hover:shadow-slate-100 transition-all duration-200"
+                  className="p-8 rounded-2xl border border-gray-200 hover:border-[#1B3F8B]/30 hover:shadow-lg hover:shadow-slate-100 transition-all duration-200"
                 >
                   <div className="w-12 h-12 bg-[#EFF6FF] rounded-xl flex items-center justify-center mb-5">
                     <f.icon className="w-[22px] h-[22px] text-[#1B3F8B]" aria-hidden />
                   </div>
                   <h3 className="font-bold text-[#0f2042] text-lg mb-2">{f.title}</h3>
-                  <p className="text-slate-500 leading-relaxed text-sm">{f.desc}</p>
+                  <p className="text-gray-500 leading-relaxed text-sm">{f.desc}</p>
                 </div>
               ))}
             </div>

@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+﻿import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import API from "@/api";
 import { toast } from "sonner";
 import {
     ClipboardList, ArrowRightLeft, LogOut as LeaveIcon,
     Calendar, Search, X,
-    FileText,
+    FileText, CheckCircle, XCircle,
 } from "lucide-react";
-import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, Badge } from "@/components/ui";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
@@ -67,24 +68,15 @@ const MyRequests = () => {
         } finally { setLoading(false); }
     }, [currentPage]);
 
-    /* ── Auto-refresh every 30 s ── */
     useEffect(() => {
         fetchRequests();
-        const id = setInterval(() => fetchRequests(true), 30_000);
-        return () => clearInterval(id);
     }, [fetchRequests]);
 
-    /* ── Re-fetch on tab focus / visibility ── */
-    useEffect(() => {
-        const fn = () => fetchRequests(true);
-        const visHandler = () => { if (document.visibilityState === "visible") fn(); };
-        window.addEventListener("focus", fn);
-        document.addEventListener("visibilitychange", visHandler);
-        return () => {
-            window.removeEventListener("focus", fn);
-            document.removeEventListener("visibilitychange", visHandler);
-        };
+    const fetchRequestsSilent = useCallback(() => {
+        fetchRequests(true);
     }, [fetchRequests]);
+
+    useAutoRefresh(fetchRequestsSilent, 60_000);
 
     /* ── Computed ── */
     const inRange = useCallback((r) => {
@@ -108,21 +100,21 @@ const MyRequests = () => {
         <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-5 max-w-7xl mx-auto">
 
             {/* ── Page header ── */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Requests</h1>
-                    <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Track your leave and shift change requests</p>
+                    <h1 className="text-2xl font-bold text-gray-900">My Requests</h1>
+                    <p className="text-sm text-gray-500 mt-1">Track your leave and shift requests</p>
                 </div>
+                <div className="flex items-center gap-3 flex-wrap"></div>
             </div>
-            <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
             {/* ── ONE combined filter bar ── */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex flex-col gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex flex-col gap-3">
 
                 {/* Date range */}
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-3 w-full items-center">
                     <div className="flex items-center gap-2 min-w-0">
-                        <Calendar size={14} className="text-slate-400 shrink-0" />
+                        <Calendar size={14} className="text-gray-400 shrink-0" />
                         <input
                             type="date"
                             value={dateFrom}
@@ -141,7 +133,7 @@ const MyRequests = () => {
 
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-3 text-xs font-medium">
-                        <span className="text-slate-500"><span className="font-bold text-slate-800">{totalItems}</span> total</span>
+                        <span className="text-gray-500"><span className="font-bold text-gray-800">{totalItems}</span> total</span>
                     </div>
                     <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
                 </div>
@@ -154,7 +146,7 @@ const MyRequests = () => {
                                 type="button"
                                 onClick={() => { setTypeFilter(k); setCurrentPage(1); }}
                                 className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap
-                        ${typeFilter === k ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                        ${typeFilter === k ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-gray-600 hover:bg-slate-200"}`}
                             >{l}</button>
                         ))}
                     </div>
@@ -167,21 +159,21 @@ const MyRequests = () => {
                             type="button"
                             onClick={() => { setStatusFilter(k); setCurrentPage(1); }}
                             className={`flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap
-                        ${statusFilter === k ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                        ${statusFilter === k ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-gray-600 hover:bg-slate-200"}`}
                         >
                             {l}
                         </button>
                     ))}
                     <div className="relative ml-auto min-w-[8rem] flex-shrink-0">
-                        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
                             value={search}
                             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                             placeholder="Search…"
-                            className="w-full pl-7 pr-7 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 bg-slate-50"
+                            className="w-full pl-7 pr-7 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 bg-gray-50"
                         />
                         {search && (
-                            <button type="button" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <button type="button" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-150 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30">
                                 <X size={11} />
                             </button>
                         )}
@@ -190,7 +182,7 @@ const MyRequests = () => {
             </div>
 
             {/* ── Table ── */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 {loading ? (
                     <div className="p-6">
                         <div className="hidden md:block">
@@ -216,56 +208,83 @@ const MyRequests = () => {
                     />
                 ) : visible.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16">
-                        <ClipboardList size={38} className="text-slate-200 mb-3" />
-                        <p className="text-slate-500 font-medium text-sm">No matching requests on this page</p>
-                        <p className="text-slate-400 text-xs mt-1">Try a different date range or filter</p>
+                        <ClipboardList size={38} className="text-gray-200 mb-3" />
+                        <p className="text-gray-500 font-medium text-sm">No matching requests on this page</p>
+                        <p className="text-gray-400 text-xs mt-1">Try a different date range or filter</p>
                     </div>
                 ) : (
                     <>
                         <div className="md:hidden space-y-3 px-4 pb-2">
                             {visible.map((req) => {
                                 const st = req.status || "pending";
-                                const badgeCls =
+                                const borderCls =
                                     st === "pending"
-                                        ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                                        ? "border-l-4 border-l-amber-500"
                                         : st === "approved"
-                                            ? "bg-green-50 text-green-700 border border-green-200"
-                                            : "bg-red-50 text-red-600 border border-red-200";
-                                const statusLabel = st.charAt(0).toUpperCase() + st.slice(1);
+                                        ? "border-l-4 border-l-green-500"
+                                        : "border-l-4 border-l-red-400";
+                                const typeCfg = TYPE_CFG[req.type] || TYPE_CFG.leave;
+                                const TypeIcon = typeCfg.Icon;
+                                const statusCfg = STATUS_CFG[st] || STATUS_CFG.pending;
                                 return (
-                                    <div key={req._id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex-1 pr-3">
-                                                <p className="font-semibold text-gray-900 text-sm line-clamp-1">
-                                                    {req.currentShift?.shiftTitle || "Shift"}
-                                                </p>
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    {req.createdAt
-                                                        ? new Date(req.createdAt).toLocaleDateString("en-DE", {
-                                                            day: "2-digit",
-                                                            month: "short",
-                                                            year: "numeric",
-                                                        })
-                                                        : "—"}
-                                                </p>
-                                            </div>
-                                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${badgeCls}`}>
-                                                {statusLabel}
+                                    <div
+                                        key={req._id}
+                                        className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-all duration-200 ${borderCls}`}
+                                    >
+                                        {/* TOP ROW: type badge + status badge */}
+                                        <div className="flex items-center justify-between gap-2 mb-3">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${typeCfg.badge}`}>
+                                                <TypeIcon size={10} />
+                                                {typeCfg.label}
+                                            </span>
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusCfg.badge}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                                                {statusCfg.label}
                                             </span>
                                         </div>
-                                        {req.managerNote && (
-                                            <div className="bg-gray-50 rounded-lg p-3 mt-2">
-                                                <p className="text-xs text-gray-500 font-medium mb-1">
-                                                    Manager response:
-                                                </p>
-                                                <p className="text-xs text-gray-700 leading-relaxed">
-                                                    {req.managerNote}
-                                                </p>
+                                        {/* SECOND ROW: shift name + date */}
+                                        <div className="mb-3">
+                                            <p className="font-bold text-sm text-gray-900 line-clamp-1">
+                                                {req.currentShift?.shiftTitle || "Shift"}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                Submitted {fmtDate(req.createdAt)}
+                                            </p>
+                                        </div>
+                                        {/* THIRD ROW: reason quote block */}
+                                        {req.reason && (
+                                            <div className="border-l-2 border-gray-200 pl-3 py-1 mb-3">
+                                                <p className="text-sm text-gray-500 italic line-clamp-2">{req.reason}</p>
                                             </div>
                                         )}
-                                        {req.reason && (
-                                            <p className="text-xs text-slate-500 mt-2 italic line-clamp-2">{req.reason}</p>
-                                        )}
+                                        {/* BOTTOM ROW */}
+                                        <div className="border-t border-gray-100 pt-3">
+                                            {st === "pending" && (
+                                                <button
+                                                    type="button"
+                                                    className="w-full py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                                                >
+                                                    Cancel Request
+                                                </button>
+                                            )}
+                                            {st === "approved" && (
+                                                <div className="flex items-center justify-center gap-1.5 text-green-600">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                    <span className="text-sm font-medium">Approved</span>
+                                                </div>
+                                            )}
+                                            {st === "rejected" && (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-center gap-1.5 text-red-500">
+                                                        <XCircle className="h-4 w-4" />
+                                                        <span className="text-sm font-medium">Rejected</span>
+                                                    </div>
+                                                    {req.managerNote && (
+                                                        <p className="text-xs text-gray-400 text-center">{req.managerNote}</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -273,13 +292,13 @@ const MyRequests = () => {
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-slate-100 bg-slate-50/60">
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Reason / Note</th>
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Submitted</th>
-                                        <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Resolved</th>
+                                    <tr className="border-b border-gray-100 bg-slate-50/60">
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Type</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Shift</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Reason / Note</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Submitted</th>
+                                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Resolved</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -288,19 +307,19 @@ const MyRequests = () => {
                                         const statusCfg = STATUS_CFG[req.status] || STATUS_CFG.pending;
                                         const TypeIcon = typeCfg.Icon;
                                         return (
-                                            <tr key={req._id} className={`transition-all hover:brightness-[0.97] ${statusCfg.row}`}>
+                                            <tr key={req._id} className={`transition-all duration-100 hover:brightness-[0.97] cursor-pointer ${statusCfg.row}`}>
                                                 <td className="px-5 py-3.5 whitespace-nowrap">
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${typeCfg.badge}`}>
                                                         <TypeIcon size={10} />{typeCfg.label}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <p className="text-sm font-semibold text-slate-800 truncate max-w-[160px]">{req.currentShift?.shiftTitle || "—"}</p>
-                                                    <p className="text-xs text-slate-400 mt-0.5">{fmtDate(req.currentShift?.shiftStartTime)}</p>
+                                                    <p className="text-sm font-semibold text-gray-800 truncate max-w-[160px]">{req.currentShift?.shiftTitle || "—"}</p>
+                                                    <p className="text-xs text-gray-400 mt-0.5">{fmtDate(req.currentShift?.shiftStartTime)}</p>
                                                     {req.requestedShift && <p className="text-xs text-amber-600 mt-0.5">→ {req.requestedShift.shiftTitle}</p>}
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <p className="text-xs text-slate-500 italic max-w-[180px] truncate">{req.reason || <span className="not-italic text-slate-300">—</span>}</p>
+                                                    <p className="text-xs text-gray-500 italic max-w-[180px] truncate">{req.reason || <span className="not-italic text-gray-300">—</span>}</p>
                                                     {req.managerNote && (
                                                         <p className="text-xs text-[#1B3F8B] mt-0.5 truncate max-w-[180px]">Manager: {req.managerNote}</p>
                                                     )}
@@ -311,10 +330,10 @@ const MyRequests = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5 whitespace-nowrap">
-                                                    <p className="text-xs font-medium text-slate-700">{fmtDate(req.createdAt)}</p>
+                                                    <p className="text-xs font-medium text-gray-700">{fmtDate(req.createdAt)}</p>
                                                 </td>
                                                 <td className="px-5 py-3.5 whitespace-nowrap">
-                                                    <p className="text-xs font-medium text-slate-700">{req.resolvedAt ? fmtDate(req.resolvedAt) : <span className="text-slate-300">—</span>}</p>
+                                                    <p className="text-xs font-medium text-gray-700">{req.resolvedAt ? fmtDate(req.resolvedAt) : <span className="text-gray-300">—</span>}</p>
                                                 </td>
                                             </tr>
                                         );
@@ -322,9 +341,9 @@ const MyRequests = () => {
                                 </tbody>
                             </table>
                             <div className="px-5 py-3 border-t border-slate-50 bg-slate-50/50">
-                                <p className="text-xs text-slate-400">
-                                    Showing <span className="font-semibold text-slate-600">{visible.length}</span> on this page ·{" "}
-                                    <span className="font-semibold text-slate-600">{totalItems}</span> total · auto-refreshes every 30s
+                                <p className="text-xs text-gray-400">
+                                    Showing <span className="font-semibold text-gray-600">{visible.length}</span> on this page ·{" "}
+                                    <span className="font-semibold text-gray-600">{totalItems}</span> total · auto-refreshes every 60s
                                 </p>
                             </div>
                         </div>

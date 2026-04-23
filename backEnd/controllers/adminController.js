@@ -21,3 +21,8 @@ exports.generateUserPasswordResetLink = asyncHandler(async (req, res) => {
   const { message, data } = await adminService.generateUserPasswordResetLink(req, req.params.userId);
   return sendSuccess(res, 200, { message, data });
 });
+
+exports.getAuditLogs = asyncHandler(async (req, res) => {
+  const result = await adminService.getAuditLogs(req.query);
+  return sendSuccess(res, 200, { data: result.data, pagination: result.pagination });
+});

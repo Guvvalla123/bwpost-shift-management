@@ -1,4 +1,4 @@
-import { memo } from "react";
+﻿import { memo } from "react";
 import { Pencil, Trash2, Eye, Key } from "lucide-react";
 
 const formatJoinDate = (iso) => {
@@ -33,12 +33,12 @@ function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-slate-900">{employee.username}</p>
+              <p className="text-sm font-semibold text-gray-900">{employee.username}</p>
               <span className="inline-flex items-center rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1B3F8B]">
                 {roleLabel}
               </span>
             </div>
-            <p className="mt-0.5 truncate text-xs text-slate-400">{employee.email}</p>
+            <p className="mt-0.5 truncate text-xs text-gray-400">{employee.email}</p>
           </div>
         </div>
       </td>
@@ -56,7 +56,7 @@ function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
         </span>
       </td>
 
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
+      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
         {formatJoinDate(employee.createdAt)}
       </td>
 
@@ -66,7 +66,7 @@ function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
             type="button"
             onClick={() => onView(employee)}
             title="View details"
-            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#1B3F8B]"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#1B3F8B]"
           >
             <Eye className="h-4 w-4" />
           </button>
@@ -75,7 +75,7 @@ function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
               type="button"
               onClick={() => onPasswordReset(employee)}
               title="Generate Reset Link"
-              className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
+              className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
             >
               <Key className="h-4 w-4" />
             </button>
@@ -84,7 +84,7 @@ function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
             type="button"
             onClick={() => onEdit(employee)}
             title="Edit employee"
-            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -92,7 +92,7 @@ function ShiftRow({ employee, onEdit, onDelete, onView, onPasswordReset }) {
             type="button"
             onClick={() => onDelete(employee)}
             title="Remove employee"
-            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <Trash2 className="h-4 w-4" />
           </button>

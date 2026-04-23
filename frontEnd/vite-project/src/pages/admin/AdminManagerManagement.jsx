@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+﻿import React, { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import API from "@/api";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { toast } from "sonner";
-import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState } from "@/components/ui";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, Modal, Input, Button } from "@/components/ui";
 import {
-  UserPlus, Search, X, Briefcase, Mail, Copy,
+  UserPlus, Search, Briefcase, Mail, Copy,
   UserCheck, ArrowLeft, Calendar, ShieldCheck,
 } from "lucide-react";
 import ManagerTable from "./ManagerManagement/ManagerTable";
@@ -39,17 +40,17 @@ const Field = ({ label, children }) => (
 );
 
 const inputCls =
-  "w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-sm";
+  "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm";
 
 /* ─── Stat Card ──────────────────────────────────────────── */
 const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
     <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
       <Icon className="h-5 w-5 text-white" />
     </div>
     <div>
-      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 tabular-nums mt-0.5">{value}</p>
+      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 tabular-nums mt-0.5">{value}</p>
     </div>
   </div>
 );
@@ -100,6 +101,25 @@ const AdminManagerManagement = () => {
   useEffect(() => {
     fetchManagers();
   }, [fetchManagers]);
+
+  const fetchManagersSilent = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ role: "manager" });
+      params.set("page", String(currentPage));
+      params.set("limit", "20");
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (includeInactive) params.set("includeInactive", "true");
+      const res = await API.get(`/api/admin/users?${params}`);
+      const { data, pagination } = res.data;
+      setManagers(Array.isArray(data) ? data : []);
+      setTotalPages(pagination?.totalPages ?? 1);
+      setTotalItems(pagination?.total ?? 0);
+    } catch {
+      /* silent — keep previous data */
+    }
+  }, [currentPage, debouncedSearch, includeInactive]);
+
+  useAutoRefresh(fetchManagersSilent, 60_000);
 
   const filtered = managers;
 
@@ -158,27 +178,26 @@ const AdminManagerManagement = () => {
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* ── Page header ────────────────────────────────── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-0 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Manager Management</h1>
-            <p className="text-slate-500 text-sm mt-0.5 hidden sm:block">Create, invite, and manage Managers who handle day-to-day operations.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Manager Management</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage and invite system managers</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={() => { setInviteModalOpen(true); setCreatedInviteLink(null); setInviteEmail(""); }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 h-11 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition text-sm"
+              className="inline-flex items-center justify-center gap-2 px-4 h-11 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 focus-visible:ring-offset-1 text-sm"
             >
               <Mail className="w-4 h-4" /> Invite Manager
             </button>
             <button
               onClick={() => setModalOpen(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 h-11 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#162d5e] transition text-sm"
+              className="inline-flex items-center justify-center gap-2 px-4 h-11 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#162d5e] transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1 text-sm"
             >
               <UserPlus className="w-4 h-4" /> Add Manager
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-400 text-center py-1 md:hidden select-none -mt-2">Scroll down to refresh</p>
 
         {/* ── Stats ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-4">
@@ -187,24 +206,24 @@ const AdminManagerManagement = () => {
         </div>
 
         {/* ── Table card ─────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-slate-900">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-gray-900">
               All Managers
-              <span className="ml-2 text-xs font-medium text-slate-400">({totalItems})</span>
+              <span className="ml-2 text-xs font-medium text-gray-400">({totalItems})</span>
             </h2>
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search by name or email…"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer shrink-0">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer shrink-0">
                 <input type="checkbox" checked={includeInactive} onChange={(e) => { setIncludeInactive(e.target.checked); setCurrentPage(1); }} className="rounded" />
                 Include deactivated
               </label>
@@ -260,72 +279,135 @@ const AdminManagerManagement = () => {
       {/* ══════════════════════════════════════════════════ */}
       {/* INVITE MANAGER MODAL                              */}
       {/* ══════════════════════════════════════════════════ */}
-      {inviteModalOpen && (
-        <Modal title="Invite Manager" onClose={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteEmail(""); }}>
-          {createdInviteLink ? (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-600">Invite created. Share this link with the manager:</p>
-              <div className="flex gap-2">
-                <input type="text" readOnly value={createdInviteLink} className={`${inputCls} flex-1 bg-slate-50`} />
-                <button type="button" onClick={() => { navigator.clipboard?.writeText(createdInviteLink); toast.success("Copied"); }}
-                  className="px-4 py-2.5 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 flex items-center gap-2 shrink-0">
-                  <Copy size={16} /> Copy
-                </button>
-              </div>
-              <button type="button" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteEmail(""); }}
-                className="w-full py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200">Close</button>
-            </div>
+      <Modal
+        isOpen={inviteModalOpen}
+        onClose={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteEmail(""); }}
+        title={createdInviteLink ? "Invite Created" : "Invite Manager"}
+        footer={
+          createdInviteLink ? (
+            <Button
+              variant="outline"
+              type="button"
+              fullWidth
+              onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteEmail(""); }}
+            >
+              Close
+            </Button>
           ) : (
-            <form onSubmit={handleInviteSubmit} className="space-y-4">
-              <Field label="Email Address">
-                <input type="email" required placeholder="Enter manager email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className={inputCls} />
-              </Field>
-              <ModalFooter
-                onCancel={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteEmail(""); }}
-                submitLabel="Create Invite"
+            <>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteEmail(""); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="mgr-invite-form"
                 loading={inviteSubmitting}
+                loadingText="Creating"
+              >
+                Create Invite
+              </Button>
+            </>
+          )
+        }
+      >
+        {createdInviteLink ? (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">Invite created. Share this link with the manager:</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={createdInviteLink}
+                className="flex-1 h-12 min-w-0 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-800"
               />
-            </form>
-          )}
-        </Modal>
-      )}
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard?.writeText(createdInviteLink); toast.success("Copied"); }}
+                className="shrink-0 px-4 min-h-12 bg-[#EFF6FF] text-[#1B3F8B] rounded-xl hover:bg-blue-100 inline-flex items-center gap-2 text-sm font-semibold"
+              >
+                <Copy size={16} /> Copy
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form id="mgr-invite-form" onSubmit={handleInviteSubmit} className="space-y-4">
+            <Input
+              id="mgr-invite-email"
+              label="Email Address"
+              type="email"
+              required
+              placeholder="Enter manager email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              autoFocus
+            />
+          </form>
+        )}
+      </Modal>
 
       {/* ══════════════════════════════════════════════════ */}
       {/* ADD MANAGER MODAL                                 */}
       {/* ══════════════════════════════════════════════════ */}
-      {modalOpen && (
-        <Modal title="Add New Manager" onClose={() => { setModalOpen(false); setForm({ username: "", email: "", password: "" }); }}>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Field label="Username">
-              <input type="text" required placeholder="Enter username"
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className={inputCls} />
-            </Field>
-            <Field label="Email Address">
-              <input type="email" required placeholder="Enter email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className={inputCls} />
-            </Field>
-            <Field label="Password">
-              <input type="password" required placeholder="Min 8 chars, uppercase, lowercase, number, special"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className={inputCls}
-                minLength={8} />
-            </Field>
-            <ModalFooter
-              onCancel={() => { setModalOpen(false); setForm({ username: "", email: "", password: "" }); }}
-              submitLabel="Create Manager"
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setForm({ username: "", email: "", password: "" }); }}
+        title="Add New Manager"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => { setModalOpen(false); setForm({ username: "", email: "", password: "" }); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="mgr-add-form"
               loading={submitting}
-            />
-          </form>
-        </Modal>
-      )}
+              loadingText="Creating"
+            >
+              Create Manager
+            </Button>
+          </>
+        }
+      >
+        <form id="mgr-add-form" onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            id="mgr-add-username"
+            label="Username"
+            type="text"
+            required
+            placeholder="Enter username"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            autoFocus
+          />
+          <Input
+            id="mgr-add-email"
+            label="Email Address"
+            type="email"
+            required
+            placeholder="Enter email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <Input
+            id="mgr-add-password"
+            label="Password"
+            type="password"
+            required
+            placeholder="Min 8 chars, uppercase, lowercase, number, special"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            minLength={8}
+          />
+        </form>
+      </Modal>
 
       {/* ══════════════════════════════════════════════════ */}
       {/* MANAGER DETAIL DRAWER                             */}
@@ -363,11 +445,11 @@ const AdminManagerManagement = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
                 Overview
               </p>
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <p className="text-sm text-slate-600">
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p className="text-sm text-gray-600">
                   Managers handle day-to-day operations including shift assignments, request approvals, and employee management.
                 </p>
               </div>
@@ -379,54 +461,15 @@ const AdminManagerManagement = () => {
   );
 };
 
-/* ─── Reusable Modal wrapper ─────────────────────────────── */
-const Modal = ({ title, onClose, children }) => (
-  <div
-    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-    onClick={onClose}
-  >
-    <div
-      className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-[#162d5e] px-6 py-5 rounded-t-2xl flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">{title}</h2>
-        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/20 transition text-white">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="p-6">{children}</div>
-    </div>
-  </div>
-);
-
-const ModalFooter = ({ onCancel, submitLabel, loading }) => (
-  <div className="flex justify-end gap-3 pt-2">
-    <button
-      type="button"
-      onClick={onCancel}
-      className="px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition text-sm"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      disabled={loading}
-      className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-200 text-sm disabled:opacity-60"
-    >
-      {loading ? "Saving…" : submitLabel}
-    </button>
-  </div>
-);
 
 const InfoPill = ({ icon: Icon, label, value }) => (
-  <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
+  <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
       <Icon className="h-4 w-4 text-blue-600" />
     </div>
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-sm font-semibold text-slate-800 truncate">{value}</p>
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-semibold text-gray-800 truncate">{value}</p>
     </div>
   </div>
 );

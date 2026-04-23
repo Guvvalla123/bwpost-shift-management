@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import {
   LogOut,
@@ -15,10 +15,13 @@ import {
   BarChart2,
   ChevronLeft,
   ChevronRight,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
+import { cn } from "@/lib/utils";
 import BottomNav from "@/components/ui/BottomNav";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 const avatarUrl = (url) => {
@@ -36,6 +39,7 @@ const PAGE_TITLES = {
   "/admin/attendance": "Attendance & Timesheets",
   "/admin/reports": "Reports & Analytics",
   "/admin/settings": "Settings",
+  "/admin/audit-log": "Audit Log",
 };
 
 const SHORT_PAGE_TITLES = {
@@ -70,7 +74,10 @@ const NAV_GROUPS = [
   },
   {
     label: "System",
-    items: [{ name: "Settings", path: "/admin/settings", icon: Settings }],
+    items: [
+      { name: "Audit Log", path: "/admin/audit-log", icon: Shield },
+      { name: "Settings", path: "/admin/settings", icon: Settings },
+    ],
   },
 ];
 
@@ -81,22 +88,27 @@ const AdminNavItem = ({ item, isActive, onNavigate, effectiveCollapsed }) => {
       to={item.path}
       title={effectiveCollapsed ? item.name : undefined}
       onClick={() => onNavigate?.()}
-      className={`mx-2 flex min-h-[48px] items-center gap-2.5 rounded-lg px-4 py-3 text-sm transition-colors ${
-        effectiveCollapsed ? "justify-center lg:justify-center lg:px-2" : ""
+      className={`group relative mx-2 flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+        effectiveCollapsed ? "justify-center px-2" : ""
       } ${
         isActive
-          ? "bg-[#1B3F8B] font-semibold text-white"
-          : "text-white/45 hover:bg-white/5 hover:text-white/70"
+          ? "bg-white/10 text-white"
+          : "text-white/60 hover:bg-white/5 hover:text-white"
       }`}
     >
-      <span
-        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded ${
-          isActive ? "bg-[#60A5FA] text-white" : "bg-white/10 text-white/70"
+      {isActive && (
+        <span
+          className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-white"
+          aria-hidden
+        />
+      )}
+      <Icon
+        className={`h-5 w-5 shrink-0 ${
+          isActive ? "text-white" : "text-white/50 group-hover:text-white"
         }`}
-      >
-        <Icon className="h-3 w-3" strokeWidth={2} />
-      </span>
-      <span className={`truncate ${effectiveCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
+        strokeWidth={2}
+      />
+      <span className={`truncate ${effectiveCollapsed ? "hidden" : ""}`}>{item.name}</span>
     </Link>
   );
 };
@@ -108,7 +120,7 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
-  const { effectiveCollapsed, toggle: toggleSidebarCollapsed } = useSidebarCollapsed();
+  const { effectiveCollapsed, toggle: toggleSidebarCollapsed, isMobile, isDesktop } = useSidebarCollapsed();
 
   useEffect(() => setSidebarOpen(false), [pathname]);
 
@@ -139,27 +151,28 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#f1f5f9]">
-      {sidebarOpen && (
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#F8F9FC]">
+      {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
       )}
 
       <div
-        className={`
-          fixed inset-y-0 left-0 z-40 flex h-full w-64 shrink-0 flex-col
-          transform transition-transform duration-300 ease-in-out
-          lg:relative lg:translate-x-0 lg:z-0
-          lg:transition-[width] lg:duration-300
-          ${effectiveCollapsed ? "lg:w-16" : "lg:w-64"}
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={cn(
+          "z-40 flex h-full min-h-0 flex-col",
+          isMobile &&
+            "fixed inset-y-0 left-0 w-64 -translate-x-full transform transition-transform duration-300 ease-in-out",
+          isMobile && sidebarOpen && "translate-x-0",
+          !isMobile && "relative shrink-0 translate-x-0",
+          (isMobile === false) && (effectiveCollapsed ? "w-16" : "w-64"),
+          isDesktop && "transition-[width] duration-300"
+        )}
       >
         <aside className="flex h-full min-h-full w-full flex-col bg-[#0f2042]">
-          <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 lg:hidden">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2 md:hidden">
             <span className="text-xs font-semibold text-white/80">Menu</span>
             <button
               type="button"
@@ -171,17 +184,17 @@ const AdminLayout = () => {
             </button>
           </div>
           <div
-            className={`shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-4 ${effectiveCollapsed ? "lg:px-2" : ""}`}
+            className={`shrink-0 border-b border-white/[0.06] px-4 pb-3 pt-4 ${effectiveCollapsed ? "px-2" : ""}`}
           >
-            <div className={`flex items-baseline gap-0.5 ${effectiveCollapsed ? "lg:justify-center" : ""}`}>
+            <div className={`flex items-baseline gap-0.5 ${effectiveCollapsed ? "justify-center" : ""}`}>
               <span className="text-[15px] font-extrabold tracking-tight text-white">BW</span>
-              <span className={`text-[15px] font-light tracking-tight text-[#60A5FA] ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+              <span className={`text-[15px] font-light tracking-tight text-[#60A5FA] ${effectiveCollapsed ? "hidden" : ""}`}>
                 POST
               </span>
             </div>
             <span
               className={`mt-1 inline-block rounded bg-[#60A5FA]/12 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-[#60A5FA] ${
-                effectiveCollapsed ? "lg:hidden" : ""
+                effectiveCollapsed ? "hidden" : ""
               }`}
             >
               Admin
@@ -192,8 +205,8 @@ const AdminLayout = () => {
             {NAV_GROUPS.map((group) => (
               <div key={group.label}>
                 <p
-                  className={`px-4 pb-1 pt-5 text-[8px] font-bold uppercase tracking-widest text-white/20 ${
-                    effectiveCollapsed ? "lg:hidden" : ""
+                  className={`px-4 pb-1 pt-5 text-[10px] font-semibold uppercase tracking-wider text-white/30 ${
+                    effectiveCollapsed ? "hidden" : ""
                   }`}
                 >
                   {group.label}
@@ -231,7 +244,7 @@ const AdminLayout = () => {
 
             <div
               className={`flex shrink-0 items-center gap-2.5 border-t border-white/[0.06] px-3 py-2 ${
-                effectiveCollapsed ? "lg:flex-col lg:px-2" : ""
+                effectiveCollapsed ? "flex-col px-2" : ""
               }`}
             >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#60A5FA] bg-[#1B3F8B] text-xs font-bold text-white">
@@ -241,7 +254,7 @@ const AdminLayout = () => {
                 initials
               )}
             </div>
-            <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+            <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "hidden" : ""}`}>
               <p className="truncate text-[10px] font-medium text-white/80">{getDisplayName(user, "Admin")}</p>
               <p className="text-[9px] capitalize text-white/30">{user?.role}</p>
             </div>
@@ -249,7 +262,7 @@ const AdminLayout = () => {
               type="button"
               onClick={handleLogout}
               className={`ml-auto rounded-lg p-1.5 text-white/25 transition-colors hover:text-white/60 ${
-                effectiveCollapsed ? "lg:hidden" : ""
+                effectiveCollapsed ? "hidden" : ""
               }`}
               aria-label="Sign out"
             >
@@ -259,7 +272,7 @@ const AdminLayout = () => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="hidden w-full items-center justify-center rounded-lg p-2 text-white/40 hover:text-white/70 lg:flex"
+                className="flex w-full items-center justify-center rounded-lg p-2 text-white/40 hover:text-white/70"
                 aria-label="Sign out"
               >
                 <LogOut className="h-4 w-4" />
@@ -271,12 +284,12 @@ const AdminLayout = () => {
       </div>
 
       <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
-        <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-10 safe-top">
+        <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-10 safe-top">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setSidebarOpen((o) => !o)}
-              className="lg:hidden -ml-2 p-3 rounded-lg text-slate-600 hover:bg-slate-100 transition shrink-0 min-h-[48px] min-w-[48px] flex items-center justify-center"
+              className="md:hidden -ml-2 p-3 rounded-lg text-gray-600 hover:bg-gray-100 transition shrink-0 min-h-[48px] min-w-[48px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
               aria-label={sidebarOpen ? "Close menu" : "Open menu"}
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -290,7 +303,9 @@ const AdminLayout = () => {
             </div>
           </div>
 
-          <div className="relative z-40 shrink-0" ref={dropdownRef}>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <NotificationBell />
+            <div className="relative z-40" ref={dropdownRef}>
             {profileOpen && (
               <div
                 className="fixed inset-0 z-30"
@@ -301,7 +316,7 @@ const AdminLayout = () => {
             <button
               type="button"
               onClick={() => setProfileOpen((p) => !p)}
-              className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-2 min-h-[44px] cursor-pointer hover:bg-[#dbeafe] transition"
+              className="flex items-center gap-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-3 py-2 min-h-[44px] cursor-pointer hover:bg-[#dbeafe] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
             >
               <div className="w-6 h-6 rounded-full bg-[#1B3F8B] flex items-center justify-center text-white text-[9px] font-bold overflow-hidden shrink-0">
                 {user?.profileImage ? (
@@ -324,9 +339,9 @@ const AdminLayout = () => {
                   z-40 overflow-hidden py-2
                 "
               >
-                <div className="px-4 py-3 border-b border-slate-100">
+                <div className="px-4 py-3 border-b border-gray-100">
                   <p className="text-sm font-bold text-[#0f2042]">{getDisplayName(user, "Admin")}</p>
-                  <p className="text-xs text-slate-500">{user?.email || ""}</p>
+                  <p className="text-xs text-gray-500">{user?.email || ""}</p>
                 </div>
                 <button
                   type="button"
@@ -334,11 +349,11 @@ const AdminLayout = () => {
                     navigate("/admin/settings");
                     setProfileOpen(false);
                   }}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  <Settings size={15} className="text-slate-400" /> Settings
+                  <Settings size={15} className="text-gray-400" /> Settings
                 </button>
-                <div className="border-t border-slate-100 pt-1">
+                <div className="border-t border-gray-100 pt-1">
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -349,10 +364,17 @@ const AdminLayout = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pb-20 lg:pb-0">
+        <main
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden min-h-0",
+            "animate-in fade-in duration-200",
+            "pb-20 md:pb-0"
+          )}
+        >
           <Outlet />
         </main>
 

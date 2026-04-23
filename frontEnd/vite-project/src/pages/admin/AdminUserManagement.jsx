@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+﻿import React, { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import API from "@/api";
 import { toast } from "sonner";
 import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
-import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil, Key, Loader2 } from "lucide-react";
-import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, KpiCard } from "@/components/ui";
+import { UserPlus, Search, X, Shield, Users, UserCheck, Mail, Copy, Pencil, Key, Trash2 } from "lucide-react";
+import { Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, KpiCard, Modal, Input, Button, Badge } from "@/components/ui";
 
 const ROLE_BADGES = {
   admin: "bg-purple-50 text-purple-700 border border-purple-200",
@@ -69,9 +70,11 @@ const AdminUserManagement = () => {
     }
   }, []);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setFetchError(false);
+  const fetchUsers = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setFetchError(false);
+    }
     try {
       const params = new URLSearchParams();
       params.set("page", String(currentPage));
@@ -85,22 +88,31 @@ const AdminUserManagement = () => {
       setTotalPages(pagination?.totalPages ?? 1);
       setTotalItems(pagination?.total ?? 0);
     } catch {
-      setFetchError(true);
-      setUsers([]);
-      setTotalPages(1);
-      setTotalItems(0);
+      if (!silent) setFetchError(true);
+      if (!silent) {
+        setUsers([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, debouncedSearch, roleFilter, includeInactive]);
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(false);
   }, [fetchUsers]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  const fetchUsersSilent = useCallback(() => {
+    fetchStats();
+    fetchUsers(true);
+  }, [fetchStats, fetchUsers]);
+
+  useAutoRefresh(fetchUsersSilent, 60_000);
 
   const handleRoleChange = async (e) => {
     e.preventDefault();
@@ -224,17 +236,18 @@ const AdminUserManagement = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
-  const inputCls = "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base";
+  const inputCls =
+    "w-full h-12 px-4 rounded-xl border border-gray-300 text-base focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 md:text-sm";
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between px-0 mb-4 sm:mb-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-0">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-sm text-gray-400 mt-1">Manage all system users</p>
+            <p className="mt-1 text-sm text-gray-500">Manage all system users</p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <button
               type="button"
               onClick={() => { setInviteModalOpen(true); setCreatedInviteLink(null); }}
@@ -259,7 +272,7 @@ const AdminUserManagement = () => {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:px-6">
+          <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:px-6">
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
               {[
                 ["", "All", stats.totalAll],
@@ -277,13 +290,13 @@ const AdminUserManagement = () => {
                   className={`inline-flex min-h-[40px] items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all sm:px-4 ${
                     roleFilter === key
                       ? "bg-[#1B3F8B] text-white shadow-sm"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      : "bg-slate-100 text-gray-600 hover:bg-slate-200"
                   }`}
                 >
                   {label}
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                      roleFilter === key ? "bg-white/20 text-white" : "bg-white text-slate-500"
+                      roleFilter === key ? "bg-white/20 text-white" : "bg-white text-gray-500"
                     }`}
                   >
                     {count}
@@ -292,7 +305,7 @@ const AdminUserManagement = () => {
               ))}
             </div>
             <div className="relative w-full sm:ml-auto sm:max-w-xs">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="search"
                 placeholder="Search by name or email…"
@@ -308,14 +321,14 @@ const AdminUserManagement = () => {
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100"
                   aria-label="Clear search"
                 >
                   <X className="h-4 w-4" />
                 </button>
               ) : null}
             </div>
-            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-600 sm:ml-0">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-gray-600 sm:ml-0">
               <input
                 type="checkbox"
                 checked={includeInactive}
@@ -359,86 +372,109 @@ const AdminUserManagement = () => {
               ) : (
                 <>
               <div className="md:hidden space-y-3 px-4 pb-4">
-                {users.map((u) => (
-                  <div key={u._id} className={`bg-white rounded-xl border border-gray-200 p-4 shadow-sm ${u.isActive === false ? "opacity-70" : ""}`}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-full flex-shrink-0 bg-[#1B3F8B] flex items-center justify-center text-white font-bold text-sm">
-                        {u.username?.[0]?.toUpperCase() || "U"}
+                {users.map((u) => {
+                  const avatarBg =
+                    u.role === "admin"
+                      ? "bg-purple-600"
+                      : u.role === "manager"
+                      ? "bg-[#1B3F8B]"
+                      : "bg-green-600";
+                  return (
+                    <div
+                      key={u._id}
+                      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-all duration-200 ${u.isActive === false ? "opacity-70" : ""}`}
+                    >
+                      {/* TOP ROW: avatar + name/email + active badge */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-semibold ${avatarBg}`}>
+                          {u.username?.[0]?.toUpperCase() || "U"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-gray-900 truncate">{u.username}</p>
+                          <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                        </div>
+                        <Badge variant={u.isActive !== false ? "success" : "gray"} size="sm">
+                          {u.isActive !== false ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm truncate">{u.username}</p>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">{u.email}</p>
+                      {/* SECOND ROW: role badge + joined date */}
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${ROLE_BADGES[u.role] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                          {u.role === "admin" && <Shield size={10} />}
+                          {u.role === "manager" && <Users size={10} />}
+                          {u.role === "employee" && <UserCheck size={10} />}
+                          {u.role?.charAt(0).toUpperCase() + u.role?.slice(1)}
+                        </span>
+                        {u.createdAt && (
+                          <span className="text-xs text-gray-400">
+                            Joined {new Date(u.createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
+                          </span>
+                        )}
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 border ${ROLE_BADGES[u.role] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                        {u.role?.charAt(0).toUpperCase() + u.role?.slice(1)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        u.isActive !== false ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
-                      }`}>
-                        {u.isActive !== false ? "Active" : "Inactive"}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-DE") : "—"}
-                      </span>
-                    </div>
-                    {(u.role !== "admin" || u.isActive !== false) && (
-                      <div className="flex gap-2 pt-3 border-t border-gray-100">
+                      {/* BOTTOM ROW: icon action buttons */}
+                      <div className="flex items-center justify-end gap-0.5 border-t border-gray-100 pt-3">
                         {u.role !== "admin" && (
                           <button
                             type="button"
-                            title="Generate Reset Link"
+                            title="Generate reset link"
                             onClick={() => setPwdResetConfirmUser(u)}
-                            className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-[#1B3F8B]/30 text-[#1B3F8B] bg-[#EFF6FF] hover:bg-blue-100 inline-flex items-center justify-center gap-1"
+                            className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#1B3F8B] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                           >
-                            <Key size={14} />
-                            Reset link
+                            <Key className="h-4 w-4" />
                           </button>
                         )}
                         {u.isActive !== false && (
                           <button
                             type="button"
+                            title="Change role"
                             onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
-                            className="flex-1 min-h-11 text-sm font-medium rounded-lg border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 inline-flex items-center justify-center gap-1"
+                            className="p-2 rounded-lg text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
                           >
-                            <Pencil size={14} />
-                            Change role
+                            <Shield className="h-4 w-4" />
+                          </button>
+                        )}
+                        {u.role !== "admin" && (
+                          <button
+                            type="button"
+                            title="Delete user"
+                            className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
               <div className="hidden md:block overflow-x-auto">
                   <table className="w-full min-w-full">
-                    <thead className="bg-slate-50 border-b border-slate-100">
+                    <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">User</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Role</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Created</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Created</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {users.map((u) => (
-                        <tr key={u._id} className={`hover:bg-slate-50/50 ${u.isActive === false ? "opacity-60" : ""}`}>
+                        <tr key={u._id} className={`hover:bg-slate-50/50 transition-colors duration-100 ${u.isActive === false ? "opacity-60" : ""}`}>
                           <td className="px-6 py-4">
-                            <p className="font-medium text-slate-900">{u.username}</p>
+                            <p className="font-medium text-gray-900">{u.username}</p>
                             {u.isActive === false && <span className="text-xs text-amber-600">Deactivated</span>}
                           </td>
-                          <td className="px-6 py-4 text-slate-600">{u.email}</td>
+                          <td className="px-6 py-4 text-gray-600">{u.email}</td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${ROLE_BADGES[u.role] || "bg-slate-100 text-slate-600"}`}>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${ROLE_BADGES[u.role] || "bg-slate-100 text-gray-600"}`}>
                               {u.role === "admin" && <Shield size={12} />}
                               {u.role === "manager" && <Users size={12} />}
                               {u.role === "employee" && <UserCheck size={12} />}
                               {u.role}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-slate-500 text-sm">
+                          <td className="px-6 py-4 text-gray-500 text-sm">
                             {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
                           </td>
                           <td className="px-6 py-4">
@@ -447,7 +483,7 @@ const AdminUserManagement = () => {
                                 <button
                                   type="button"
                                   onClick={() => setPwdResetConfirmUser(u)}
-                                  className="p-2 text-slate-500 hover:text-[#1B3F8B] hover:bg-[#EFF6FF] rounded-lg transition"
+                                  className="p-2 text-gray-500 hover:text-[#1B3F8B] hover:bg-[#EFF6FF] rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                                   title="Generate Reset Link"
                                 >
                                   <Key size={16} />
@@ -457,7 +493,7 @@ const AdminUserManagement = () => {
                                 <button
                                   type="button"
                                   onClick={() => { setRoleModalUser(u); setRoleForm({ role: u.role, managerId: u.managerId?._id || u.managerId || "" }); }}
-                                  className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                                  className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
                                   title="Change role"
                                 >
                                   <Pencil size={16} />
@@ -486,275 +522,321 @@ const AdminUserManagement = () => {
       </div>
 
       {/* Change Role Modal */}
-      {roleModalUser && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={() => setRoleModalUser(null)}>
-          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:mx-4" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
-            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl md:rounded-t-2xl flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Change Role</h2>
-              <button onClick={() => setRoleModalUser(null)} className="p-1.5 rounded-lg hover:bg-white/20 text-white"><X size={18} /></button>
-            </div>
-            <form onSubmit={handleRoleChange} className="p-6 space-y-4">
-              <p className="text-sm text-slate-600">Updating role for <strong>{roleModalUser.username}</strong> ({roleModalUser.email})</p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Role</label>
-                <select value={roleForm.role} onChange={(e) => setRoleForm({ ...roleForm, role: e.target.value, managerId: e.target.value === "employee" ? roleForm.managerId : "" })}
-                  className={inputCls}>
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              {roleForm.role === "employee" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Manager <span className="text-red-500">*</span></label>
-                  <select value={roleForm.managerId} onChange={(e) => setRoleForm({ ...roleForm, managerId: e.target.value })}
-                    className={inputCls} required>
-                    <option value="">Select a manager</option>
-                    {users.filter(u => u.role === "manager" && u.isActive !== false).map(m => (
-                      <option key={m._id} value={m._id}>{m.username}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2 border-t border-gray-100">
-                <button type="button" onClick={() => setRoleModalUser(null)}
-                  className="w-full sm:w-auto px-5 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={roleSubmitting}
-                  className="w-full sm:w-auto px-5 py-3 min-h-12 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
-                  {roleSubmitting ? "Updating…" : "Update Role"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={!!roleModalUser}
+        onClose={() => setRoleModalUser(null)}
+        title="Change Role"
+        description={roleModalUser ? `Updating role for ${roleModalUser.username} (${roleModalUser.email})` : ""}
+        footer={
+          <>
+            <Button variant="outline" type="button" onClick={() => setRoleModalUser(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="admin-change-role-form"
+              loading={roleSubmitting}
+              loadingText="Updating"
+            >
+              Update Role
+            </Button>
+          </>
+        }
+      >
+        <form id="admin-change-role-form" onSubmit={handleRoleChange} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">New Role</label>
+            <select
+              value={roleForm.role}
+              onChange={(e) => setRoleForm({ ...roleForm, role: e.target.value, managerId: e.target.value === "employee" ? roleForm.managerId : "" })}
+              className={inputCls}
+            >
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
-        </div>
-      )}
+          {roleForm.role === "employee" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Manager <span className="text-red-500">*</span></label>
+              <select
+                value={roleForm.managerId}
+                onChange={(e) => setRoleForm({ ...roleForm, managerId: e.target.value })}
+                className={inputCls}
+                required
+              >
+                <option value="">Select a manager</option>
+                {users.filter(u => u.role === "manager" && u.isActive !== false).map(m => (
+                  <option key={m._id} value={m._id}>{m.username}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </form>
+      </Modal>
 
       {/* Invite User Modal */}
-      {inviteModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}>
-          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:mx-4" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
-            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl md:rounded-t-2xl flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Invite User</h2>
-              <button onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }} className="p-1.5 rounded-lg hover:bg-white/20 text-white">
-                <X size={18} />
-              </button>
-            </div>
-            {createdInviteLink ? (
-              <div className="p-6 space-y-4">
-                <p className="text-sm text-slate-600">Invite created. Share this link with the user:</p>
-                <div className="flex gap-2">
-                  <input type="text" readOnly value={createdInviteLink} className={`${inputCls} flex-1 bg-slate-50`} />
-                  <button type="button" onClick={copyInviteLink} className="px-4 py-2.5 bg-amber-100 text-amber-700 rounded-xl hover:bg-amber-200 flex items-center gap-2">
-                    <Copy size={16} /> Copy
-                  </button>
-                </div>
-                <button type="button" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteForm({ email: "", role: "employee", managerId: "" }); }}
-                  className="w-full py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200">Close</button>
-              </div>
-            ) : (
-              <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input type="email" required placeholder="Enter email" value={inviteForm.email}
-                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} className={inputCls} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                  <select value={inviteForm.role} onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
-                    className={inputCls}>
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                {inviteForm.role === "employee" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Manager <span className="text-red-500">*</span></label>
-                    <select value={inviteForm.managerId} onChange={(e) => setInviteForm({ ...inviteForm, managerId: e.target.value })}
-                      className={inputCls} required>
-                      <option value="">Select a manager</option>
-                      {users.filter(u => u.role === "manager").map(m => (
-                        <option key={m._id} value={m._id}>{m.username}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2 border-t border-gray-100">
-                  <button type="button" onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}
-                    className="w-full sm:w-auto px-5 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50">Cancel</button>
-                  <button type="submit" disabled={inviteSubmitting}
-                    className="w-full sm:w-auto px-5 py-3 min-h-12 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
-                    {inviteSubmitting ? "Creating…" : "Create Invite"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {pwdResetConfirmUser && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4"
-          onClick={() => setPwdResetConfirmUser(null)}
-        >
-          <div
-            className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md p-6 md:mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-bold text-gray-900">Generate Password Reset Link</h2>
-            <p className="text-sm text-slate-600 mt-2">
-              Generate a reset link for{" "}
-              <span className="font-semibold">{pwdResetConfirmUser.username}</span> ({pwdResetConfirmUser.email})?
-            </p>
-            <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
-              <button
+      <Modal
+        isOpen={inviteModalOpen}
+        onClose={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}
+        title={createdInviteLink ? "Invite Created" : "Invite User"}
+        footer={
+          createdInviteLink ? (
+            <Button
+              variant="outline"
+              type="button"
+              fullWidth
+              onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); setInviteForm({ email: "", role: "employee", managerId: "" }); }}
+            >
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
                 type="button"
-                onClick={() => setPwdResetConfirmUser(null)}
-                className="w-full sm:w-auto flex-1 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50"
+                onClick={() => { setInviteModalOpen(false); setCreatedInviteLink(null); }}
               >
                 Cancel
-              </button>
+              </Button>
+              <Button
+                type="submit"
+                form="admin-invite-user-form"
+                loading={inviteSubmitting}
+                loadingText="Creating"
+              >
+                Create Invite
+              </Button>
+            </>
+          )
+        }
+      >
+        {createdInviteLink ? (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">Invite created. Share this link with the user:</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={createdInviteLink}
+                className="flex-1 h-12 min-w-0 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-gray-800"
+              />
               <button
                 type="button"
-                disabled={pwdResetLoading}
-                onClick={confirmAdminPwdReset}
-                className="w-full sm:w-auto flex-1 py-3 min-h-12 bg-[#1B3F8B] text-white font-semibold rounded-xl hover:bg-[#152f6b] inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                onClick={copyInviteLink}
+                className="shrink-0 px-4 min-h-12 bg-[#EFF6FF] text-[#1B3F8B] rounded-xl hover:bg-blue-100 inline-flex items-center gap-2 text-sm font-semibold"
               >
-                {pwdResetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Generate Link
+                <Copy size={16} /> Copy
               </button>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <form id="admin-invite-user-form" onSubmit={handleInviteSubmit} className="space-y-4">
+            <Input
+              id="admin-invite-email"
+              label="Email"
+              type="email"
+              required
+              placeholder="Enter email"
+              value={inviteForm.email}
+              onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+              autoFocus
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <select
+                value={inviteForm.role}
+                onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
+                className={inputCls}
+              >
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            {inviteForm.role === "employee" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Manager <span className="text-red-500">*</span></label>
+                <select
+                  value={inviteForm.managerId}
+                  onChange={(e) => setInviteForm({ ...inviteForm, managerId: e.target.value })}
+                  className={inputCls}
+                  required
+                >
+                  <option value="">Select a manager</option>
+                  {users.filter(u => u.role === "manager").map(m => (
+                    <option key={m._id} value={m._id}>{m.username}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </form>
+        )}
+      </Modal>
 
-      {pwdResetResult && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4"
-          onClick={() => setPwdResetResult(null)}
-        >
-          <div
-            className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-lg p-6 md:mx-4 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-bold text-gray-900">Password Reset Link</h2>
-            <p className="text-sm text-slate-600 mt-1">
+      {/* Password Reset Confirm Modal */}
+      <Modal
+        isOpen={!!pwdResetConfirmUser}
+        onClose={() => setPwdResetConfirmUser(null)}
+        title="Generate Password Reset Link"
+        footer={
+          <>
+            <Button variant="outline" type="button" onClick={() => setPwdResetConfirmUser(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              loading={pwdResetLoading}
+              loadingText="Generating"
+              onClick={confirmAdminPwdReset}
+            >
+              Generate Link
+            </Button>
+          </>
+        }
+      >
+        {pwdResetConfirmUser && (
+          <p className="text-sm text-gray-600">
+            Generate a reset link for{" "}
+            <span className="font-semibold">{pwdResetConfirmUser.username}</span> ({pwdResetConfirmUser.email})?
+          </p>
+        )}
+      </Modal>
+
+      {/* Password Reset Result Modal */}
+      <Modal
+        isOpen={!!pwdResetResult}
+        onClose={() => setPwdResetResult(null)}
+        title="Password Reset Link"
+        size="lg"
+        footer={
+          <Button variant="outline" type="button" fullWidth onClick={() => setPwdResetResult(null)}>
+            Close
+          </Button>
+        }
+      >
+        {pwdResetResult && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
               Share this link with the user via WhatsApp or any messenger.{" "}
-              <span className="font-medium text-slate-800">Link expires in 1 hour</span> (or per server setting).
+              <span className="font-medium text-gray-800">Link expires in 1 hour</span> (or per server setting).
             </p>
-            {pwdResetResult.userEmail ? (
-              <p className="text-xs text-slate-500 mt-2">For: {pwdResetResult.userEmail}</p>
-            ) : null}
-            {pwdResetResult.expiresAt ? (
-              <p className="text-xs text-slate-500 mt-1">
+            {pwdResetResult.userEmail && (
+              <p className="text-xs text-gray-500">For: {pwdResetResult.userEmail}</p>
+            )}
+            {pwdResetResult.expiresAt && (
+              <p className="text-xs text-gray-500">
                 Expires: {new Date(pwdResetResult.expiresAt).toLocaleString()}
               </p>
-            ) : null}
-            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            )}
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 readOnly
                 value={pwdResetResult.resetLink || ""}
-                className={`${inputCls} flex-1 bg-slate-50 text-xs`}
+                className="flex-1 h-12 min-w-0 rounded-xl border border-gray-200 bg-gray-50 px-4 text-xs text-gray-800"
               />
               <div className="flex gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={copyPwdResetLink}
-                  className="px-4 py-2.5 min-h-11 bg-[#1B3F8B] text-white rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#152f6b]"
-                >
-                  <Copy size={16} />
+                <Button type="button" size="md" onClick={copyPwdResetLink} leftIcon={Copy}>
                   Copy Link
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={shareWhatsApp}
-                  className="px-3 py-2.5 min-h-11 border border-slate-200 text-slate-800 rounded-xl text-sm font-medium hover:bg-slate-50"
+                  className="px-3 min-h-11 border border-gray-200 text-gray-800 rounded-xl text-sm font-medium hover:bg-gray-50"
                 >
                   WhatsApp
                 </button>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setPwdResetResult(null)}
-              className="w-full mt-4 py-2.5 bg-slate-100 text-slate-800 font-medium rounded-xl hover:bg-slate-200"
-            >
-              Close
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Add User Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-4" onClick={() => setModalOpen(false)}>
-          <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto md:mx-4" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-1 md:hidden shrink-0" aria-hidden />
-            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-5 rounded-t-2xl md:rounded-t-2xl flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Add User</h2>
-              <button onClick={() => setModalOpen(false)} className="p-1.5 rounded-lg hover:bg-white/20 text-white">
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                <input type="text" required placeholder="Enter username" value={form.username}
-                  onChange={(e) => setForm({ ...form, username: e.target.value })} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input type="email" required placeholder="Enter email" value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <input type="password" required placeholder="Min 8 chars, uppercase, lowercase, number, special"
-                  value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className={inputCls} minLength={8} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value, managerId: e.target.value === "employee" ? form.managerId : "" })}
-                  className={inputCls}>
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              {form.role === "employee" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Manager <span className="text-red-500">*</span></label>
-                  <select value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })}
-                    className={inputCls} required>
-                    <option value="">Select a manager</option>
-                    {users.filter(u => u.role === "manager").map(m => (
-                      <option key={m._id} value={m._id}>{m.username}</option>
-                    ))}
-                  </select>
-                  {users.filter(u => u.role === "manager").length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">Create a manager first.</p>
-                  )}
-                </div>
-              )}
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2 border-t border-gray-100">
-                <button type="button" onClick={() => setModalOpen(false)}
-                  className="w-full sm:w-auto px-5 py-3 min-h-12 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50">
-                  Cancel
-                </button>
-                <button type="submit" disabled={submitting}
-                  className="w-full sm:w-auto px-5 py-3 min-h-12 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl hover:shadow-md disabled:opacity-60">
-                  {submitting ? "Creating…" : "Create User"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Add User"
+        footer={
+          <>
+            <Button variant="outline" type="button" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="admin-add-user-form"
+              loading={submitting}
+              loadingText="Creating"
+            >
+              Create User
+            </Button>
+          </>
+        }
+      >
+        <form id="admin-add-user-form" onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            id="admin-add-username"
+            label="Username"
+            type="text"
+            required
+            placeholder="Enter username"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            autoFocus
+          />
+          <Input
+            id="admin-add-email"
+            label="Email"
+            type="email"
+            required
+            placeholder="Enter email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <Input
+            id="admin-add-password"
+            label="Password"
+            type="password"
+            required
+            placeholder="Min 8 chars, uppercase, lowercase, number, special"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            minLength={8}
+          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+            <select
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value, managerId: e.target.value === "employee" ? form.managerId : "" })}
+              className={inputCls}
+            >
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
-        </div>
-      )}
+          {form.role === "employee" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Manager <span className="text-red-500">*</span></label>
+              <select
+                value={form.managerId}
+                onChange={(e) => setForm({ ...form, managerId: e.target.value })}
+                className={inputCls}
+                required
+              >
+                <option value="">Select a manager</option>
+                {users.filter(u => u.role === "manager").map(m => (
+                  <option key={m._id} value={m._id}>{m.username}</option>
+                ))}
+              </select>
+              {users.filter(u => u.role === "manager").length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">Create a manager first.</p>
+              )}
+            </div>
+          )}
+        </form>
+      </Modal>
     </div>
   );
 };

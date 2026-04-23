@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { toast } from "sonner";
 import {
   ErrorState,
@@ -27,7 +28,7 @@ const fmtTime = (d) =>
 const STATUS = {
   upcoming: { label: "Upcoming", cls: "bg-[#EFF6FF] text-[#1B3F8B]", dot: "bg-[#1B3F8B]" },
   ongoing: { label: "Ongoing", cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500 animate-pulse" },
-  completed: { label: "Completed", cls: "bg-slate-100 text-slate-500", dot: "bg-slate-400" },
+  completed: { label: "Completed", cls: "bg-slate-100 text-gray-500", dot: "bg-slate-400" },
 };
 
 const SHIFT_STATUS_COLORS = {
@@ -126,29 +127,29 @@ const ShiftModal = ({ shift, onClose, onLeave, onChange }) => {
                 {fmtDate(shift.shiftStartTime)} · {fmtTime(shift.shiftStartTime)} — {fmtTime(shift.shiftEndTime)}
               </p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/20 transition text-white shrink-0">
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/20 transition-colors duration-150 active:scale-95 text-white shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1">
               <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
         {shift.shiftNotes && (
-          <div className="px-6 py-4 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Notes</p>
-            <p className="text-sm text-slate-700 leading-relaxed">{shift.shiftNotes}</p>
+          <div className="px-6 py-4 border-b border-gray-100">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Notes</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{shift.shiftNotes}</p>
           </div>
         )}
 
         {shift.createdByManager && (
-          <div className="px-6 py-4 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Posted By</p>
-            <p className="text-sm font-semibold text-slate-700">{shift.createdByManager.username || "Manager"}</p>
+          <div className="px-6 py-4 border-b border-gray-100">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Posted By</p>
+            <p className="text-sm font-semibold text-gray-700">{shift.createdByManager.username || "Manager"}</p>
           </div>
         )}
 
         {status === "upcoming" && (
           <div className="px-6 py-5 space-y-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Actions</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Actions</p>
             <button
               onClick={() => { onChange(shift); onClose(); }}
               className="flex items-center gap-2 w-full px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-colors"
@@ -207,9 +208,25 @@ const EmployeeDashboard = () => {
     }
   }, []);
 
+  const fetchDashboardSilent = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ page: "1", limit: "50" });
+      const [shiftRes, reqRes] = await Promise.all([
+        API.get(`/api/employee/shifts/myshifts?${params}`),
+        API.get(`/api/employee/shifts/requests?${params}`),
+      ]);
+      setShifts(Array.isArray(shiftRes.data?.data) ? shiftRes.data.data : []);
+      setRequests(Array.isArray(reqRes.data?.data) ? reqRes.data.data : []);
+    } catch {
+      /* silent — keep previous data */
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
+
+  useAutoRefresh(fetchDashboardSilent, 60_000);
 
   useEffect(() => {
     const h = (e) => e.key === "Escape" && setSelected(null);
@@ -312,20 +329,12 @@ const EmployeeDashboard = () => {
   return (
     <div className="min-h-full bg-[#F8F9FC]" data-requests-loaded={requests.length}>
       <div className="mx-auto max-w-7xl px-4 pb-20 pt-4 md:px-6 md:pt-4 lg:pb-6">
-        <div className="mb-4 flex flex-col gap-4 rounded-2xl bg-[#1B3F8B] px-6 py-5 shadow-lg shadow-[#1B3F8B]/20 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-white/80">{greeting()}</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              {getDisplayName(user, "Employee")}
-            </h1>
-            <p className="mt-1 text-xs text-white/60">
-              {dayOfWeek}, {dateLine}
-            </p>
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
-              Employee Panel
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">Your shifts and attendance overview</p>
           </div>
-          <BannerClock />
+          <div className="flex items-center gap-3 flex-wrap"></div>
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -372,7 +381,7 @@ const EmployeeDashboard = () => {
               <button
                 type="button"
                 onClick={() => navigate("/employee/myshifts")}
-                className="text-sm font-medium text-[#1B3F8B] hover:underline"
+                className="text-sm font-medium text-[#1B3F8B] hover:underline transition-colors duration-150 active:scale-95 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1"
               >
                 View all
               </button>
@@ -388,7 +397,7 @@ const EmployeeDashboard = () => {
                       type="button"
                       key={shift._id}
                       onClick={() => setSelected(shift)}
-                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-gray-50/80"
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-100 hover:bg-gray-50/80 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1"
                     >
                       <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ls.dot}`} aria-hidden />
                       <div className="min-w-0 flex-1">

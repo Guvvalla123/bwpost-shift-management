@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import API from "@/api";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { useAuth } from "@/context/useAuth";
@@ -30,7 +31,7 @@ const isShiftActive = (shift) => {
 };
 
 const STATUS_BADGE = {
-  not_started: { label: "Not Started", cls: "bg-slate-100 text-slate-700" },
+  not_started: { label: "Not Started", cls: "bg-slate-100 text-gray-700" },
   checked_in: { label: "Checked In", cls: "bg-emerald-100 text-emerald-700" },
   on_break: { label: "On Break", cls: "bg-amber-100 text-amber-700" },
   checked_out: { label: "Completed", cls: "bg-blue-100 text-blue-700" },
@@ -127,6 +128,28 @@ const EmployeeCheckIn = () => {
   useEffect(() => {
     fetchAttendance();
   }, [fetchAttendance]);
+
+  const fetchCheckInSilent = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ page: "1", limit: "20" });
+      const res = await API.get(`/api/employee/shifts/myshifts?${params}`);
+      const raw = Array.isArray(res.data?.data) ? res.data.data : [];
+      setTodayShifts(raw.filter(isShiftActive));
+    } catch {
+      /* silent */
+    }
+    if (!selectedShiftId) return;
+    try {
+      const res = await API.get(`/api/attendance/my/${selectedShiftId}`);
+      const payload = res.data?.data;
+      setShiftInfo(payload?.shift || null);
+      setAttendance(payload?.attendance ?? null);
+    } catch {
+      /* silent */
+    }
+  }, [selectedShiftId]);
+
+  useAutoRefresh(fetchCheckInSilent, 30_000);
 
   const status = attendance?.status || "not_started";
   const badge = STATUS_BADGE[status] || STATUS_BADGE.not_started;
@@ -237,19 +260,19 @@ const EmployeeCheckIn = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-6 sm:px-6">
       <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Check In</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {user?.username ? `Hi ${user.username} — ` : ""}
-            Record attendance for your shift
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Check In</h1>
+            <p className="text-sm text-gray-500 mt-1">Record your attendance for today</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap"></div>
         </div>
 
         {weeklyInfo && (
           <div
             className={`rounded-2xl border px-4 py-3 shadow-sm ${
               weeklyInfo.totalMinutes >= 40 * 60
-                ? "border-slate-200 bg-slate-100/90 text-slate-700"
+                ? "border-gray-200 bg-slate-100/90 text-gray-700"
                 : weeklyInfo.totalMinutes >= 35 * 60
                   ? "border-amber-200 bg-amber-50 text-amber-950"
                   : "border-emerald-200 bg-emerald-50 text-emerald-950"
@@ -267,12 +290,12 @@ const EmployeeCheckIn = () => {
 
         {todayShifts.length > 1 && (
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-600">Select shift</label>
+            <label className="mb-1.5 block text-sm font-semibold text-gray-600">Select shift</label>
             <div className="relative">
               <select
                 value={selectedShiftId || ""}
                 onChange={(e) => setSelectedShiftId(e.target.value || null)}
-                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 text-base text-slate-800 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 text-base text-gray-800 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
               >
                 <option value="">Choose a shift</option>
                 {todayShifts.map((s) => (
@@ -281,7 +304,7 @@ const EmployeeCheckIn = () => {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             </div>
           </div>
         )}
@@ -326,7 +349,7 @@ const EmployeeCheckIn = () => {
         {selectedShiftId && !attendanceLoading && !attendanceError && shiftInfo && attendance && (
           <>
             <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
-              <span className="text-sm text-slate-600">Status</span>
+              <span className="text-sm text-gray-600">Status</span>
               <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}>{badge.label}</span>
             </div>
 
@@ -335,7 +358,7 @@ const EmployeeCheckIn = () => {
                 type="button"
                 onClick={handleCheckIn}
                 disabled={actionLoading}
-                className="flex h-14 min-h-[56px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] text-white shadow-md transition hover:bg-[#162d5e] disabled:opacity-60"
+                className="flex h-14 min-h-[56px] w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] text-white shadow-md transition-all duration-150 hover:bg-[#162d5e] active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1"
               >
                 {actionLoading ? (
                   <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden />
@@ -377,7 +400,7 @@ const EmployeeCheckIn = () => {
                     type="button"
                     onClick={() => setShowBreakMenu((v) => !v)}
                     disabled={actionLoading}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition-all duration-150 hover:bg-emerald-700 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:ring-offset-1"
                   >
                     <Coffee className="h-5 w-5 shrink-0" />
                     Start Break
@@ -390,17 +413,17 @@ const EmployeeCheckIn = () => {
                         aria-label="Close menu"
                         onClick={() => setShowBreakMenu(false)}
                       />
-                      <div className="absolute left-0 right-0 z-20 mt-1 rounded-lg border border-slate-200 bg-white py-1 text-base shadow-lg">
+                      <div className="absolute left-0 right-0 z-20 mt-1 rounded-lg border border-gray-200 bg-white py-1 text-base shadow-lg">
                         <button
                           type="button"
-                          className="w-full min-h-11 px-4 py-3 text-left hover:bg-slate-50"
+                          className="w-full min-h-11 px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                           onClick={() => handleStartBreak("lunch")}
                         >
                           Lunch Break
                         </button>
                         <button
                           type="button"
-                          className="w-full min-h-11 px-4 py-3 text-left hover:bg-slate-50"
+                          className="w-full min-h-11 px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                           onClick={() => handleStartBreak("short_break")}
                         >
                           Short Break
@@ -413,7 +436,7 @@ const EmployeeCheckIn = () => {
                   type="button"
                   onClick={() => setShowCheckoutConfirm(true)}
                   disabled={actionLoading}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition hover:bg-[#162d5e] disabled:opacity-60 sm:flex-1"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition-all duration-150 hover:bg-[#162d5e] active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1 sm:flex-1"
                 >
                   {actionLoading ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" aria-hidden /> : <Clock className="h-5 w-5 shrink-0" />}
                   {actionLoading ? "Processing…" : "Check Out"}
@@ -426,7 +449,7 @@ const EmployeeCheckIn = () => {
                 type="button"
                 onClick={handleEndBreak}
                 disabled={actionLoading}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition hover:bg-[#162d5e] disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white transition-all duration-150 hover:bg-[#162d5e] active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1"
               >
                 {actionLoading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
                 {actionLoading ? "Ending break…" : "End Break"}
@@ -435,18 +458,18 @@ const EmployeeCheckIn = () => {
 
             {(status === "checked_in" || status === "on_break") && (
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Today</p>
-                <dl className="mt-3 space-y-2 text-sm text-slate-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Today</p>
+                <dl className="mt-3 space-y-2 text-sm text-gray-700">
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Check in</dt>
+                    <dt className="text-gray-500">Check in</dt>
                     <dd className="font-medium">{firstCheckIn ? formatTime(firstCheckIn) : "—"}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Check out</dt>
+                    <dt className="text-gray-500">Check out</dt>
                     <dd className="font-medium">{lastCheckOut ? formatTime(lastCheckOut) : "—"}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Total worked</dt>
+                    <dt className="text-gray-500">Total worked</dt>
                     <dd className="font-semibold tabular-nums">
                       {attendance.totalWorkMinutes != null ? formatDuration(attendance.totalWorkMinutes) : "—"}
                     </dd>
@@ -461,17 +484,17 @@ const EmployeeCheckIn = () => {
                   <CheckCircle2 className="h-6 w-6 shrink-0" />
                   Shift complete
                 </div>
-                <dl className="space-y-2 text-sm text-slate-700">
+                <dl className="space-y-2 text-sm text-gray-700">
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Check in</dt>
+                    <dt className="text-gray-500">Check in</dt>
                     <dd className="font-medium">{firstCheckIn ? formatTime(firstCheckIn) : "—"}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Check out</dt>
+                    <dt className="text-gray-500">Check out</dt>
                     <dd className="font-medium">{lastCheckOut ? formatTime(lastCheckOut) : "—"}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-slate-500">Total hours</dt>
+                    <dt className="text-gray-500">Total hours</dt>
                     <dd className="font-semibold">{formatDuration(attendance.totalWorkMinutes)}</dd>
                   </div>
                 </dl>
@@ -490,13 +513,13 @@ const EmployeeCheckIn = () => {
             className="mx-0 flex min-h-full w-full flex-col justify-center bg-white p-6 sm:min-h-0 sm:max-w-md sm:rounded-2xl sm:shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-lg font-semibold text-slate-800">Check out now?</p>
-            <p className="mt-2 text-base text-slate-500">This will end your work session for this shift.</p>
+            <p className="text-lg font-semibold text-gray-800">Check out now?</p>
+            <p className="mt-2 text-base text-gray-500">This will end your work session for this shift.</p>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setShowCheckoutConfirm(false)}
-                className="min-h-12 w-full rounded-xl border border-slate-200 px-4 text-base font-semibold text-slate-700 hover:bg-slate-50 sm:flex-1"
+                className="min-h-12 w-full rounded-xl border border-gray-200 px-4 text-base font-semibold text-gray-700 hover:bg-gray-50 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 sm:flex-1"
               >
                 Cancel
               </button>
@@ -504,7 +527,7 @@ const EmployeeCheckIn = () => {
                 type="button"
                 onClick={handleCheckOut}
                 disabled={actionLoading}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-base font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:flex-1"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-base font-semibold text-white hover:bg-red-700 transition-all duration-150 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30 sm:flex-1"
               >
                 {actionLoading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden /> : null}
                 {actionLoading ? "Checking out…" : "Check Out"}

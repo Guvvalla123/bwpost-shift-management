@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 const STORAGE_KEY = "bwpost_sidebar_collapsed";
 
@@ -18,26 +18,44 @@ function writeStorage(collapsed) {
   }
 }
 
+function getWidthBucket() {
+  if (typeof window === "undefined") return "desktop";
+  const w = window.innerWidth;
+  if (w < 768) return "mobile";
+  if (w < 1024) return "tablet";
+  return "desktop";
+}
+
 export function useSidebarCollapsed() {
   const [collapsed, setCollapsed] = useState(readStorage);
-  const [isLg, setIsLg] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : true
-  );
+  const [widthBucket, setWidthBucket] = useState(getWidthBucket);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const fn = () => setIsLg(mq.matches);
-    mq.addEventListener("change", fn);
-    return () => mq.removeEventListener("change", fn);
+    const onResize = () => setWidthBucket(getWidthBucket());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
     writeStorage(collapsed);
   }, [collapsed]);
 
-  const effectiveCollapsed = Boolean(collapsed && isLg);
+  const isMobile = widthBucket === "mobile";
+  const isTablet = widthBucket === "tablet";
+  const isDesktop = widthBucket === "desktop";
 
-  const toggle = () => setCollapsed((c) => !c);
+  const effectiveCollapsed = isTablet || (isDesktop && collapsed);
 
-  return { collapsed, effectiveCollapsed, setCollapsed, toggle };
+  const toggle = useCallback(() => setCollapsed((c) => !c), []);
+
+  return {
+    collapsed,
+    setCollapsed,
+    toggle,
+    isMobile,
+    isTablet,
+    isDesktop,
+    widthBucket,
+    effectiveCollapsed,
+  };
 }

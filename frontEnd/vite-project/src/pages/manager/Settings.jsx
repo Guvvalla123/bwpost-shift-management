@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+﻿import React, { useState, useRef } from "react";
 import {
     User, Bell, Shield, Camera, Save,
     ChevronRight, Phone, Building2, Clock,
@@ -26,14 +26,14 @@ const transformCloudinaryUrl = (url, opts = "w_400,h_400,c_fill,g_face,q_auto,f_
 
 /* ─── Section wrapper ────────────────────────────────────────────── */
 const Section = ({ icon: Icon, title, description, children }) => (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 bg-slate-50/60">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-slate-50/60">
             <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
                 <Icon size={15} className="text-[#1B3F8B]" />
             </div>
             <div>
-                <h3 className="text-base font-semibold text-slate-800 md:text-lg">{title}</h3>
-                {description && <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">{description}</p>}
+                <h3 className="text-base font-semibold text-gray-800 md:text-lg">{title}</h3>
+                {description && <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{description}</p>}
             </div>
         </div>
         <div className="p-4 md:p-6 space-y-4 md:space-y-6">{children}</div>
@@ -51,11 +51,11 @@ const Field = ({ label, name, value, onChange, type = "text", placeholder, disab
             onChange={onChange}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full h-12 px-4 rounded-xl text-base text-slate-700 bg-slate-50 border border-slate-200
-      hover:border-slate-300 hover:bg-white
+            className="w-full h-12 px-4 rounded-xl text-base text-gray-700 bg-gray-50 border border-gray-200
+      hover:border-gray-300 hover:bg-white
       focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B] focus:bg-white
-      disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed
-      transition-all duration-150 placeholder:text-slate-400"
+      disabled:bg-slate-100 disabled:text-gray-400 disabled:cursor-not-allowed
+      transition-all duration-150 placeholder:text-gray-400"
         />
     </div>
 );
@@ -64,8 +64,8 @@ const Field = ({ label, name, value, onChange, type = "text", placeholder, disab
 const Toggle = ({ label, description, checked, onChange }) => (
     <div className="flex items-center justify-between py-1">
         <div>
-            <p className="text-sm font-medium text-slate-700">{label}</p>
-            {description && <p className="text-xs text-slate-400 mt-0.5">{description}</p>}
+            <p className="text-sm font-medium text-gray-700">{label}</p>
+            {description && <p className="text-xs text-gray-400 mt-0.5">{description}</p>}
         </div>
         <button
             type="button"
@@ -220,9 +220,12 @@ const Settings = () => {
     return (
         <div className="px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 space-y-4 md:space-y-6 max-w-7xl mx-auto">
             {/* Header */}
-            <div>
-                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Settings</h1>
-                <p className="text-sm text-slate-500 mt-0.5 hidden sm:block">Manage your account and preferences</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+                    <p className="text-sm text-gray-500 mt-1">Manage your account and preferences</p>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap"></div>
             </div>
 
             {/* ── Profile Photo ──────────────────────────────────────────── */}
@@ -273,7 +276,7 @@ const Settings = () => {
                             htmlFor="profile-image-input"
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200
               ${imageUploading
-                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                    ? "bg-slate-100 text-gray-400 cursor-not-allowed"
                                     : "bg-gradient-to-r from-[#1B3F8B] to-blue-600 text-white hover:shadow-md hover:scale-[1.02]"
                                 }`}
                         >
@@ -294,7 +297,7 @@ const Settings = () => {
                             </button>
                         )}
 
-                        <p className="text-xs text-slate-400 leading-relaxed">
+                        <p className="text-xs text-gray-400 leading-relaxed">
                             JPG, PNG or GIF · Max 5MB<br />
                             Uploads securely via Cloudinary
                         </p>
@@ -346,8 +349,8 @@ const Settings = () => {
                         name="timezone"
                         value={profile.timezone}
                         onChange={handleProfileChange}
-                        className="w-full h-12 px-4 rounded-xl text-base text-slate-700 bg-slate-50 border border-slate-200
-            hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B]
+                        className="w-full h-12 px-4 rounded-xl text-base text-gray-700 bg-gray-50 border border-gray-200
+            hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]/50 focus:border-[#1B3F8B]
             transition-all duration-150"
                     >
                         <option value="Europe/Berlin">Europe/Berlin (CET)</option>
@@ -380,10 +383,10 @@ const Settings = () => {
                     ].map((item, i) => (
                         <div key={i} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
                             <div>
-                                <p className="text-sm font-medium text-slate-700">{item.label}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
+                                <p className="text-sm font-medium text-gray-700">{item.label}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                             </div>
-                            <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full font-medium">
+                            <span className="text-xs text-gray-400 bg-slate-100 px-3 py-1 rounded-full font-medium">
                                 {item.action}
                             </span>
                         </div>

@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
 import API from "@/api";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { Calendar } from "lucide-react";
@@ -47,22 +48,11 @@ const EmployeeShifts = () => {
     fetchShifts(false);
   }, [fetchShifts]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchShifts(true);
-    }, 30000);
-    return () => clearInterval(interval);
+  const fetchShiftsSilent = useCallback(() => {
+    fetchShifts(true);
   }, [fetchShifts]);
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        fetchShifts(true);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [fetchShifts]);
+  useAutoRefresh(fetchShiftsSilent, 60_000);
 
   const handleApply = useCallback(async (shiftId) => {
     try {
@@ -93,13 +83,12 @@ const EmployeeShifts = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f1f5f9] via-[#EFF6FF]/40 to-[#f1f5f9] px-4 py-4 md:px-6 md:py-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-4 md:mb-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Available Shifts</h1>
-              <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Browse and apply for available shifts</p>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Available Shifts</h1>
+            <p className="text-sm text-gray-500 mt-1">Browse and apply for open shifts</p>
           </div>
+          <div className="flex items-center gap-3 flex-wrap"></div>
         </div>
 
         {loading ? (
@@ -126,7 +115,7 @@ const EmployeeShifts = () => {
             description="Check back later for new shift opportunities."
           />
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <ShiftTable
               shifts={shifts}
               onApply={handleApply}

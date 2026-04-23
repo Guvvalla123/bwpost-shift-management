@@ -50,21 +50,27 @@ const NavItem = ({ item, isActive, onNavigate, effectiveCollapsed }) => {
       to={item.path}
       title={effectiveCollapsed ? item.name : undefined}
       onClick={() => onNavigate?.()}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 group ${
-        effectiveCollapsed ? "justify-center lg:justify-center" : ""
+      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+        effectiveCollapsed ? "justify-center" : ""
       } ${
         isActive
-          ? "bg-white/12 text-white border border-white/10"
-          : "text-white/60 hover:text-white hover:bg-white/[0.08]"
+          ? "bg-white/10 text-white"
+          : "text-white/60 hover:bg-white/5 hover:text-white"
       }`}
     >
+      {isActive && (
+        <span
+          className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-white"
+          aria-hidden
+        />
+      )}
       <Icon
-        className={`h-4 w-4 flex-shrink-0 transition-colors ${
+        className={`h-5 w-5 flex-shrink-0 transition-colors ${
           isActive ? "text-white" : "text-white/50 group-hover:text-white"
         }`}
         strokeWidth={2}
       />
-      <span className={`truncate ${effectiveCollapsed ? "lg:hidden" : ""}`}>{item.name}</span>
+      <span className={`truncate ${effectiveCollapsed ? "hidden" : ""}`}>{item.name}</span>
     </Link>
   );
 };
@@ -84,7 +90,7 @@ const Managersidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =>
 
   return (
     <aside className="flex h-full min-h-full w-full flex-col bg-[#0f2042]">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 lg:hidden">
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:hidden">
         <span className="text-xs font-semibold text-white/80">Menu</span>
         <button
           type="button"
@@ -97,13 +103,13 @@ const Managersidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =>
       </div>
 
       <div
-        className={`shrink-0 border-b border-white/10 px-6 py-5 ${effectiveCollapsed ? "lg:px-2 lg:py-4" : ""}`}
+        className={`shrink-0 border-b border-white/10 px-6 py-5 ${effectiveCollapsed ? "px-2 py-4" : ""}`}
       >
-        <div className={`flex items-center gap-3 ${effectiveCollapsed ? "lg:justify-center" : ""}`}>
+        <div className={`flex items-center gap-3 ${effectiveCollapsed ? "justify-center" : ""}`}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
             <span className="text-sm font-bold text-white">BW</span>
           </div>
-          <div className={`min-w-0 ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+          <div className={`min-w-0 ${effectiveCollapsed ? "hidden" : ""}`}>
             <p className="text-sm font-bold tracking-wide text-white">BWPost</p>
             <p className="text-xs uppercase tracking-widest text-white/40">Manager</p>
           </div>
@@ -115,7 +121,7 @@ const Managersidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =>
           <div key={group.label} className="mb-6 last:mb-0">
             <p
               className={`mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/30 ${
-                effectiveCollapsed ? "lg:hidden" : ""
+                effectiveCollapsed ? "hidden" : ""
               }`}
             >
               {group.label}
@@ -152,13 +158,13 @@ const Managersidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =>
         </div>
 
         <div
-          className={`shrink-0 border-t border-white/10 px-4 py-4 ${effectiveCollapsed ? "lg:px-2" : ""}`}
+          className={`shrink-0 border-t border-white/10 px-4 py-4 ${effectiveCollapsed ? "px-2" : ""}`}
         >
-        <div className={`flex items-center gap-3 ${effectiveCollapsed ? "lg:justify-center" : ""}`}>
+        <div className={`flex items-center gap-3 ${effectiveCollapsed ? "justify-center" : ""}`}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
             {firstInitial}
           </div>
-          <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "lg:hidden" : ""}`}>
+          <div className={`min-w-0 flex-1 ${effectiveCollapsed ? "hidden" : ""}`}>
             <p className="truncate text-sm font-medium text-white">{getDisplayName(user, "Manager")}</p>
             <p className="truncate text-xs text-white/40">{user?.email || ""}</p>
           </div>
@@ -166,7 +172,7 @@ const Managersidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =>
             type="button"
             onClick={handleLogout}
             className={`shrink-0 rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white ${
-              effectiveCollapsed ? "lg:hidden" : ""
+              effectiveCollapsed ? "hidden" : ""
             }`}
             aria-label="Sign out"
           >
@@ -177,7 +183,7 @@ const Managersidebar = ({ onNavigate, effectiveCollapsed, onToggleCollapse }) =>
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-2 hidden w-full items-center justify-center rounded-lg p-2 text-white/40 hover:bg-white/10 hover:text-white lg:flex"
+            className="mt-2 flex w-full items-center justify-center rounded-lg p-2 text-white/40 hover:bg-white/10 hover:text-white"
             aria-label="Sign out"
           >
             <LogOut className="h-4 w-4" />

@@ -1,6 +1,7 @@
-import API from "@/api";
+﻿import API from "@/api";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import {
   DonutChart,
   SkeletonTable,
@@ -26,7 +27,7 @@ import { getStatus } from "@/utils/shiftStatus";
 const STATUS_CONFIG = {
   upcoming: { label: "Upcoming", bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500", icon: Timer },
   ongoing: { label: "Ongoing", bg: "bg-emerald-100", text: "text-emerald-700", dot: "bg-emerald-500", icon: CheckCircle2 },
-  completed: { label: "Completed", bg: "bg-slate-100", text: "text-slate-600", dot: "bg-slate-400", icon: CalendarX },
+  completed: { label: "Completed", bg: "bg-gray-100", text: "text-gray-600", dot: "bg-gray-400", icon: CalendarX },
 };
 
 const fmtDate = (iso) =>
@@ -99,11 +100,11 @@ function DonutLegendMini({ rows, total }) {
 function mobileStatusBorder(shift) {
   const s = getStatus(shift.shiftStartTime, shift.shiftEndTime);
   const open = Number(shift.slotsAvailable) || 0;
-  if (s === "ongoing") return "border-l-emerald-500";
-  if (s === "completed") return "border-l-slate-300";
+  if (s === "ongoing") return "border-l-green-500";
+  if (s === "completed") return "border-l-gray-300";
   if (s === "upcoming" && open > 0) return "border-l-amber-500";
   if (s === "upcoming") return "border-l-[#1B3F8B]";
-  return "border-l-slate-300";
+  return "border-l-gray-300";
 }
 
 const FilterStatCard = ({ label, value, icon: Icon, active, onClick }) => (
@@ -200,49 +201,49 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
         </div>
 
         {/* ── Shift Details ── */}
-        <div className="p-6 border-b border-slate-100 space-y-4">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Shift Details</p>
+        <div className="p-6 border-b border-gray-100 space-y-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Shift Details</p>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
                 <CalendarDays size={13} className="text-blue-500" />
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</p>
               </div>
-              <p className="text-sm font-bold text-slate-800">{fmtDate(shift.shiftStartTime)}</p>
+              <p className="text-sm font-bold text-gray-800">{fmtDate(shift.shiftStartTime)}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Clock size={13} className="text-[#2563EB]" />
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Duration</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</p>
               </div>
-              <p className="text-sm font-bold text-slate-800">{duration(shift.shiftStartTime, shift.shiftEndTime)}</p>
+              <p className="text-sm font-bold text-gray-800">{duration(shift.shiftStartTime, shift.shiftEndTime)}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Timer size={13} className="text-violet-500" />
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Start</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Start</p>
               </div>
-              <p className="text-sm font-bold text-slate-800">{fmtTime(shift.shiftStartTime)}</p>
+              <p className="text-sm font-bold text-gray-800">{fmtTime(shift.shiftStartTime)}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Timer size={13} className="text-teal-500" />
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">End</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">End</p>
               </div>
-              <p className="text-sm font-bold text-slate-800">{fmtTime(shift.shiftEndTime)}</p>
+              <p className="text-sm font-bold text-gray-800">{fmtTime(shift.shiftEndTime)}</p>
             </div>
           </div>
         </div>
 
         {/* ── Capacity ── */}
-        <div className="px-6 py-5 border-b border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Slot Capacity</p>
+        <div className="px-6 py-5 border-b border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Slot Capacity</p>
           <div className="flex items-end justify-between mb-3">
             <div>
-              <span className="text-3xl font-bold text-slate-900 tabular-nums">{accepted}</span>
-              <span className="text-slate-400 text-lg font-medium">/{slots}</span>
-              <span className="ml-2 text-xs text-slate-400">employees assigned</span>
+              <span className="text-3xl font-bold text-gray-900 tabular-nums">{accepted}</span>
+              <span className="text-gray-400 text-lg font-medium">/{slots}</span>
+              <span className="ml-2 text-xs text-gray-400">employees assigned</span>
             </div>
             <span className="text-2xl font-bold tabular-nums" style={{ color: fillPct >= 100 ? "#10b981" : fillPct >= 60 ? "#3b82f6" : "#f59e0b" }}>
               {fillPct}%
@@ -251,23 +252,23 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
           <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${fillPct}%` }} />
           </div>
-          <p className="text-xs text-slate-400 mt-2">{slots - accepted} slot{slots - accepted !== 1 ? "s" : ""} remaining</p>
+          <p className="text-xs text-gray-400 mt-2">{slots - accepted} slot{slots - accepted !== 1 ? "s" : ""} remaining</p>
         </div>
 
         {/* ── Notes ── */}
         {shift.shiftNotes && (
-          <div className="px-6 py-5 border-b border-slate-100">
+          <div className="px-6 py-5 border-b border-gray-100">
             <div className="flex items-center gap-2 mb-3">
-              <FileText size={13} className="text-slate-400" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Notes</p>
+              <FileText size={13} className="text-gray-400" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Notes</p>
             </div>
-            <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 rounded-xl p-4">{shift.shiftNotes}</p>
+            <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">{shift.shiftNotes}</p>
           </div>
         )}
 
         {/* ── Accepted Employees ── */}
         <div className="px-6 py-5">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
             Accepted Employees ({accepted})
           </p>
           {shift.acceptedEmployees?.length > 0 ? (
@@ -275,7 +276,7 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
               {shift.acceptedEmployees.map((emp, idx) => (
                 <div
                   key={emp._id || idx}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad(emp.username || "")} flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm overflow-hidden`}>
                     {emp.profileImage
@@ -284,18 +285,18 @@ const ShiftDetailDrawer = ({ shift, onClose, onEdit, onDelete }) => {
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{emp.username || "—"}</p>
-                    <p className="text-xs text-slate-400 truncate">{emp.email || ""}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{emp.username || "—"}</p>
+                    <p className="text-xs text-gray-400 truncate">{emp.email || ""}</p>
                   </div>
-                  <span className="text-xs text-slate-300 font-medium tabular-nums shrink-0">#{idx + 1}</span>
+                  <span className="text-xs text-gray-300 font-medium tabular-nums shrink-0">#{idx + 1}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-10 text-gray-400">
               <UserCheck className="h-10 w-10 mb-3 opacity-20" />
-              <p className="text-sm font-medium text-slate-500">No employees yet</p>
-              <p className="text-xs text-slate-400 mt-1">Employees will appear once they accept this shift.</p>
+              <p className="text-sm font-medium text-gray-500">No employees yet</p>
+              <p className="text-xs text-gray-400 mt-1">Employees will appear once they accept this shift.</p>
             </div>
           )}
         </div>
@@ -324,9 +325,9 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
             <CalendarDays className="h-4 w-4 text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">{shift.shiftTitle}</p>
+            <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">{shift.shiftTitle}</p>
             {shift.shiftNotes && (
-              <p className="text-xs text-slate-400 truncate max-w-[200px] mt-0.5 flex items-center gap-1">
+              <p className="text-xs text-gray-400 truncate max-w-[200px] mt-0.5 flex items-center gap-1">
                 <AlignLeft className="w-3 h-3 shrink-0" />
                 {shift.shiftNotes}
               </p>
@@ -337,11 +338,11 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
 
       {/* Date & Time */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <p className="text-sm font-medium text-slate-800">{fmtDate(shift.shiftStartTime)}</p>
-        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+        <p className="text-sm font-medium text-gray-800">{fmtDate(shift.shiftStartTime)}</p>
+        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {fmtTime(shift.shiftStartTime)} → {fmtTime(shift.shiftEndTime)}
-          <span className="ml-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium text-[10px]">
+          <span className="ml-1 px-1.5 py-0.5 rounded bg-slate-100 text-gray-500 font-medium text-[10px]">
             {duration(shift.shiftStartTime, shift.shiftEndTime)}
           </span>
         </p>
@@ -372,7 +373,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
               style={{ width: `${fillPct}%` }}
             />
           </div>
-          <span className="text-xs font-medium text-slate-600 tabular-nums">
+          <span className="text-xs font-medium text-gray-600 tabular-nums">
             {accepted}/{slots}
           </span>
         </div>
@@ -387,7 +388,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
               e.stopPropagation();
               onView(shift);
             }}
-            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#1B3F8B]"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#1B3F8B]"
             title="View details"
           >
             <Eye className="h-4 w-4" />
@@ -398,7 +399,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
               e.stopPropagation();
               onEdit(shift);
             }}
-            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
             title="Edit shift"
           >
             <Pencil className="h-4 w-4" />
@@ -409,12 +410,12 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
               e.stopPropagation();
               onDelete(shift);
             }}
-            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-100 hover:text-red-600"
+            className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
             title="Delete shift"
           >
             <Trash2 className="h-4 w-4" />
           </button>
-          <ChevronRight className="ml-0.5 h-4 w-4 text-slate-300 transition-colors group-hover:text-blue-500" aria-hidden />
+          <ChevronRight className="ml-0.5 h-4 w-4 text-gray-300 transition-colors group-hover:text-blue-500" aria-hidden />
         </div>
       </td>
     </tr>
@@ -482,6 +483,12 @@ const ManagerShifts = () => {
     }
   }, [debouncedSearch, statusFilter]);
 
+  const fetchShiftsSilent = useCallback(() => {
+    fetchShifts(currentPage, true);
+  }, [currentPage, fetchShifts]);
+
+  useAutoRefresh(fetchShiftsSilent, 60_000);
+
   useEffect(() => {
     const sig = `${debouncedSearch}|${statusFilter}`;
     const filtersChanged = filterSigRef.current !== sig;
@@ -493,21 +500,6 @@ const ManagerShifts = () => {
     }
     fetchShifts(pageToFetch, false);
   }, [currentPage, debouncedSearch, statusFilter, fetchShifts]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchShifts(currentPage, true);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [currentPage, fetchShifts]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") fetchShifts(currentPage, true);
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [currentPage, fetchShifts]);
 
   const fetchShiftMeta = useCallback(async () => {
     try {
@@ -696,20 +688,21 @@ const ManagerShifts = () => {
     <div className="min-h-screen bg-[#F8F9FC] px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-8">
       <div className="mx-auto max-w-7xl space-y-5">
 
-        {/* ── Header ─────────────────────────────────────── */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Shift Management</h1>
-            <p className="mt-1 text-sm text-gray-400">Create, schedule, and manage workforce shifts across your team.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Shifts</h1>
+            <p className="mt-1 text-sm text-gray-500">Manage and schedule team shifts</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="inline-flex h-11 min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#162d5e] sm:w-auto sm:px-6"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} />
-            Create Shift
-          </button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="inline-flex h-11 min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1B3F8B] px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-95 sm:w-auto sm:px-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 focus-visible:ring-offset-1"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              + Create Shift
+            </button>
+          </div>
         </div>
 
         {/* ── Stat summary (clickable) ─────────────────── */}
@@ -768,7 +761,7 @@ const ManagerShifts = () => {
           {/* ── Table Card ─────────────────────────────────── */}
           <div className="order-2 overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-sm lg:order-1 lg:col-span-8">
             {/* Toolbar */}
-            <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               {/* Filter Tabs */}
               <div className="inline-flex w-full flex-wrap gap-1 rounded-full bg-slate-100/80 p-1 sm:w-auto">
                 {FILTER_TABS.map((tab) => (
@@ -782,31 +775,31 @@ const ManagerShifts = () => {
                     className={`min-h-[40px] flex-1 rounded-full px-3 py-2 text-xs font-semibold transition-all sm:flex-none sm:px-4 ${
                       statusFilter === tab.key
                         ? "bg-white text-[#1B3F8B] shadow-sm ring-1 ring-gray-200/80"
-                        : "text-slate-500 hover:text-slate-800"
+                        : "text-gray-500 hover:text-gray-800"
                     }`}
                   >
                     {tab.label}{" "}
-                    <span className="tabular-nums text-slate-400">({tab.count})</span>
+                    <span className="tabular-nums text-gray-400">({tab.count})</span>
                   </button>
                 ))}
               </div>
 
               {/* Search */}
               <div className="relative w-full sm:w-72 sm:shrink-0">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="search"
                   placeholder="Search shifts..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="h-11 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30"
+                  className="h-12 w-full min-h-[44px] rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-base text-gray-900 placeholder:text-gray-400 focus:border-[#1B3F8B] focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/30 md:text-sm"
                   aria-label="Search shifts"
                 />
                 {search.trim() ? (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                     aria-label="Clear search"
                   >
                     <X className="h-4 w-4" />
@@ -850,12 +843,6 @@ const ManagerShifts = () => {
                   const fillPct = Math.min(Math.round((accepted / Math.max(slots, 1)) * 100), 100);
                   const st = getStatus(shift.shiftStartTime, shift.shiftEndTime);
                   const cfg = STATUS_CONFIG[st];
-                  const dtOpts = {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  };
                   return (
                     <div
                       key={shift._id}
@@ -868,15 +855,11 @@ const ManagerShifts = () => {
                           setSelectedShift(shift);
                         }
                       }}
-                      className={`cursor-pointer rounded-xl border border-gray-200 border-l-4 bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${mobileStatusBorder(shift)}`}
+                      className={`cursor-pointer rounded-2xl border border-gray-100 border-l-4 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md ${mobileStatusBorder(shift)}`}
                     >
+                      {/* TOP ROW: title + status badge */}
                       <div className="mb-3 flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1 pr-2">
-                          <p className="text-sm font-semibold leading-tight text-gray-900">{shift.shiftTitle}</p>
-                          <p className="mt-1 text-xs text-gray-400">
-                            {accepted}/{slots} filled
-                          </p>
-                        </div>
+                        <p className="text-base font-bold leading-tight text-gray-900">{shift.shiftTitle}</p>
                         <span
                           className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.text}`}
                         >
@@ -891,57 +874,58 @@ const ManagerShifts = () => {
                           {cfg.label}
                         </span>
                       </div>
-                      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className={`h-full rounded-full ${fillPct >= 100 ? "bg-emerald-500" : fillPct >= 60 ? "bg-blue-500" : "bg-amber-400"}`}
-                          style={{ width: `${fillPct}%` }}
-                        />
-                      </div>
+
+                      {/* SECOND ROW: date and time */}
                       <div className="mb-3 space-y-1.5">
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <span className="w-10 flex-shrink-0 text-gray-400">Start</span>
-                          <span className="font-medium">
-                            {new Date(shift.shiftStartTime).toLocaleString("en-DE", dtOpts)}
-                          </span>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                          <span>{fmtDate(shift.shiftStartTime)}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <span className="w-10 flex-shrink-0 text-gray-400">End</span>
-                          <span className="font-medium">
-                            {new Date(shift.shiftEndTime).toLocaleString("en-DE", dtOpts)}
-                          </span>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                          <span>{fmtTime(shift.shiftStartTime)} – {fmtTime(shift.shiftEndTime)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-end gap-1 border-t border-gray-100 pt-3">
+
+                      {/* THIRD ROW: slots filled + progress bar */}
+                      <div className="mb-3">
+                        <div className="mb-1.5 flex items-center justify-between text-xs text-gray-500">
+                          <span>{accepted} of {slots} filled</span>
+                          <span className="tabular-nums font-medium">{fillPct}%</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              fillPct >= 100 ? "bg-green-500" : fillPct >= 50 ? "bg-amber-400" : "bg-red-400"
+                            }`}
+                            style={{ width: `${fillPct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* BOTTOM ROW: icon action buttons */}
+                      <div className="flex items-center justify-end gap-0.5 border-t border-gray-100 pt-3">
                         <button
                           type="button"
                           title="View details"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedShift(shift);
-                          }}
-                          className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#1B3F8B]"
+                          onClick={(e) => { e.stopPropagation(); setSelectedShift(shift); }}
+                          className="rounded-lg p-2 text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-[#1B3F8B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           title="Edit shift"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingShift(shift);
-                          }}
-                          className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
+                          onClick={(e) => { e.stopPropagation(); setEditingShift(shift); }}
+                          className="rounded-lg p-2 text-gray-400 transition-colors duration-150 hover:bg-[#EFF6FF] hover:text-[#1B3F8B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           title="Delete shift"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget(shift);
-                          }}
-                          className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(shift); }}
+                          className="rounded-lg p-2 text-gray-400 transition-colors duration-150 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -953,12 +937,12 @@ const ManagerShifts = () => {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full min-w-full">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/50">
-                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Shift</th>
-                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date & Time</th>
-                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fill Rate</th>
-                      <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                    <tr className="border-b border-gray-100 bg-slate-50/50">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Shift</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date & Time</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Fill Rate</th>
+                      <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -980,11 +964,11 @@ const ManagerShifts = () => {
           {/* Footer count */}
           {!loading && !fetchError && filteredShifts.length > 0 && (
             <div className="px-6 py-3 border-t border-slate-50 bg-slate-50/50 space-y-3">
-              <p className="text-xs text-slate-400">
-                Showing <span className="font-semibold text-slate-600">{filteredShifts.length}</span> of{" "}
-                <span className="font-semibold text-slate-600">{shiftListTotal}</span> shifts · Page{" "}
-                <span className="font-semibold text-slate-600">{currentPage}</span> of{" "}
-                <span className="font-semibold text-slate-600">{totalPages}</span>
+              <p className="text-xs text-gray-400">
+                Showing <span className="font-semibold text-gray-600">{filteredShifts.length}</span> of{" "}
+                <span className="font-semibold text-gray-600">{shiftListTotal}</span> shifts · Page{" "}
+                <span className="font-semibold text-gray-600">{currentPage}</span> of{" "}
+                <span className="font-semibold text-gray-600">{totalPages}</span>
               </p>
               <div className="flex items-center justify-between mt-4 px-2">
                 <button
@@ -1020,7 +1004,7 @@ const ManagerShifts = () => {
 
           <aside className="order-1 lg:order-2 lg:col-span-4">
             <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
-              <h2 className="text-sm font-semibold text-slate-900">Shift status</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Shift status</h2>
               <p className="mt-0.5 text-xs text-gray-400">Distribution across all shifts</p>
               <div className="mt-4 flex flex-col items-center">
                 <DonutChart data={shiftDonutData} size={120} centerValue={String(donutTotal)} centerLabel="Total" />
@@ -1075,16 +1059,16 @@ const ManagerShifts = () => {
               <div className="w-16 h-16 rounded-full bg-red-50 border-8 border-red-100 flex items-center justify-center mb-5">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">Delete Shift?</h3>
-              <p className="text-sm text-slate-500 mt-2 mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Delete Shift?</h3>
+              <p className="text-sm text-gray-500 mt-2 mb-6">
                 Are you sure you want to delete{" "}
-                <span className="font-semibold text-slate-800">"{deleteTarget.shiftTitle}"</span>?
+                <span className="font-semibold text-gray-800">"{deleteTarget.shiftTitle}"</span>?
                 This action cannot be undone.
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="flex-1 py-3 border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition text-sm"
+                  className="flex-1 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition text-sm"
                 >
                   Cancel
                 </button>

@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+﻿import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { SkeletonKpi, SkeletonDonutPlaceholder, ErrorState, KpiCard, DonutChart } from "@/components/ui";
 import { Users2, UserCheck, Users, Mail } from "lucide-react";
 import API from "@/api";
@@ -88,9 +89,42 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
+  const fetchDashboardSilent = useCallback(async () => {
+    try {
+      const [
+        totalRes,
+        adminRes,
+        mgrRes,
+        empRes,
+        invCountRes,
+        invListRes,
+      ] = await Promise.all([
+        API.get("/api/admin/users?page=1&limit=1"),
+        API.get("/api/admin/users?page=1&limit=1&role=admin"),
+        API.get("/api/admin/users?page=1&limit=1&role=manager"),
+        API.get("/api/admin/users?page=1&limit=1&role=employee"),
+        API.get("/api/invites?page=1&limit=1&used=false"),
+        API.get("/api/invites?page=1&limit=8&used=false"),
+      ]);
+      setCounts({
+        totalUsers: totalRes.data?.pagination?.total ?? 0,
+        adminUsers: adminRes.data?.pagination?.total ?? 0,
+        managerUsers: mgrRes.data?.pagination?.total ?? 0,
+        employeeUsers: empRes.data?.pagination?.total ?? 0,
+        pendingInvites: invCountRes.data?.pagination?.total ?? 0,
+      });
+      const list = invListRes.data?.data;
+      setInvites(Array.isArray(list) ? list : []);
+    } catch {
+      /* silent — keep previous data */
+    }
+  }, [navigate]);
+
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
+
+  useAutoRefresh(fetchDashboardSilent, 60_000);
 
   const donutData = useMemo(
     () => [
@@ -141,11 +175,12 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-full bg-[#F8F9FC]">
       <div className="mx-auto max-w-7xl space-y-6 px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            {greeting()}, {getDisplayName(user, "Admin")}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">System overview and statistics</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap"></div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -157,7 +192,7 @@ const AdminDashboard = () => {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 lg:col-span-7">
-            <h2 className="text-sm font-semibold text-slate-900">Users by role</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Users by role</h2>
             <p className="text-xs text-gray-400">Distribution across the system</p>
             <div className="mt-4 flex flex-col items-center sm:flex-row sm:items-start sm:gap-8">
               <DonutChart
@@ -171,24 +206,24 @@ const AdminDashboard = () => {
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 lg:col-span-5">
-            <h2 className="text-sm font-semibold text-slate-900">Recent invites</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Recent invites</h2>
             <p className="text-xs text-gray-400">Pending registration links</p>
             <div className="mt-4 space-y-3">
               {invites.length === 0 ? (
-                <p className="text-sm text-slate-500">No pending invites.</p>
+                <p className="text-sm text-gray-500">No pending invites.</p>
               ) : (
                 invites.map((inv) => (
                   <div
                     key={inv._id}
-                    className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-slate-50/50 px-3 py-2.5"
+                    className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-slate-50/50 px-3 py-2.5"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-slate-800">{inv.email}</span>
+                      <span className="truncate text-sm font-medium text-gray-800">{inv.email}</span>
                       <span className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-semibold uppercase text-[#1B3F8B]">
                         {inv.role || "—"}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
                       <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-800">Pending</span>
                       <span>{fmtDate(inv.createdAt)}</span>
                     </div>

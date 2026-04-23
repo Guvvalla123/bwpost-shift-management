@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const AuditLog = require("../models/auditLogModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
 const { getPaginationParams, getPaginationMeta } = require("../utils/paginate");
@@ -124,4 +125,43 @@ const generateUserPasswordResetLink = async (req, userId) => {
   };
 };
 
-module.exports = { createUser, updateUserRole, getAllUsers, generateUserPasswordResetLink };
+const getAuditLogs = async (query) => {
+  const { page, limit, skip } = getPaginationParams(query, 20, 50);
+  const { search = "", action, from, to } = query;
+  const filter = {};
+  if (action) {
+    filter.action = String(action);
+  } else if (search) {
+    const esc = String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { action: { $regex: esc, $options: "i" } },
+      { ip: { $regex: esc, $options: "i" } },
+    ];
+  }
+  if (from || to) {
+    filter.createdAt = {};
+    if (from) filter.createdAt.$gte = new Date(String(from));
+    if (to) {
+      const end = new Date(String(to));
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = end;
+    }
+  }
+
+  const [data, total] = await Promise.all([
+    AuditLog.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("actorId", "username email role")
+      .lean(),
+    AuditLog.countDocuments(filter),
+  ]);
+
+  return {
+    data,
+    pagination: getPaginationMeta(total, page, limit),
+  };
+};
+
+module.exports = { createUser, updateUserRole, getAllUsers, generateUserPasswordResetLink, getAuditLogs };

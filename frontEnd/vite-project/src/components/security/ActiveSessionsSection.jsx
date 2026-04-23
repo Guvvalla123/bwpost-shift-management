@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Loader2, LogOut, Monitor } from "lucide-react";
 import { toast } from "sonner";
@@ -6,15 +6,15 @@ import API from "@/api";
 import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
 
 const Section = ({ icon: Icon, title, description, children }) => (
-  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-    <div className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 bg-slate-50/60">
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b border-gray-100 bg-slate-50/60">
       <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
         <Icon size={15} className="text-[#1B3F8B]" />
       </div>
       <div>
-        <h3 className="text-base font-semibold text-slate-800 md:text-lg">{title}</h3>
+        <h3 className="text-base font-semibold text-gray-800 md:text-lg">{title}</h3>
         {description && (
-          <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">{description}</p>
+          <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{description}</p>
         )}
       </div>
     </div>
@@ -101,13 +101,13 @@ export default function ActiveSessionsSection({ accentClass = "text-[#1B3F8B]", 
           <Loader2 className={`h-8 w-8 animate-spin ${accentClass}`} />
         </div>
       ) : sessions.length === 0 ? (
-        <p className="text-sm text-slate-500">No active sessions found.</p>
+        <p className="text-sm text-gray-500">No active sessions found.</p>
       ) : (
         <ul className="space-y-3">
           {sessions.map((s) => (
             <li
               key={s.id}
-              className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
+              className="rounded-xl border border-gray-100 bg-slate-50/50 p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
             >
               <div className="flex gap-3 min-w-0">
                 <div
@@ -116,11 +116,11 @@ export default function ActiveSessionsSection({ accentClass = "text-[#1B3F8B]", 
                   <Monitor className={`h-5 w-5 ${accentClass}`} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 break-words">
+                  <p className="text-sm font-medium text-gray-800 break-words">
                     {s.deviceInfo || "Unknown browser"}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">IP: {s.ipAddress || "—"}</p>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">IP: {s.ipAddress || "—"}</p>
+                  <p className="text-xs text-gray-400 mt-1">
                     Created: {formatWhen(s.createdAt)} · Last active: {formatWhen(s.lastUsedAt)}
                   </p>
                   {s.isCurrent && (
@@ -135,7 +135,7 @@ export default function ActiveSessionsSection({ accentClass = "text-[#1B3F8B]", 
                   type="button"
                   disabled={actionId === s.id}
                   onClick={() => removeSession(s.id)}
-                  className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-white min-h-[44px] disabled:opacity-50"
+                  className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-white min-h-[44px] disabled:opacity-50"
                 >
                   {actionId === s.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -150,7 +150,7 @@ export default function ActiveSessionsSection({ accentClass = "text-[#1B3F8B]", 
         </ul>
       )}
 
-      <div className="pt-2 border-t border-slate-100">
+      <div className="pt-2 border-t border-gray-100">
         {!confirmAll ? (
           <button
             type="button"
@@ -161,11 +161,11 @@ export default function ActiveSessionsSection({ accentClass = "text-[#1B3F8B]", 
           </button>
         ) : (
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <p className="text-sm text-slate-600">Sign out everywhere? You will need to sign in again on this device.</p>
+            <p className="text-sm text-gray-600">Sign out everywhere? You will need to sign in again on this device.</p>
             <div className="flex gap-2">
               <button
                 type="button"
-                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm"
+                className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 text-sm"
                 onClick={() => setConfirmAll(false)}
               >
                 Cancel

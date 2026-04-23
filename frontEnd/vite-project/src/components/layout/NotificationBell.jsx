@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
+
+const MIN_NOTIF_REFRESH_MS = 10_000;
 import { useLocation } from "react-router-dom";
 import { Bell, CheckCheck } from "lucide-react";
 import API from "@/api";
@@ -18,6 +20,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const bellRef = useRef();
+  const lastRefreshTime = useRef(0);
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -57,13 +60,29 @@ export default function NotificationBell() {
   }, [fetchNotifs]);
 
   useEffect(() => {
+    const guardedRefresh = () => {
+      const now = Date.now();
+      if (now - lastRefreshTime.current < MIN_NOTIF_REFRESH_MS) return;
+      lastRefreshTime.current = now;
+      fetchNotifs();
+    };
+
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        fetchNotifs();
+        guardedRefresh();
       }
     };
+
+    const handleFocus = () => {
+      guardedRefresh();
+    };
+
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [fetchNotifs]);
 
   const markAllRead = async () => {
@@ -122,10 +141,10 @@ export default function NotificationBell() {
             animate-in fade-in zoom-in-95 duration-150
           "
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-slate-50/80">
             <div className="flex items-center gap-2">
               <Bell size={14} className="text-[#1B3F8B]" />
-              <p className="text-sm font-bold text-slate-800">Notifications</p>
+              <p className="text-sm font-bold text-gray-800">Notifications</p>
               {unreadCount > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
                   {unreadCount} unread
@@ -150,10 +169,10 @@ export default function NotificationBell() {
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-slate-200 border-t-[#1B3F8B] rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-gray-200 border-t-[#1B3F8B] rounded-full animate-spin" />
               </div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-10 text-gray-400">
                 <Bell size={28} className="mb-2 opacity-40" />
                 <p className="text-sm font-medium">All caught up</p>
                 <p className="text-xs mt-0.5">No notifications</p>
@@ -168,13 +187,13 @@ export default function NotificationBell() {
                     onClick={() => {
                       if (unread) markOneRead(n._id);
                     }}
-                    className={`w-full text-left px-4 py-3 transition-colors hover:bg-slate-50 ${
+                    className={`w-full text-left px-4 py-3 transition-colors hover:bg-gray-50 ${
                       unread ? "bg-sky-50" : "bg-white"
                     }`}
                   >
-                    <p className="text-sm font-bold text-slate-900 leading-snug">{n.title}</p>
-                    <p className="text-sm text-slate-600 mt-1 leading-snug">{n.message}</p>
-                    <p className="text-[11px] text-slate-400 mt-1.5">
+                    <p className="text-sm font-bold text-gray-900 leading-snug">{n.title}</p>
+                    <p className="text-sm text-gray-600 mt-1 leading-snug">{n.message}</p>
+                    <p className="text-[11px] text-gray-400 mt-1.5">
                       {timeAgo(n.createdAt)}
                     </p>
                   </button>
@@ -183,8 +202,8 @@ export default function NotificationBell() {
             )}
           </div>
 
-          <div className="border-t border-slate-100 px-4 py-2.5 bg-slate-50/50">
-            <p className="text-[11px] text-slate-400 text-center">
+          <div className="border-t border-gray-100 px-4 py-2.5 bg-slate-50/50">
+            <p className="text-[11px] text-gray-400 text-center">
               Auto-refreshes every 60 seconds
             </p>
           </div>

@@ -8,7 +8,7 @@ import { getApiErrorMessage, unwrapSuccessData } from "@/utils/apiError";
 import { cn } from "@/lib/utils";
 
 const fieldInputCls =
-  "w-full h-12 pl-10 pr-4 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl " +
+  "w-full h-12 pl-10 pr-4 text-base md:text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl " +
   "focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/20 focus:border-[#1B3F8B] focus:bg-white " +
   "transition-all duration-200 placeholder:text-gray-400";
 
