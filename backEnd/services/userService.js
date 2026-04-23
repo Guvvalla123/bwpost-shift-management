@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const AppError = require("../utils/AppError");
 const { log } = require("../utils/auditLog");
@@ -78,14 +79,29 @@ const getClearCookieOptions = () => {
 
 const getRegistrationStatus = () => ({ publicRegistrationEnabled: false });
 
+const hashRefreshToken = (raw) =>
+  crypto.createHash("sha256").update(raw, "utf8").digest("hex");
+
+const getClientIp = (req) => {
+  const x = req.get("x-forwarded-for");
+  if (x) return x.split(",")[0].trim();
+  return req.ip || req.socket?.remoteAddress || "";
+};
+
+const getDeviceInfo = (req) => (req.get("user-agent") || "").slice(0, 512);
+
+const getSessionExpiresAt = () => new Date(Date.now() + getRefreshCookieMaxAgeMs());
+
 const assertLoginFields = (email, password) => {
   if (!email || !password) throw new AppError("All fields are required", 400);
 };
 
-const login = async (email, password) => {
+const MAX_SESSIONS = 5;
+
+const login = async (req, email, password) => {
   assertLoginFields(email, password);
   const user = await User.findOne({ email: email.toLowerCase(), _includeInactive: true })
-    .select("+password +refreshToken");
+    .select("+password +refreshToken +refreshTokens");
   if (!user || !(await user.comparePassword(password))) {
     throw new AppError("Invalid credentials", 401);
   }
@@ -93,14 +109,31 @@ const login = async (email, password) => {
     throw new AppError("Account has been deactivated. Contact your administrator.", 403);
   }
   const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
-  // Persist refresh token without user.save() — save() can re-run the password
-  // pre-save hook when +password was selected (double-hash bug).
-  await User.findByIdAndUpdate(
-    user._id,
-    { $set: { refreshToken } },
-    { new: false }
-  );
+  const newRefresh = generateRefreshToken(user);
+  const tokenHash = hashRefreshToken(newRefresh);
+  const now = new Date();
+  const exp = getSessionExpiresAt();
+  user.removeExpiredSessions();
+  user.refreshToken = newRefresh;
+  user.refreshTokens = user.refreshTokens || [];
+  user.refreshTokens.push({
+    token: tokenHash,
+    deviceInfo: getDeviceInfo(req),
+    ipAddress: getClientIp(req),
+    createdAt: now,
+    lastUsedAt: now,
+    expiresAt: exp,
+  });
+  user.refreshTokens.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  while (user.refreshTokens.length > MAX_SESSIONS) {
+    user.refreshTokens.shift();
+  }
+  try {
+    await user.save();
+  } catch (err) {
+    console.error("Session persist failed:", err.message);
+    throw new AppError("Login failed", 500);
+  }
   return {
     user: {
       id: user._id,
@@ -109,28 +142,61 @@ const login = async (email, password) => {
       role: user.role,
     },
     accessToken,
-    refreshToken,
+    refreshToken: newRefresh,
     userDoc: user,
   };
+};
+
+const findSessionIndexByTokenHash = (user, hash) => {
+  if (!user.refreshTokens?.length) return -1;
+  return user.refreshTokens.findIndex((s) => s.token === hash);
 };
 
 const refreshAccessToken = async (refreshToken) => {
   if (!refreshToken) throw new AppError("Refresh token missing", 401);
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await User.findOne({ _id: decoded.id, _includeInactive: true }).select("+refreshToken");
-    if (!user || user.refreshToken !== refreshToken) {
+    const user = await User.findOne({ _id: decoded.id, _includeInactive: true }).select(
+      "+refreshToken +refreshTokens"
+    );
+    if (!user) throw new AppError("Invalid refresh token", 403);
+    if (user.isActive === false) throw new AppError("Account has been deactivated", 403);
+    const h = hashRefreshToken(refreshToken);
+    let u = user;
+    let sessionIdx = findSessionIndexByTokenHash(u, h);
+    if (sessionIdx === -1) {
+      if (u.refreshToken === refreshToken) {
+        u.removeExpiredSessions();
+        const now = new Date();
+        const exp = getSessionExpiresAt();
+        if (!u.refreshTokens) u.refreshTokens = [];
+        u.refreshTokens.push({
+          token: h,
+          deviceInfo: "",
+          ipAddress: "",
+          createdAt: now,
+          lastUsedAt: now,
+          expiresAt: exp,
+        });
+        u.refreshToken = null;
+        await u.save();
+        u = await User.findById(u._id).select("+refreshToken +refreshTokens");
+        sessionIdx = findSessionIndexByTokenHash(u, h);
+      }
+    }
+    if (sessionIdx === -1) {
       throw new AppError("Invalid refresh token", 403);
     }
-    if (user.isActive === false) throw new AppError("Account has been deactivated", 403);
-    const newAccessToken = generateAccessToken(user);
-    const newRefreshToken = generateRefreshToken(user);
-    await User.findByIdAndUpdate(
-      user._id,
-      { $set: { refreshToken: newRefreshToken } },
-      { new: false }
-    );
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    const newAccessToken = generateAccessToken(u);
+    const newRefresh = generateRefreshToken(u);
+    const newHash = hashRefreshToken(newRefresh);
+    const sess = u.refreshTokens[sessionIdx];
+    sess.lastUsedAt = new Date();
+    sess.token = newHash;
+    sess.expiresAt = getSessionExpiresAt();
+    u.refreshToken = newRefresh;
+    await u.save();
+    return { accessToken: newAccessToken, refreshToken: newRefresh };
   } catch (e) {
     if (e instanceof AppError) throw e;
     throw new AppError("Invalid refresh token", 401);
@@ -139,22 +205,82 @@ const refreshAccessToken = async (refreshToken) => {
 
 const logout = async (refreshToken, userId) => {
   try {
+    if (userId && refreshToken) {
+      const h = hashRefreshToken(refreshToken);
+      await User.findByIdAndUpdate(userId, {
+        $set: { refreshToken: null },
+        $pull: { refreshTokens: { token: h } },
+      });
+      return;
+    }
     if (userId) {
-      await User.findByIdAndUpdate(
-        userId,
-        { $set: { refreshToken: null } },
-        { new: false }
-      );
-    } else if (refreshToken) {
-      await User.findOneAndUpdate(
-        { refreshToken },
-        { $set: { refreshToken: null } },
-        { new: false }
-      );
+      await User.findByIdAndUpdate(userId, { $set: { refreshToken: null, refreshTokens: [] } });
+      return;
+    }
+    if (refreshToken) {
+      const h = hashRefreshToken(refreshToken);
+      const u = await User.findOne({
+        $or: [{ refreshToken }, { "refreshTokens.token": h }],
+        _includeInactive: true,
+      }).select("_id");
+      if (u) {
+        await User.findByIdAndUpdate(u._id, {
+          $set: { refreshToken: null },
+          $pull: { refreshTokens: { token: h } },
+        });
+      }
     }
   } catch (err) {
     console.error("Logout DB clear failed:", err.message);
   }
+};
+
+const logoutAllDevices = async (userId) => {
+  await User.findByIdAndUpdate(userId, {
+    $set: { refreshToken: null, refreshTokens: [] },
+  });
+};
+
+const getActiveSessions = async (req, userId) => {
+  const currentCookie = req.cookies?.refreshToken;
+  const currentHash = currentCookie ? hashRefreshToken(currentCookie) : null;
+  const user = await User.findById(userId).select("+refreshTokens");
+  if (!user) throw new AppError("User not found", 404);
+  user.removeExpiredSessions();
+  if (user.isModified("refreshTokens")) {
+    await user.save();
+  }
+  const fresh = await User.findById(userId).select("+refreshTokens");
+  return (fresh.refreshTokens || [])
+    .filter((s) => s.expiresAt > new Date())
+    .map((s) => ({
+      id: s._id.toString(),
+      deviceInfo: s.deviceInfo,
+      ipAddress: s.ipAddress,
+      createdAt: s.createdAt,
+      lastUsedAt: s.lastUsedAt,
+      expiresAt: s.expiresAt,
+      isCurrent: currentHash != null && s.token === currentHash,
+    }));
+};
+
+const logoutOneSession = async (req, userId, sessionId) => {
+  if (!mongoose.isValidObjectId(sessionId)) {
+    throw new AppError("Invalid session", 400);
+  }
+  const currentCookie = req.cookies?.refreshToken;
+  const currentHash = currentCookie ? hashRefreshToken(currentCookie) : null;
+  const user = await User.findById(userId).select("+refreshToken +refreshTokens");
+  if (!user) throw new AppError("User not found", 404);
+  const sub = (user.refreshTokens || []).find((s) => s._id.toString() === sessionId);
+  if (!sub) throw new AppError("Session not found", 404);
+  const oid = new mongoose.Types.ObjectId(sessionId);
+  const revokedCurrent = currentHash != null && sub.token === currentHash;
+  await User.findByIdAndUpdate(userId, { $pull: { refreshTokens: { _id: oid } } });
+  if (revokedCurrent) {
+    await User.findByIdAndUpdate(userId, { $set: { refreshToken: null } });
+  }
+  return { revokedCurrent };
 };
 
 const getMe = async (userId) => {
@@ -255,7 +381,7 @@ const resetPasswordWithToken = async (req, { token, password }) => {
   const user = await User.findOne({
     passwordResetTokenHash: hash,
     passwordResetExpires: { $gt: new Date() },
-  }).select("+password +refreshToken");
+  }).select("+password +refreshToken +refreshTokens");
 
   if (!user) throw new AppError("Invalid or expired reset token", 400);
 
@@ -263,6 +389,7 @@ const resetPasswordWithToken = async (req, { token, password }) => {
   user.passwordResetTokenHash = null;
   user.passwordResetExpires = null;
   user.refreshToken = null;
+  user.refreshTokens = [];
   await user.save();
 
   log("auth.password_reset_completed", req, "User", user._id, { email: user.email }, {
@@ -313,6 +440,9 @@ module.exports = {
   login,
   refreshAccessToken,
   logout,
+  logoutAllDevices,
+  getActiveSessions,
+  logoutOneSession,
   getMe,
   updateProfile,
   requestPasswordReset,

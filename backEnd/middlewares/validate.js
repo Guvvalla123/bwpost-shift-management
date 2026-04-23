@@ -1,4 +1,5 @@
 const AppError = require("../utils/AppError");
+const { logEvent } = require("../utils/securityLog");
 
 const validate = (schema) => {
   return (req, res, next) => {
@@ -10,6 +11,7 @@ const validate = (schema) => {
       });
 
       if (error) {
+        logEvent("validation.body", req, { detailCount: error.details.length });
         return next(
           new AppError("Invalid request data", 400, {
             errors: error.details.map((item) => ({
@@ -39,6 +41,7 @@ const validateQuery = (schema) => {
       });
 
       if (error) {
+        logEvent("validation.query", req, { detailCount: error.details.length });
         return next(
           new AppError("Invalid query parameters", 400, {
             errors: error.details.map((item) => ({

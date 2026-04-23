@@ -9,6 +9,7 @@
     "seed:admin": "node scripts/seedAdmin.js",
     "seed:dev": "node scripts/seedManagerEmployee.js",
     "backup": "node scripts/backupDatabase.js",
+    "audit": "npm audit --audit-level=high",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

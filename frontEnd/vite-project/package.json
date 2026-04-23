@@ -15,7 +15,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "audit": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.20",

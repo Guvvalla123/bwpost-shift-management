@@ -29,11 +29,15 @@ const errorHandler = (err, req, res, next) => {
     message = "Token expired";
   } else {
     statusCode = err.statusCode || 500;
-    message = err.message || "Internal Server Error";
+    if (statusCode === 500 && process.env.NODE_ENV === "production") {
+      message = "An unexpected error occurred";
+    } else {
+      message = err.message || "Internal Server Error";
+    }
   }
 
   if (statusCode >= 500) {
-    console.error("Server Error:", err);
+    console.error("Server Error:", req.id || "-", err.message);
   }
 
   const body = { success: false, error: message };

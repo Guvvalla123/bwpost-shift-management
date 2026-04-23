@@ -12,6 +12,7 @@ const connectDB = require("./config/db");
 const mongoose = require("mongoose");
 const { startCronJobs } = require("./services/cronService");
 const AppError = require("./utils/AppError");
+const { logEvent } = require("./utils/securityLog");
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ if (missing.length) {
 }
 
 const app = express();
+app.disable("x-powered-by");
 
 // Trust Render's reverse proxy
 app.set("trust proxy", 1);
@@ -46,19 +48,86 @@ if (mongoose.connection.readyState === 1) {
 
 /* ================= SECURITY ================= */
 
-// Security headers
-app.use(helmet());
-
-// Request ID for tracing
 const { randomUUID } = require("crypto");
+const isProd = process.env.NODE_ENV === "production";
+const feUrl = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
+const buildConnectSrc = () => {
+  const s = new Set(["'self'"]);
+  if (feUrl) s.add(feUrl);
+  (process.env.ALLOWED_ORIGINS || "").split(",").forEach((o) => {
+    const t = o.trim();
+    if (t) s.add(t);
+  });
+  s.add("https://res.cloudinary.com");
+  s.add("https://api.cloudinary.com");
+  return Array.from(s);
+};
+
+const cspReportUri = process.env.API_CSP_REPORT_URI
+  ? [String(process.env.API_CSP_REPORT_URI).trim()]
+  : ["/api/csp-report"];
+
+const cspDirectives = {
+  defaultSrc: ["'none'"],
+  scriptSrc: ["'none'"],
+  styleSrc: ["'none'"],
+  imgSrc: ["'self'", "data:"],
+  connectSrc: buildConnectSrc(),
+  formAction: ["'none'"],
+};
+if (isProd) {
+  cspDirectives.reportUri = cspReportUri;
+}
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: cspDirectives,
+    },
+    hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+    frameguard: { action: "deny" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: "same-origin" },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
 app.use((req, res, next) => {
-  req.id = req.get("x-request-id") || randomUUID();
-  res.setHeader("X-Request-ID", req.id);
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=()"
+  );
   next();
 });
 
-// Logging (use short format in production to avoid noisy output)
-app.use(morgan(process.env.NODE_ENV === "production" ? "short" : "dev"));
+// Request ID for tracing
+app.use((req, res, next) => {
+  req.id = req.get("x-request-id") || randomUUID();
+  res.setHeader("X-Request-ID", req.id);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
+
+morgan.token("req-id", (req) => req.id || "-");
+app.use(
+  morgan(
+    isProd
+      ? ":req-id :remote-addr :method :url :status :res[content-length] - :response-time ms"
+      : ":req-id :method :url :status :response-time ms"
+  )
+);
+
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    const code = res.statusCode;
+    if (code === 401 || code === 403) {
+      logEvent(`http_${code}`, req, { status: code });
+    }
+  });
+  next();
+});
 
 /* ================= CORS ================= */
 
@@ -76,21 +145,26 @@ const allowedOrigins = buildAllowedOrigins();
 
 app.use(cors({
   origin: function (origin, callback) {
-    // In production, block requests with no Origin header (Postman/curl)
-    // In development, allow them for easier testing
     if (!origin) {
-      const isProd = process.env.NODE_ENV === "production";
       return callback(null, !isProd);
     }
-
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-
     return callback(null, false);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Cookie",
+    "X-Request-ID",
+    "X-Requested-With",
+    "If-None-Match",
+  ],
+  exposedHeaders: ["X-Request-ID"],
+  maxAge: 86400,
 }));
 
 // Handle preflight requests
@@ -112,6 +186,22 @@ app.use(csrfProtect);
 
 app.use(express.json({ limit: "10kb" }));
 app.use(cookieParser());
+
+app.post("/api/csp-report", express.json({ limit: "32kb" }), (req, res) => {
+  try {
+    logEvent("csp_report", req, { body: typeof req.body === "object" ? req.body : {} });
+  } catch (e) {
+    logEvent("csp_report_parse", req, { error: e.message });
+  }
+  res.status(204).end();
+});
+
+app.use("/api", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 
 /* ================= SECURITY PROTECTION ================= */
 
@@ -139,6 +229,7 @@ if (process.env.NODE_ENV === "production") {
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res, next, options) => {
+      logEvent("rate_limit", req, { limit: 100, window: "15m" });
       next(new AppError("Too many requests, try again later", options.statusCode));
     },
   });

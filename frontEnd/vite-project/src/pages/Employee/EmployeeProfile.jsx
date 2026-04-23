@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
+import ActiveSessionsSection from "@/components/security/ActiveSessionsSection";
 import { SkeletonCard } from "@/components/ui";
 
 /* ─── Cloudinary config ──────────────────────────────────── */
@@ -299,6 +300,13 @@ const EmployeeProfile = () => {
                     ))}
                 </div>
             </Section>
+
+            <div className="pt-2">
+                <ActiveSessionsSection
+                    accentClass="text-emerald-600"
+                    iconWrapperClass="bg-emerald-100"
+                />
+            </div>
 
             {/* ── Save ────────────────────────────────────────────── */}
             <div className="flex flex-col items-stretch sm:items-end pt-2">

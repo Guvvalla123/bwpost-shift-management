@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import API from "@/api";
 import { unwrapSuccessData, getApiErrorMessage } from "@/utils/apiError";
+import ActiveSessionsSection from "@/components/security/ActiveSessionsSection";
 
 /* ─── Cloudinary config ──────────────────────────────────────────── */
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -364,7 +365,6 @@ const Settings = () => {
                     {[
                         { label: "Change Password", desc: "Update your account password", action: "Coming soon" },
                         { label: "Two-Factor Auth (2FA)", desc: "Add an extra layer of security", action: "Coming soon" },
-                        { label: "Active Sessions", desc: "View and manage active sessions", action: "Coming soon" },
                     ].map((item, i) => (
                         <div key={i} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
                             <div>
@@ -378,6 +378,10 @@ const Settings = () => {
                     ))}
                 </div>
             </Section>
+
+            <div className="pt-2">
+                <ActiveSessionsSection />
+            </div>
 
             {/* ── Save button ───────────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row sm:justify-end pt-2">

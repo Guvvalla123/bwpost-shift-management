@@ -22,7 +22,7 @@ const registerUser = asyncHandler(async () => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  const result = await userService.login(email, password);
+  const result = await userService.login(req, email, password);
   log(
     "auth.login",
     req,
@@ -92,6 +92,29 @@ const resetPassword = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, { message });
 });
 
+const getActiveSessions = asyncHandler(async (req, res) => {
+  const data = await userService.getActiveSessions(req, req.user.id);
+  return sendSuccess(res, 200, { data });
+});
+
+const logoutAllDevices = asyncHandler(async (req, res) => {
+  await userService.logoutAllDevices(req.user.id);
+  const clearOpts = userService.getClearCookieOptions();
+  res.clearCookie("token", clearOpts);
+  res.clearCookie("refreshToken", clearOpts);
+  return sendSuccess(res, 200, { message: "Logged out from all devices" });
+});
+
+const logoutOneSession = asyncHandler(async (req, res) => {
+  const { revokedCurrent } = await userService.logoutOneSession(req, req.user.id, req.params.sessionId);
+  if (revokedCurrent) {
+    const clearOpts = userService.getClearCookieOptions();
+    res.clearCookie("token", clearOpts);
+    res.clearCookie("refreshToken", clearOpts);
+  }
+  return sendSuccess(res, 200, { message: "Session removed" });
+});
+
 module.exports = {
   registerUser,
   loginUser,
@@ -103,4 +126,7 @@ module.exports = {
   forgotPassword,
   validateResetPasswordToken,
   resetPassword,
+  getActiveSessions,
+  logoutAllDevices,
+  logoutOneSession,
 };

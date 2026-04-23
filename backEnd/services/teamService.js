@@ -104,7 +104,7 @@ const deleteEmployee = async (req, user, employeeId) => {
     isActive: false,
     deactivatedAt: now,
     deactivatedBy: user.id,
-    $unset: { refreshToken: 1 },
+    $unset: { refreshToken: 1, refreshTokens: 1 },
   });
   return { message: "Employee deactivated successfully" };
 };

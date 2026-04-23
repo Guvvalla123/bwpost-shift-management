@@ -1,6 +1,18 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
+const sessionSchema = new mongoose.Schema(
+  {
+    token: { type: String, required: true, select: false },
+    deviceInfo: { type: String, default: "" },
+    ipAddress: { type: String, default: "" },
+    createdAt: { type: Date, default: Date.now },
+    lastUsedAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, required: true },
+  },
+  { _id: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -20,7 +32,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      select: false, // never expose password
+      select: false,
     },
 
     role: {
@@ -29,8 +41,15 @@ const userSchema = new mongoose.Schema(
       default: "employee",
     },
 
+    /** @deprecated use refreshTokens. Kept for migration and backward compatibility. */
     refreshToken: {
       type: String,
+      select: false,
+    },
+
+    refreshTokens: {
+      type: [sessionSchema],
+      default: [],
       select: false,
     },
 
@@ -48,17 +67,15 @@ const userSchema = new mongoose.Schema(
 
     profileImage: {
       type: String,
-      default: "", // Cloudinary URL
+      default: "",
     },
 
-    // Reporting relationship: employee's assigned manager (employees only)
     managerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
 
-    // Soft delete: maintain historical integrity
     isActive: { type: Boolean, default: true },
     deactivatedAt: { type: Date, default: null },
     deactivatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
@@ -69,15 +86,15 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-/* ── Indexes for query performance at scale ── */
+/* ── Indexes ── */
 userSchema.index({ role: 1 });
 userSchema.index({ refreshToken: 1 });
+userSchema.index({ "refreshTokens.token": 1 }, { sparse: true });
 userSchema.index({ managerId: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ passwordResetTokenHash: 1 }, { sparse: true });
 
-/* ── Employees must have managerId (reporting hierarchy) ── */
 userSchema.pre("save", function (next) {
   if (this.role === "employee" && !this.managerId) {
     return next(new Error("Employees must be assigned to a manager"));
@@ -85,7 +102,6 @@ userSchema.pre("save", function (next) {
   next();
 });
 
-/* ── Exclude inactive users by default; use _includeInactive: true to bypass ── */
 userSchema.pre(/^find/, function (next) {
   const q = this.getQuery();
   if (q._includeInactive) {
@@ -97,7 +113,6 @@ userSchema.pre(/^find/, function (next) {
   next();
 });
 
-// Hash password before saving; clear password-reset artifacts when password changes
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   if (!this.isNew) {
@@ -108,7 +123,12 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Compare passwords
+userSchema.methods.removeExpiredSessions = function removeExpiredSessions() {
+  if (!this.refreshTokens?.length) return;
+  const now = new Date();
+  this.refreshTokens = this.refreshTokens.filter((s) => s.expiresAt > now);
+};
+
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };

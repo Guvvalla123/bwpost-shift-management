@@ -14,6 +14,9 @@ const {
   forgotPassword,
   validateResetPasswordToken,
   resetPassword,
+  getActiveSessions,
+  logoutAllDevices,
+  logoutOneSession,
 } = require('../controllers/userController');
 const validate = require('../middlewares/validate');
 const {
@@ -24,6 +27,7 @@ const {
   updateProfileSchema,
 } = require('../validators/uservalidators');
 const { auth } = require('../middlewares/authMiddleware');
+const { logEvent } = require('../utils/securityLog');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -31,6 +35,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next, options) => {
+    logEvent("rate_limit_auth", req, { window: "15m" });
     next(new AppError("Too many attempts, please try again after 15 minutes", options.statusCode));
   },
 });
@@ -40,9 +45,9 @@ const refreshLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    status: "error",
-    message: "Too many refresh attempts, please try again later",
+  handler: (req, res, next, options) => {
+    logEvent("rate_limit_refresh", req, { window: "15m" });
+    next(new AppError("Too many refresh attempts, please try again later", options.statusCode));
   },
 });
 
@@ -68,6 +73,10 @@ router.post('/refresh-token', refreshLimiter, refreshAccessToken);
 
 // Get current user
 router.get('/me', auth, getMe);
+
+router.get("/sessions", auth, getActiveSessions);
+router.delete("/sessions", auth, logoutAllDevices);
+router.delete("/sessions/:sessionId", auth, logoutOneSession);
 
 // Update profile (username + profileImage)
 router.put('/profile', auth, validate(updateProfileSchema), updateProfile);
