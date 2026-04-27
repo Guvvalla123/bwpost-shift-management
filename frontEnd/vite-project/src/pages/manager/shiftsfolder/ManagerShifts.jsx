@@ -317,7 +317,8 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
   return (
     <tr
       className="group cursor-pointer border-b border-slate-50 transition-colors duration-150 even:bg-slate-50/40 hover:bg-blue-50/50"
-      onClick={() => onView(shift)}
+      onClick={() => {onView(shift)}}
+   
     >
       <td className="px-6 py-4">
         <div className="flex items-start gap-3">
@@ -379,7 +380,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
         </div>
       </td>
 
-      {/* Actions */}
+      {/* Actions eye symbols delete */}
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center justify-end gap-0.5">
           <button
@@ -387,6 +388,7 @@ const ShiftRow = ({ shift, onView, onEdit, onDelete }) => {
             onClick={(e) => {
               e.stopPropagation();
               onView(shift);
+              
             }}
             className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#1B3F8B]"
             title="View details"

@@ -5,9 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node --max-old-space-size=512 server.js",
-    "dev": "node scripts/seedManagerEmployee.js && nodemon server.js",
+    "dev": "node scripts/seedData.js && nodemon server.js",
     "seed:admin": "node scripts/seedAdmin.js",
-    "seed:dev": "node scripts/seedManagerEmployee.js",
+    "seed:dev": "node scripts/seedData.js",
     "backup": "node scripts/backupDatabase.js",
     "audit": "npm audit --audit-level=high",
     "test": "echo \"Error: no test specified\" && exit 1"

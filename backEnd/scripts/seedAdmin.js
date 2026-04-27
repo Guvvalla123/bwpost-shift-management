@@ -1,20 +1,33 @@
-/**
- * Seed script: Create initial Admin user
- * Run once to bootstrap the system when no admin exists.
- *
- * Usage: npm run seed:admin   (from backEnd/)
- *
- * Development: optional env vars fall back to local defaults (change them for your machine).
- * Production:  set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD explicitly — defaults are blocked.
- *
- *   SEED_ADMIN_EMAIL=admin@yourcompany.com
- *   SEED_ADMIN_PASSWORD=<strong-unique-password>
- *   SEED_ADMIN_USERNAME=Admin
- */
+// seedAdmin.js
+// This script creates the first admin account.
+// Run this once when setting up the project for the first time.
+//
+// HOW TO RUN:
+//   npm run seed:admin    (from the backEnd/ folder)
+//
+// WHAT IT DOES:
+// - Reads admin credentials from the .env file
+// - Creates an admin account if one does not already exist
+// - If an admin with that email already exists, it does nothing
+//
+// .env VARIABLES USED:
+//   SEED_ADMIN_EMAIL     — the email for the admin account
+//   SEED_ADMIN_PASSWORD  — the password for the admin account
+//   SEED_ADMIN_USERNAME  — the display name for the admin account
+//
+// AFTER RUNNING:
+// 1. Log in with the admin account
+// 2. Use the Admin panel to create invite links
+// 3. Send invite links to managers and employees
+//
+// IMPORTANT:
+// In production, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD
+// must be set explicitly in the .env file.
+// The script will refuse to run in production without them.
 
 require("dotenv").config();
 const mongoose = require("mongoose");
-const User = require("../models/userModel");
+const User = require("../models/User");
 
 const isProd = process.env.NODE_ENV === "production";
 if (isProd && (!process.env.SEED_ADMIN_EMAIL || !process.env.SEED_ADMIN_PASSWORD)) {

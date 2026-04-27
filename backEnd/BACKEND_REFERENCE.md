@@ -73,7 +73,7 @@ backEnd/
 │   └── auditLog.js           # Fire-and-forget AuditLog.create
 └── scripts/
     ├── seedAdmin.js          # Create initial admin (env-driven in production)
-    ├── seedManagerEmployee.js # Dev manager + employee pair
+    ├── seedData.js            # Dev manager + employee pair
     └── cleanDatabase.js      # Wipe non-kept users + related collections (no npm script)
 ```
 
