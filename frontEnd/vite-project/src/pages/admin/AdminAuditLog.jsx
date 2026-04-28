@@ -1,3 +1,26 @@
+// AdminAuditLog.jsx
+// Shows a record of all important actions
+// that happened in the system.
+//
+// WHAT IS AN AUDIT LOG:
+// Every time something important happens
+// like a user logging in, a shift being created,
+// or an employee being deleted
+// the system saves a record of it.
+// This is called an audit log.
+//
+// WHY IT IS IMPORTANT:
+// If something goes wrong we can look at
+// the audit log to see what happened and who did it.
+// This is especially important for security.
+//
+// WHAT EACH RECORD SHOWS:
+// - Who did the action (actor)
+// - What they did (action type)
+// - When they did it (timestamp)
+// - Their IP address
+// - Extra details about the action
+
 import React, { useCallback, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import API from "@/api";
@@ -6,6 +29,7 @@ import { Badge, Pagination, SkeletonTable } from "@/components/ui";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 
+// timeAgo — short relative label for mobile cards ("5m ago", etc.)
 function timeAgo(iso) {
   if (!iso) return "";
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -15,6 +39,7 @@ function timeAgo(iso) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+// fmtTarget — compact text for affected entity type + short id suffix
 const fmtTarget = (row) => {
   if (row?.targetType && row?.targetId) return `${row.targetType} ${String(row.targetId).slice(-6)}`;
   if (row?.targetType) return row.targetType;
@@ -22,18 +47,38 @@ const fmtTarget = (row) => {
 };
 
 const AdminAuditLog = () => {
+  // Rows returned by GET /api/admin/audit-logs for the current filters
   const [rows, setRows] = useState([]);
+
+  // True until the first load finishes (shows skeleton table)
   const [loading, setLoading] = useState(true);
+
+  // True while polling refresh is fetching ( Pagination loading state )
   const [refreshing, setRefreshing] = useState(false);
+
+  // Free-text search box (debounced before API)
   const [search, setSearch] = useState("");
+
+  // Optional filter — match action string partially (sent as query param)
   const [action, setAction] = useState("");
+
+  // Date range filters (YYYY-MM-DD from date inputs)
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+
+  // Current page index for pagination (1-based)
   const [page, setPage] = useState(1);
+
+  // Total pages from API pagination meta
   const [totalPages, setTotalPages] = useState(1);
+
+  // True after a failed fetch so we show the inline error row
   const [err, setErr] = useState(false);
+
+  // Debounced search value — avoids issuing a GET on every keystroke
   const debouncedSearch = useDebounce(search, 300);
 
+  // fetchData — loads or refreshes audit rows from server with current filters
   const fetchData = useCallback(
     async (isRefresh) => {
       if (isRefresh) setRefreshing(true);
@@ -69,6 +114,7 @@ const AdminAuditLog = () => {
     fetchData(false);
   }, [fetchData]);
 
+  // fetchDataSilent — same query as fetchData but no loading spinners ; used by auto-refresh timer
   const fetchDataSilent = useCallback(async () => {
     try {
       const params = new URLSearchParams();

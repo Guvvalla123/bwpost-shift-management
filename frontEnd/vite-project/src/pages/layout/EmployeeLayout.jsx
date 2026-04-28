@@ -1,4 +1,21 @@
-﻿import { useState, useRef, useEffect } from "react";
+﻿// EmployeeLayout.jsx
+// This is the main layout wrapper for all employee pages.
+// Every employee page is wrapped in this layout.
+//
+// WHAT THIS FILE PROVIDES:
+// 1. Sidebar navigation (desktop)
+// 2. Top header bar with notification bell
+// 3. Hamburger menu on mobile
+// 4. Bottom navigation on mobile
+//    Check In My Shifts Requests Profile tabs
+// 5. Page content area (React Router Outlet)
+//
+// DIFFERENCE FROM MANAGER LAYOUT:
+// Employee sees different navigation items
+// Employee cannot access manager pages
+// The role check in ProtectedRoute handles this
+
+import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LogOut, User, ChevronDown, ClipboardList, Menu, X, Briefcase } from "lucide-react";
@@ -9,7 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
-/* ── Sharp Cloudinary avatar ─────────────────────────────── */
+/* avatarUrl helper — CDN transform identical to Manager layout avatar chips */
 const avatarUrl = (url) => {
   if (!url || !url.includes("cloudinary.com")) return url;
   return url.replace("/upload/", "/upload/w_96,h_96,c_fill,g_face,q_auto,f_auto/");
@@ -38,12 +55,20 @@ const SHORT_PAGE_TITLES_BY_PATH = {
    EMPLOYEE LAYOUT
 ══════════════════════════════════════════════════════════ */
 const EmployeeLayout = () => {
+  // Profile dropdown visibility in header
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Mobile sidebar drawer visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  // Wrapper ref for dropdown (click-away / layering)
   const dropdownRef = useRef();
+
   const { user, logout } = useAuth();
+
   const { effectiveCollapsed, toggle: toggleSidebarCollapsed, isMobile, isDesktop } = useSidebarCollapsed();
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
@@ -58,13 +83,18 @@ const EmployeeLayout = () => {
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, []);
 
+  // Full headline for breadcrumbs on larger breakpoints
   const pageTitle = PAGE_TITLES[pathname] ?? "Employee Portal";
+
+  // Short headline for phone header bar
   const shortPageTitle = SHORT_PAGE_TITLES_BY_PATH[pathname] ?? pageTitle;
 
+  // Fallback initials circle when avatar image missing
   const initials = user?.username
     ? user.username.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "E";
 
+  // Ends session globally (same logout as manager flow)
   const handleLogout = () => {
     logout();
   };
@@ -72,6 +102,7 @@ const EmployeeLayout = () => {
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#F8F9FC]">
 
+      {/* ── Sidebar drawer backdrop ─────────────────────────── */}
       {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
@@ -98,13 +129,13 @@ const EmployeeLayout = () => {
         />
       </div>
 
-      {/* Main area */}
+      {/* ── Main column (header + Outlet + bottom tabs) ────── */}
       <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
 
-        {/* ── Top Navbar ── */}
+        {/* ── HEADER BAR ────────────────────────────────────── */}
         <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
 
-          {/* Hamburger + Page title */}
+          {/* Burger + headline */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -125,7 +156,7 @@ const EmployeeLayout = () => {
             </div>
           </div>
 
-          {/* Right side controls */}
+          {/* Alerts · quick requests shortcut · profile */}
           <div className="flex items-center gap-3 shrink-0">
 
             <NotificationBell />
@@ -244,7 +275,7 @@ const EmployeeLayout = () => {
           </div>
         </header>
 
-        {/* Page content */}
+        {/* Active route */}
         <main
           className={cn(
             "flex-1 overflow-y-auto overflow-x-hidden min-h-0",
@@ -255,6 +286,7 @@ const EmployeeLayout = () => {
           <Outlet />
         </main>
 
+        {/* Mobile bottom dock */}
         <BottomNav />
       </div>
     </div>

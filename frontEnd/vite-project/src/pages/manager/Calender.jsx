@@ -1,4 +1,37 @@
-﻿import React, { useEffect, useState, useCallback } from "react";
+﻿// Calender.jsx
+// This is the calendar page for managers.
+// It shows shifts on a visual calendar.
+// It also connects with Google Calendar
+// so shifts appear on the manager's phone calendar.
+//
+// TWO TYPES OF EVENTS SHOWN:
+// 1. BWPost Shifts (blue/green) - created in our app
+// 2. Google Calendar Events (gray) - from Google
+//
+// HOW GOOGLE CALENDAR WORKS:
+// 1. Manager clicks "Connect Google Calendar"
+// 2. Google login popup appears
+// 3. Manager grants permission
+// 4. Their Google Calendar events are fetched
+// 5. Both BWPost shifts and Google events show
+//    on the same calendar together
+//
+// LIBRARY USED:
+// FullCalendar - a popular calendar library
+// It handles all the calendar UI rendering
+// We just pass it the events to display
+//
+// ON MOBILE:
+// Shows month view by default
+// Simplified toolbar (no view switcher)
+// Clicking an event opens a bottom sheet
+//
+// ON DESKTOP:
+// Shows week or month view
+// Full toolbar with view options
+// Clicking shows side panel
+
+import React, { useEffect, useState, useCallback } from "react";
 import { useGoogleLogin, googleLogout } from "@react-oauth/google";
 import API from "@/api";
 import FullCalendar from "@fullcalendar/react";
@@ -15,9 +48,10 @@ import {
 import { ErrorState, SkeletonCalendarGrid } from "@/components/ui";
 import "../../calender.css";
 
-/* ─── Google Calendar API helpers ──────────────────────────── */
+/* ─── Google Calendar REST base + fetch helpers ───────────────── */
 const GC_API = "https://www.googleapis.com/calendar/v3";
 
+// Downloads primary calendar events spanning ~1 month ago through ~3 months ahead
 const fetchGoogleEvents = async (accessToken) => {
   const now = new Date();
   const oneMonthAgo = new Date(now);
@@ -41,6 +75,7 @@ const fetchGoogleEvents = async (accessToken) => {
   return data.items || [];
 };
 
+// Inserts a synthetic event when user syncs a BWPost shift into Google
 const createGoogleEvent = async (accessToken, event) => {
   const res = await fetch(`${GC_API}/calendars/primary/events`, {
     method: "POST",
@@ -54,7 +89,7 @@ const createGoogleEvent = async (accessToken, event) => {
   return res.json();
 };
 
-/* ─── Convert Google event → FullCalendar event ─────────────── */
+// mapGoogleEvent — shape Google JSON into FullCalendar-compatible object + metadata in extendedProps
 const mapGoogleEvent = (ev) => ({
   id: ev.id,
   title: ev.summary || "(No title)",
@@ -73,13 +108,14 @@ const mapGoogleEvent = (ev) => ({
   },
 });
 
-/* ─── Format helpers ─────────────────────────────────────────── */
+// Locale friendly date / time strings rendered inside popovers
 const fmtDate = (iso) =>
   iso
     ? new Date(iso).toLocaleDateString(undefined, {
       weekday: "long", month: "long", day: "numeric",
     })
     : "";
+
 const fmtTime = (iso) =>
   iso
     ? new Date(iso).toLocaleTimeString(undefined, {
@@ -90,6 +126,7 @@ const fmtTime = (iso) =>
 /* ═══════════════════════════════════════════════════════════════ */
 /* GOOGLE SIGN-IN SCREEN                                           */
 /* ═══════════════════════════════════════════════════════════════ */
+// SignInScreen — introductory panel before OAuth token exists
 const SignInScreen = ({ onLogin }) => (
   <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-[#f1f5f9] px-4">
     <div className="w-full max-w-sm text-center space-y-6">
@@ -221,6 +258,7 @@ const ShiftPopup = ({ event, onClose, onSync, syncing }) => {
 /* ═══════════════════════════════════════════════════════════════ */
 /* EVENT DETAIL POPUP — GOOGLE                                     */
 /* ═══════════════════════════════════════════════════════════════ */
+// GooglePopup — same shell as shift popup but renders Google metadata (location, attendees…)
 const GooglePopup = ({ event, onClose }) => {
   if (!event) return null;
   const p = event.extendedProps;
@@ -318,24 +356,50 @@ const GooglePopup = ({ event, onClose }) => {
 /* MAIN COMPONENT                                                  */
 /* ═══════════════════════════════════════════════════════════════ */
 const CalendarPage = () => {
+  // Whether layout should prefer compact controls (narrow viewport heuristic)
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  // Initial FullCalendar viewport — always month grid in current codebase
   const defaultView = isMobile ? "dayGridMonth" : "dayGridMonth";
 
+  // Google OAuth bearer token once `@react-oauth/google` resolves
   const [token, setToken] = useState(null);
+
+  // Google profile payload fetched after token (picture, name …)
   const [userInfo, setUserInfo] = useState(null);
+
+  // Remote Google Calendar events mirrored into FullCalendar
   const [events, setEvents] = useState([]);
+
+  // Busy flag while reloading Google feeds
   const [loadingEvents, setLoadingEvents] = useState(false);
+
+  // Active FullCalendar JS event backing either popup drawer
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Legacy flag flipped when tapping events on handheld (some branches still referenced)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // BWPost shifts fetched for date window returned by calendar
   const [appShifts, setAppShifts] = useState([]);
+
+  // Network state for BWPost shift retrieval
   const [appShiftsLoading, setAppShiftsLoading] = useState(false);
+
+  // Error overlay state if manager shift listing fails fatally
   const [appShiftsError, setAppShiftsError] = useState(false);
+
+  // Which `_id` is presently pushing into Google Calendar (shows inline spinners)
   const [syncing, setSyncing] = useState(null);
+
+  // Left auxiliary drawer on mobile overlays (Gear / shift picker column)
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // ISO strings emitted by FullCalendar `datesSet` — define fetch window endpoints
   const [calendarStart, setCalendarStart] = useState(null);
   const [calendarEnd, setCalendarEnd] = useState(null);
 
+  // Loads shifts intersecting `[calendarStart, calendarEnd)`
   const fetchAppShifts = useCallback(async () => {
     if (!calendarStart || !calendarEnd) return;
     setAppShiftsLoading(true);
@@ -367,11 +431,13 @@ const CalendarPage = () => {
     }
   }, [calendarStart, calendarEnd]);
 
+  // FullCalendar lifecycle hook — persists visible range boundaries for BWPost querying
   const handleDatesSet = (dateInfo) => {
     setCalendarStart(dateInfo.startStr);
     setCalendarEnd(dateInfo.endStr);
   };
 
+  // Provided by Google Identity Services — obtains calendar scope bearer token via popup UX
   const login = useGoogleLogin({
     scope: "https://www.googleapis.com/auth/calendar",
     onSuccess: async (codeResponse) => {
@@ -386,6 +452,7 @@ const CalendarPage = () => {
     onError: () => toast.error("Google sign-in failed"),
   });
 
+  // Hydrate remote Google Calendar collection whenever token rotates
   useEffect(() => {
     if (!token) return;
     setLoadingEvents(true);
@@ -395,12 +462,14 @@ const CalendarPage = () => {
       .finally(() => setLoadingEvents(false));
   }, [token]);
 
+  // Shift fetch whenever visible window resolves or memoized updater changes
   useEffect(() => {
     if (calendarStart && calendarEnd) {
       fetchAppShifts();
     }
   }, [calendarStart, calendarEnd, fetchAppShifts]);
 
+  // Project BW shifts into unified FullCalendar payloads (purple blocks)
   const shiftEvents = appShifts.map((s) => ({
     id: `shift-${s._id}`,
     title: s.shiftTitle,
@@ -417,6 +486,7 @@ const CalendarPage = () => {
     },
   }));
 
+  // Mirrors a BW shift as a freshly inserted Google Calendar event via REST
   const syncShiftToGoogle = async (shiftId) => {
     const shift = appShifts.find((s) => s._id === shiftId);
     if (!shift) return;
@@ -440,6 +510,7 @@ const CalendarPage = () => {
     }
   };
 
+  // Drops Google linkage locally (token + cached events cleared)
   const handleLogout = () => {
     googleLogout();
     setToken(null);
@@ -448,6 +519,7 @@ const CalendarPage = () => {
     toast.success("Signed out from Google");
   };
 
+  // Route FullCalendar taps into proper modal + optionally record mobile UX flag
   const handleEventClick = (info) => {
     setSelectedEvent(info.event);
     if (typeof window !== "undefined" && window.innerWidth < 768) {
@@ -455,6 +527,7 @@ const CalendarPage = () => {
     }
   };
 
+  // Manual Google feed refresh spinner path (toolbar icon)
   const handleRefresh = async () => {
     if (!token) return;
     setLoadingEvents(true);
@@ -469,15 +542,18 @@ const CalendarPage = () => {
     }
   };
 
+  // Gate entire experience behind Google login — otherwise show marketing/sign-in splash
   if (!token) {
     return <SignInScreen onLogin={login} />;
   }
 
+  // Determines whether BWPost vs Google details modal displays
   const selectedSource = selectedEvent?.extendedProps?.source;
 
   return (
     <div className="flex max-h-[calc(100dvh-9rem)] min-h-[calc(100dvh-9rem)] flex-col overflow-hidden bg-[#F8F9FC] md:max-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-4rem)] md:flex-row lg:min-h-[calc(100vh-4rem)] lg:max-h-[calc(100vh-4rem)]">
 
+      {/* Mobile dims when shift tray slides over */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
@@ -485,6 +561,7 @@ const CalendarPage = () => {
         />
       )}
 
+      {/* ── Secondary column: sync list + legend (drawer phones) ── */}
       <div
         className={`
         fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-gray-100 bg-white
@@ -493,7 +570,7 @@ const CalendarPage = () => {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
       `}
       >
-        {/* User Profile */}
+        {/* Google account summary + sign-out */}
         {userInfo && (
           <div className="p-4 border-b border-gray-100 flex items-center gap-3">
             <img
@@ -515,11 +592,13 @@ const CalendarPage = () => {
           </div>
         )}
 
+        {/* Help text for syncing */}
         <div className="p-4 border-b border-gray-100">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Sync Shifts</p>
           <p className="text-xs text-gray-400">Push work shifts into Google Calendar</p>
         </div>
 
+        {/* BWPost shift shortcuts with per-row sync buttons */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {appShifts.length === 0 ? (
             <div className="py-10 text-center text-gray-300">
@@ -558,7 +637,7 @@ const CalendarPage = () => {
           )}
         </div>
 
-        {/* Legend */}
+        {/* Colour legend distinguishing sources */}
         <div className="p-4 border-t border-gray-100 space-y-2">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Legend</p>
           <div className="flex items-center gap-2">
@@ -572,9 +651,10 @@ const CalendarPage = () => {
         </div>
       </div>
 
+      {/* ── Calendar column ─────────────────────────────────── */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white md:w-[65%]">
 
-        {/* Page header */}
+        {/* Hero title */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 pt-4 pb-3 shrink-0 border-b border-gray-100">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
@@ -583,7 +663,7 @@ const CalendarPage = () => {
           <div className="flex items-center gap-3 flex-wrap"></div>
         </div>
 
-        {/* Calendar controls bar */}
+        {/* Toolbar (drawer toggle / refresh / sign-out duplication on small breakpoints) */}
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 shrink-0 min-h-[56px]">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -622,7 +702,7 @@ const CalendarPage = () => {
           </div>
         </div>
 
-        {/* FullCalendar */}
+        {/* FullCalendar host — overlays loaders/errors when BWPost fetch stalls */}
         <div className="relative flex-1 p-2 sm:p-4 min-h-0 calendar-wrapper">
           {appShiftsLoading && (
             <div

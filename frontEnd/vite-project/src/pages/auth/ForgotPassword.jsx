@@ -1,3 +1,28 @@
+// ForgotPassword.jsx
+// This page lets users request a password reset.
+//
+// HOW PASSWORD RESET WORKS (NO EMAIL):
+// We do not send emails because that requires
+// a custom domain email address.
+// Instead the reset link is generated and shown
+// to the admin who shares it via WhatsApp.
+//
+// EMPLOYEE FLOW:
+// 1. Employee goes to forgot password page
+// 2. Employee enters their email address
+// 3. System generates a reset link
+// 4. Employee is told to contact their admin
+//    Admin will send them the reset link
+//
+// ADMIN/MANAGER FLOW:
+// 1. Admin goes to User Management page
+// 2. Clicks the key icon next to a user
+// 3. Reset link is generated and shown
+// 4. Admin copies and sends via WhatsApp
+//
+// The reset link expires after 1 hour.
+// It can only be used once.
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, Lock, ArrowLeft, CheckCircle, Copy, Loader2 } from "lucide-react";
@@ -11,6 +36,7 @@ const fieldInputCls =
   "focus:outline-none focus:ring-2 focus:ring-[#1B3F8B]/20 focus:border-[#1B3F8B] focus:bg-white " +
   "transition-all duration-200 placeholder:text-gray-400";
 
+// copyToClipboard — uses Async Clipboard API when available, falls back to textarea + execCommand for older browsers
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -35,12 +61,22 @@ async function copyToClipboard(text) {
 }
 
 export default function ForgotPassword() {
+  // Controlled email input
   const [email, setEmail] = useState("");
+
+  // Client-side validation / API failure text
   const [error, setError] = useState("");
+
+  // True while POST /api/users/forgot-password is pending
   const [loading, setLoading] = useState(false);
+
+  // After successful response we leave the input form and show the success pane
   const [done, setDone] = useState(false);
+
+  // Server envelope: resetLink plus expiresAt (when returned)
   const [resultData, setResultData] = useState(null);
 
+  // handleSubmit — validates email locally then POSTs to generate reset token/link
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -68,6 +104,7 @@ export default function ForgotPassword() {
     }
   };
 
+  // copyLink — pushes reset URL to clipboard via helper above
   const copyLink = async () => {
     if (!resultData?.resetLink) return;
     const ok = await copyToClipboard(resultData.resetLink);
@@ -77,6 +114,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+      {/* Left marketing column · hidden on phones */}
       <div className="hidden lg:flex lg:w-[60%] min-h-screen relative flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0f2042] via-[#152a52] to-[#1B3F8B]">
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none" aria-hidden>
           <div className="absolute top-20 right-20 w-96 h-96 rounded-full border border-white" />
@@ -208,6 +246,7 @@ export default function ForgotPassword() {
   );
 }
 
+// Lightweight pattern check reused before firing the network request
 function isValidEmailFormat(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }

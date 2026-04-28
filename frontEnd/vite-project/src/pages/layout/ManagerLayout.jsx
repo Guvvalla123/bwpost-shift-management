@@ -1,4 +1,31 @@
-﻿import { useState, useRef, useEffect } from "react";
+﻿// ManagerLayout.jsx
+// This is the main layout wrapper for all manager pages.
+// Every manager page is wrapped in this layout.
+//
+// WHAT THIS FILE PROVIDES:
+// 1. Sidebar navigation (desktop)
+//    Shows all navigation links
+//    Can be collapsed to icons only
+// 2. Top header bar
+//    Shows page title and breadcrumb
+//    Shows notification bell
+//    Shows user profile button
+// 3. Hamburger menu (mobile)
+//    Opens overlay sidebar on mobile
+// 4. Bottom navigation (mobile)
+//    Quick access to main pages
+// 5. Page content area
+//    React Router Outlet renders here
+//    Shows whichever page is currently active
+//
+// HOW ROUTING WORKS WITH LAYOUT:
+// In App.jsx all manager routes are nested
+// inside this layout component.
+// The Outlet renders the active child route.
+// So sidebar and header always stay visible
+// while only the middle content changes.
+
+import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +44,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getDisplayName } from "@/utils/displayName";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
-/* Sharp Cloudinary avatar URL (96×96 face-crop) */
+/* avatarUrl — swaps Cloudinary `/upload/` path segment for resized face crop avatars */
 const avatarUrl = (url) => {
   if (!url || !url.includes("cloudinary.com")) return url;
   return url.replace("/upload/", "/upload/w_96,h_96,c_fill,g_face,q_auto,f_auto/");
@@ -38,6 +65,7 @@ const PAGE_TITLES = {
 /* ══════════════════════════════════════════════════════════════════
    MANAGER LAYOUT
 ══════════════════════════════════════════════════════════════════ */
+// greeting — picks a friendly salutation based on time of day (used on dashboard subtext)
 const greeting = () => {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -46,33 +74,50 @@ const greeting = () => {
 };
 
 const ManagerLayout = () => {
+  // Whether the avatar dropdown panel in the top bar is open
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Whether the left navigation drawer is open on phones (covers screen with overlay when true)
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  // Root element for positioning the profile menu (captures refs for dropdown logic)
   const dropdownRef = useRef();
+
   const { user, logout } = useAuth();
+
+  // Sidebar collapsed state + breakpoint flags from shared layout hook (desktop collapsible sidebar)
   const { effectiveCollapsed, toggle: toggleSidebarCollapsed, isMobile, isDesktop } = useSidebarCollapsed();
 
+  // Closing the drawer on route change avoids the menu sticking while navigating between pages
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
+  // Same for profile dropdown — new page should dismiss the dropdown
   useEffect(() => {
     setProfileOpen(false);
   }, [pathname]);
 
+  // Scrolling clears the dropdown so menus do not hover over scrolled content oddly
   useEffect(() => {
     const handleScroll = () => setProfileOpen(false);
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, []);
 
+  // Readable title rendered in the navbar (long form on wider screens)
   const pageTitle = PAGE_TITLES[pathname] ?? "Manager Panel";
+
+  // Compact title rendered on narrow screens (shown in truncation-friendly header)
   const shortTitle = SHORT_PAGE_TITLES[pageTitle] ?? pageTitle;
 
+  // Two-letter fallback avatar when Cloudinary thumbnail missing
   const initials = user?.username
     ? user.username.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "M";
 
+  // handleLogout — ends the session via AuthContext (clears JWT / cookies upstream)
   const handleLogout = () => {
     logout();
   };
@@ -80,6 +125,8 @@ const ManagerLayout = () => {
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#F8F9FC]">
 
+      {/* ── Mobile sidebar overlay ───────────────────────────── */}
+      {/* Dims background when drawer is open */}
       {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
@@ -88,6 +135,8 @@ const ManagerLayout = () => {
         />
       )}
 
+      {/* ── Sidebar column ──────────────────────────────────── */}
+      {/* Desktop: sidebar always visible · Mobile: drawer slides from left */}
       <div
         className={cn(
           "z-40 flex h-full min-h-0 flex-col",
@@ -106,13 +155,14 @@ const ManagerLayout = () => {
         />
       </div>
 
-      {/* ── Main area ───────────────────────────────────────────── */}
+      {/* ── Main column: header + content + bottom nav ──────── */}
       <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
 
-        {/* ── Top Navbar ──────────────────────────────────────── */}
+        {/* ── TOP HEADER ──────────────────────────────────────── */}
+        {/* Page title strip with hamburger · notifications · profile */}
         <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 safe-top">
 
-          {/* Hamburger + Page title */}
+          {/* Left: Hamburger + page title */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -139,7 +189,7 @@ const ManagerLayout = () => {
           </div>
           </div>
 
-          {/* Right side controls */}
+          {/* Right: notifications + avatar menu */}
           <div className="flex items-center gap-3 shrink-0">
 
             {/* Notification bell */}
@@ -232,7 +282,8 @@ const ManagerLayout = () => {
           </div>
         </header>
 
-        {/* ── Page content ────────────────────────────────────── */}
+        {/* ── ROUTED PAGE BODY ─────────────────────────────── */}
+        {/* Child route renders here */}
         <main
           className={cn(
             "flex-1 overflow-y-auto overflow-x-hidden min-h-0",
@@ -243,6 +294,7 @@ const ManagerLayout = () => {
           <Outlet />
         </main>
 
+        {/* ── MOBILE BOTTOM TAB BAR ─────────────────────────── */}
         <BottomNav />
 
       </div>

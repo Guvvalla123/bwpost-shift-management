@@ -1,3 +1,21 @@
+// Login.jsx
+// This is the login page for BWPost.
+// User enters email and password to login.
+//
+// HOW LOGIN WORKS:
+// 1. User fills in email and password
+// 2. Form is validated before submitting
+// 3. POST request sent to /api/users/login
+// 4. If correct server sets JWT cookies
+// 5. User is redirected to their dashboard
+//    based on their role (admin/manager/employee)
+//
+// WHY WE USE COOKIES:
+// The server stores JWT tokens in HTTP-only cookies.
+// HTTP-only means JavaScript cannot read them.
+// This prevents XSS attacks.
+// The browser sends cookies automatically.
+
 import React, { useState } from "react";
 import { Eye, EyeOff, LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
@@ -13,28 +31,37 @@ const fieldInputCls =
   "transition-all duration-200 placeholder:text-gray-400";
 
 export default function Login() {
+  // Email + password keyed form object (controlled inputs)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  // Field-level validation errors keyed by input name (empty strings when valid)
   const [errors, setErrors] = useState({});
+
+  // True during async login POST to disable button and show spinner
   const [loading, setLoading] = useState(false);
+
+  // Toggles masking of the password field in the DOM
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useAuth();
   const { email, password } = formData;
 
+  // Lightweight email sanity check reused by validateForm before submit
   const validateEmail = (value) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+  // Controlled input wiring — updates state and clears stale field error live
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setErrors({ ...errors, [name]: "" });
   };
 
+  // Returns an object describing client-side violations (empty ⇒ valid)
   const validateForm = () => {
     const newErrors = {};
     if (!email.trim()) {
@@ -48,6 +75,7 @@ export default function Login() {
     return newErrors;
   };
 
+  // Main submit pipeline: validate → authenticate → hydrate auth context → route by role
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validateForm();
@@ -141,6 +169,7 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-sm text-gray-500 mt-1 mb-8">Sign in to your account</p>
 
+          {/* POST /api/users/login with validated credentials */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="login-email" className="text-sm font-medium text-gray-700 mb-2 block">

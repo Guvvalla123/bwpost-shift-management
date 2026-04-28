@@ -14,29 +14,33 @@ const ManagerLayout = lazy(() => import("./pages/layout/ManagerLayout.jsx"));
 const EmployeeLayout = lazy(() => import("./pages/layout/EmployeeLayout.jsx"));
 
 // Manager Pages (lazy loaded — only when a manager navigates here)
-const Dashboard = lazy(() => import("./pages/manager/Dashboard"));
-const ManagerShifts = lazy(() => import("./pages/manager/shiftsfolder/ManagerShifts.jsx"));
-const Employee = lazy(() => import("./pages/manager/EmployeeManagement/Employee.jsx"));
-const ShiftRequest = lazy(() => import("./pages/manager/shiftsfolder/ShiftRequest.jsx"));
+const Dashboard = lazy(() => import("./pages/manager/dashboard/ManagerDashboard"));
+// Updated to use the refactored ShiftsPage from the new shifts/ folder
+const ManagerShifts = lazy(() => import("./pages/manager/shifts/ShiftsPage.jsx"));
+// Updated to use the refactored EmployeesPage from the new employees/ folder
+const Employee = lazy(() => import("./pages/manager/employees/EmployeesPage.jsx"));
+const ShiftRequest = lazy(() => import("./pages/manager/requests/RequestsPage.jsx"));
 const Calender = lazy(() => import("./pages/manager/Calender.jsx"));
-const AttendanceManagement = lazy(() => import("./pages/manager/Attendance/AttendanceManagement.jsx"));
-const Reports = lazy(() => import("./pages/manager/Reports.jsx"));
-const Settings = lazy(() => import("./pages/manager/Settings.jsx"));
+// Updated to use the refactored AttendancePage from the new attendance/ folder
+const AttendanceManagement = lazy(() => import("./pages/manager/attendance/AttendancePage.jsx"));
+const Reports = lazy(() => import("./pages/manager/reports/ReportsPage.jsx"));
+const Settings = lazy(() => import("./pages/manager/settings/SettingsPage.jsx"));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
-const AdminUserManagement = lazy(() => import("./pages/admin/AdminUserManagement.jsx"));
-const AdminManagerManagement = lazy(() => import("./pages/admin/AdminManagerManagement.jsx"));
-const AdminInviteManagement = lazy(() => import("./pages/admin/AdminInviteManagement.jsx"));
+// Updated to use the refactored UsersPage from the new users/ folder
+const AdminUserManagement = lazy(() => import("./pages/admin/users/UsersPage.jsx"));
+const ManagersPage = lazy(() => import("./pages/admin/managers/ManagersPage.jsx"));
+const InvitesPage = lazy(() => import("./pages/admin/invites/InvitesPage.jsx"));
 const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog.jsx"));
 
 // Employee Pages (lazy loaded)
-const EmployeeDashboard = lazy(() => import("./pages/Employee/EmployeeDashboard.jsx"));
-const EmployeeCheckIn = lazy(() => import("./pages/Employee/EmployeeCheckIn.jsx"));
+const EmployeeDashboard = lazy(() => import("./pages/employee/dashboard/EmployeeDashboard.jsx"));
+const EmployeeCheckIn = lazy(() => import("./pages/employee/checkin/CheckInPage.jsx"));
 const EmployeeShifts = lazy(() => import("./pages/Employee/EmployeeShifts.jsx"));
-const MyShifts = lazy(() => import("./pages/Employee/MyShifts.jsx"));
-const MyRequests = lazy(() => import("./pages/Employee/MyRequests.jsx"));
-const EmployeeProfile = lazy(() => import("./pages/Employee/EmployeeProfile.jsx"));
+const MyShifts = lazy(() => import("./pages/employee/myshifts/MyShiftsPage.jsx"));
+const MyRequests = lazy(() => import("./pages/employee/myrequests/MyRequestsPage.jsx"));
+const ProfilePage = lazy(() => import("./pages/employee/profile/ProfilePage.jsx"));
 
 // Guards
 import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute.jsx";
@@ -105,8 +109,8 @@ function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="users" element={<AdminUserManagement />} />
-              <Route path="managers" element={<AdminManagerManagement />} />
-              <Route path="invites" element={<AdminInviteManagement />} />
+              <Route path="managers" element={<ManagersPage />} />
+              <Route path="invites" element={<InvitesPage />} />
               <Route path="audit-log" element={<AdminAuditLog />} />
               <Route path="employees" element={<Employee />} />
               <Route path="calendar" element={<Calender />} />
@@ -140,7 +144,7 @@ function App() {
               <Route path="AllShifts" element={<EmployeeShifts />} />
               <Route path="myshifts" element={<MyShifts />} />
               <Route path="requests" element={<MyRequests />} />
-              <Route path="profile" element={<EmployeeProfile />} />
+              <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Route>
 

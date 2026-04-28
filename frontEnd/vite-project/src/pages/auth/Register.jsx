@@ -1,4 +1,24 @@
-﻿import React, { useState, useEffect } from "react";
+﻿// Register.jsx
+// This is the registration page for new users.
+// New users can only register using an invite link.
+// Direct registration without invite is disabled.
+//
+// HOW INVITE REGISTRATION WORKS:
+// 1. Admin creates an invite for new user
+// 2. Admin copies the invite link
+// 3. Admin sends link via WhatsApp or email
+// 4. New user opens the link in browser
+// 5. The token in the URL is read automatically
+// 6. Token is validated with the server
+// 7. If valid the registration form is shown
+// 8. User fills in username and password
+// 9. Account is created and user is logged in
+//
+// If token is invalid or expired:
+// An error message is shown
+// User cannot register without valid invite
+
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -12,29 +32,44 @@ const inputBase =
 
 const Register = () => {
   const [searchParams] = useSearchParams();
+
+  // Raw token string from `?invite=` query string (null when absent)
   const inviteToken = searchParams.get("invite");
 
+  // Username / email / password shown in the invite registration form
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
   });
 
+  // Client-side or server field errors keyed by field name
   const [errors, setErrors] = useState({});
+
+  // Disables submit while account creation request is in flight
   const [loading, setLoading] = useState(false);
+
+  // Whether password field text is visible (vs masked)
   const [showPassword, setShowPassword] = useState(false);
+
+  // null = still checking server, true = token accepted, false = invalid/expired
   const [inviteValid, setInviteValid] = useState(null);
+
+  // Role string returned from validation (displayed in helper copy)
   const [inviteRole, setInviteRole] = useState(null);
+
   const navigate = useNavigate();
 
   const { username, email, password } = formData;
 
+  // Fetch invite metadata whenever the URL token changes
   useEffect(() => {
     if (!inviteToken) {
       setInviteValid(null);
       return;
     }
     setInviteValid(null);
+    // GET /api/invites/validate/:token — confirms token exists, pre-fills email/role
     API.get(`/api/invites/validate/${inviteToken}`)
       .then((res) => {
         const d = unwrapSuccessData(res);
@@ -47,15 +82,18 @@ const Register = () => {
       .catch(() => setInviteValid(false));
   }, [inviteToken]);
 
+  // Shared email format check for client-side validation
   const validateEmail = (value) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+  // Updates a single field and clears any prior error for that field
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setErrors({ ...errors, [name]: "" });
   };
 
+  // Builds field error map used before hitting the network
   const validateForm = () => {
     const newErrors = {};
     if (!username.trim()) {
@@ -77,6 +115,7 @@ const Register = () => {
     return newErrors;
   };
 
+  // Creates account — invite path vs legacy direct register
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validateForm();
@@ -88,8 +127,10 @@ const Register = () => {
     try {
       setLoading(true);
       if (inviteToken) {
+        // POST /api/invites/accept — completes invite signup with token + credentials
         await API.post("/api/invites/accept", { token: inviteToken, username, password });
       } else {
+        // POST /api/users/register — legacy open registration (currently blocked in UI)
         await API.post("/api/users/register", { username, email, password });
       }
       toast.success("Account created! Redirecting to login…");

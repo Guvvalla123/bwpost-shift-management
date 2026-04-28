@@ -1,3 +1,27 @@
+// ResetPassword.jsx
+// This page lets users set a new password.
+// It is opened when user clicks a reset link.
+//
+// HOW IT WORKS:
+// 1. User receives reset link from admin
+//    Link looks like: /reset-password?token=XXXXX
+// 2. User opens the link in browser
+// 3. This page reads the token from the URL
+// 4. Token is verified with the server
+// 5. If valid the password form is shown
+// 6. User enters and confirms new password
+// 7. Password is updated in database
+// 8. User is redirected to login page
+//
+// IF TOKEN IS INVALID:
+// An error message is shown
+// User is told to request a new link
+//
+// TOKEN SECURITY:
+// Tokens expire after 1 hour
+// Each token can only be used once
+// After use the token is deleted from database
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, CheckCircle, XCircle, Lock, ArrowLeft, Loader2 } from "lucide-react";
@@ -13,6 +37,7 @@ const fieldInputCls =
 
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/;
 
+// evaluate password rules enforced both client-side and mirrored server-side
 function validateNewPassword(p) {
   const errors = {};
   if (!p || p.length < 8) errors.password = "Password must be at least 8 characters";
@@ -27,18 +52,34 @@ function validateNewPassword(p) {
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // Raw token extracted from URL query (?token=)
   const token = searchParams.get("token") || "";
 
+  // "loading" | "valid" | "invalid" — drives which full-page branch renders
   const [validateState, setValidateState] = useState("loading");
+
+  // Password + confirm controlled inputs
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+
+  // Password field visibility toggles
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
+
+  // Map of field-specific validation messages surfaced under inputs
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // Spinner while PATCH/POST resetting password executes
   const [submitting, setSubmitting] = useState(false);
+
+  // When true · show success splash with countdown redirect
   const [success, setSuccess] = useState(false);
+
+  // Seconds remaining before programmatic navigation pushes to login
   const [redirectIn, setRedirectIn] = useState(3);
 
+  // Hit validation endpoint GET /reset-password/validate/:token prior to exposing form fields
   const runValidate = useCallback(async () => {
     if (!token || token.length !== 64) {
       setValidateState("invalid");
@@ -53,10 +94,12 @@ export default function ResetPassword() {
     }
   }, [token]);
 
+  // Initial mount validates token fingerprint / length constraints
   useEffect(() => {
     runValidate();
   }, [runValidate]);
 
+  // Count-down timer after password saved — auto navigate when hits zero
   useEffect(() => {
     if (!success) return;
     if (redirectIn <= 0) {
@@ -67,6 +110,7 @@ export default function ResetPassword() {
     return () => clearTimeout(t);
   }, [success, redirectIn, navigate]);
 
+  // onSubmit — validates pair + POST token + new password combo
   const onSubmit = async (e) => {
     e.preventDefault();
     const err = { ...validateNewPassword(password) };
@@ -85,6 +129,7 @@ export default function ResetPassword() {
     }
   };
 
+  // Token still being validated with API
   if (validateState === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -93,6 +138,7 @@ export default function ResetPassword() {
     );
   }
 
+  // Fatal token problem — malformed or consumed server-side
   if (validateState === "invalid") {
     return (
       <div className="min-h-screen flex flex-col lg:flex-row bg-white">
@@ -121,6 +167,7 @@ export default function ResetPassword() {
     );
   }
 
+  // Confirmation screen · optional manual link while timer runs
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white px-4">
@@ -142,6 +189,7 @@ export default function ResetPassword() {
     );
   }
 
+  // Default branch — validated token ⇒ allow password + confirm submission
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
       <div className="hidden lg:flex lg:w-[40%] min-h-screen bg-gradient-to-br from-[#0f2042] to-[#1B3F8B] items-center justify-center p-8">

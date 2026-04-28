@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Pencil, Trash2, Eye, Briefcase } from "lucide-react";
+import { Pencil, Trash2, Eye, Briefcase, Key } from "lucide-react";
 
 const AVATAR_GRADIENTS = [
   "from-blue-600 to-[#162d5e]",
@@ -21,7 +21,7 @@ const formatJoinDate = (iso) => {
   });
 };
 
-const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
+const ManagerRow = ({ manager, onEdit, onDelete, onView, onResetPassword }) => {
   const initials = (manager.username || "?")
     .split(" ")
     .map((w) => w[0])
@@ -83,6 +83,16 @@ const ManagerRow = ({ manager, onEdit, onDelete, onView }) => {
           >
             <Eye className="h-4 w-4" />
           </button>
+          {onResetPassword && (
+            <button
+              type="button"
+              onClick={() => onResetPassword(manager)}
+              title="Generate password reset link"
+              className="p-2 rounded-lg text-gray-400 hover:bg-amber-100 hover:text-amber-700 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/30"
+            >
+              <Key className="h-4 w-4" />
+            </button>
+          )}
           {onEdit && (
             <button
               onClick={() => onEdit(manager)}

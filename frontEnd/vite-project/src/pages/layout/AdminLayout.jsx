@@ -1,4 +1,17 @@
-﻿import { useState, useRef, useEffect } from "react";
+﻿// AdminLayout.jsx
+// This is the main layout wrapper for all admin pages.
+// It provides the sidebar navigation header
+// and bottom navigation for admin users.
+//
+// WHAT THIS FILE DOES:
+// 1. Shows the sidebar on desktop
+// 2. Shows a hamburger menu on mobile
+// 3. Shows the notification bell in header
+// 4. Shows bottom navigation on mobile
+// 5. Renders the current page in the middle
+//    using React Router Outlet
+
+import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import {
   LogOut,
@@ -24,6 +37,7 @@ import BottomNav from "@/components/ui/BottomNav";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
+// Smaller thumbnail for sidebar / header avatar chips (Cloudinary transform)
 const avatarUrl = (url) => {
   if (!url || !url.includes("cloudinary.com")) return url;
   return url.replace("/upload/", "/upload/w_96,h_96,c_fill,g_face,q_auto,f_auto/");
@@ -81,6 +95,7 @@ const NAV_GROUPS = [
   },
 ];
 
+// One link row inside the sidebar (handles collapsed icon-only layout)
 const AdminNavItem = ({ item, isActive, onNavigate, effectiveCollapsed }) => {
   const Icon = item.icon;
   return (
@@ -114,29 +129,39 @@ const AdminNavItem = ({ item, isActive, onNavigate, effectiveCollapsed }) => {
 };
 
 const AdminLayout = () => {
+  // Mobile drawer open state (`true` = slide-out sidebar visible on phone)
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Header profile dropdown (avatar button) visibility
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Ref on profile dropdown wrapper (reserved for positioning / dismiss logic)
   const dropdownRef = useRef();
+
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const { effectiveCollapsed, toggle: toggleSidebarCollapsed, isMobile, isDesktop } = useSidebarCollapsed();
 
+  // Closing the sidebar when navigating prevents the sheet from sticking open behind the new route
   useEffect(() => setSidebarOpen(false), [pathname]);
 
   useEffect(() => {
     setProfileOpen(false);
   }, [pathname]);
 
+  // Clicking elsewhere / scrolling clears the floating profile dropdown
   useEffect(() => {
     const handleScroll = () => setProfileOpen(false);
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, []);
 
+  // Human-readable breadcrumb titles from pathname
   const pageTitle = PAGE_TITLES[pathname] ?? "Admin Panel";
   const shortPageTitle = SHORT_PAGE_TITLES[pageTitle] ?? pageTitle;
 
+  // Fallback initials avatar when profile image absent
   const initials = user?.username
     ? user.username
         .split(" ")
@@ -146,12 +171,14 @@ const AdminLayout = () => {
         .slice(0, 2)
     : "A";
 
+  // Clears JWT / session via auth context shared with the rest of the app
   const handleLogout = () => {
     logout();
   };
 
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-[#F8F9FC]">
+      {/* Mobile-only dark overlay behind the slide-over sidebar */}
       {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
@@ -159,6 +186,10 @@ const AdminLayout = () => {
           aria-hidden
         />
       )}
+
+      {/* ── SIDEBAR ────────────────────────── */}
+      {/* The sidebar shows navigation links */}
+      {/* Only visible on desktop screens (lg and above) */}
 
       <div
         className={cn(
@@ -284,6 +315,9 @@ const AdminLayout = () => {
       </div>
 
       <div className="min-w-0 flex flex-1 flex-col overflow-hidden transition-[flex] duration-300">
+        {/* ── MOBILE HEADER ──────────────────── */}
+        {/* The top bar on mobile screens */}
+        {/* Has hamburger menu and notification bell */}
         <header className="min-h-[56px] lg:min-h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-10 safe-top">
           <div className="flex items-center gap-3 min-w-0">
             <button
@@ -368,6 +402,10 @@ const AdminLayout = () => {
           </div>
         </header>
 
+        {/* ── MAIN CONTENT ───────────────────── */}
+        {/* The current page renders here */}
+        {/* Outlet is a React Router component */}
+        {/* It shows whatever page is active */}
         <main
           className={cn(
             "flex-1 overflow-y-auto overflow-x-hidden min-h-0",
@@ -378,6 +416,7 @@ const AdminLayout = () => {
           <Outlet />
         </main>
 
+        {/* Mobile shortcut bar (defined in `BottomNav` component) */}
         <BottomNav />
       </div>
     </div>
