@@ -6,63 +6,70 @@
 // Clicking anywhere on the row opens the details panel (same as eye button).
 // The eye, edit, and delete buttons are on the right side of the row.
 
-import React from "react";
+import React from 'react'
 import {
-  CalendarDays, Clock, AlignLeft, Timer,
-  CheckCircle2, CalendarX, ChevronRight,
-  Eye, Pencil, Trash2,
-} from "lucide-react";
-import { getStatus } from "@/utils/shiftStatus";
+  CalendarDays,
+  Clock,
+  AlignLeft,
+  Timer,
+  CheckCircle2,
+  CalendarX,
+  ChevronRight,
+  Eye,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
+import { getStatus } from '@/utils/shiftStatus'
 
 // STATUS_CONFIG - defines colors and icons for each shift status
 const STATUS_CONFIG = {
   upcoming: {
-    label: "Upcoming",
-    bg: "bg-blue-100",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
+    label: 'Upcoming',
+    bg: 'bg-blue-100',
+    text: 'text-blue-700',
+    dot: 'bg-blue-500',
     icon: Timer,
   },
   ongoing: {
-    label: "Ongoing",
-    bg: "bg-emerald-100",
-    text: "text-emerald-700",
-    dot: "bg-emerald-500",
+    label: 'Ongoing',
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-700',
+    dot: 'bg-emerald-500',
     icon: CheckCircle2,
   },
   completed: {
-    label: "Completed",
-    bg: "bg-gray-100",
-    text: "text-gray-600",
-    dot: "bg-gray-400",
+    label: 'Completed',
+    bg: 'bg-gray-100',
+    text: 'text-gray-600',
+    dot: 'bg-gray-400',
     icon: CalendarX,
   },
-};
+}
 
 // formatDate - converts ISO string to "Jan 5, 2025" format
 const formatDate = (iso) =>
   new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 
 // formatTime - converts ISO string to "09:00 AM" format
 const formatTime = (iso) =>
   new Date(iso).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 
 // getDuration - calculates how long a shift is in "Xh Ym" format
 // Returns "45m" for short shifts, "2h 30m" or "3h" for longer ones
 const getDuration = (start, end) => {
-  const diffMinutes = (new Date(end) - new Date(start)) / 60000;
-  if (diffMinutes < 60) return `${diffMinutes}m`;
-  const hours = Math.floor(diffMinutes / 60);
-  const minutes = diffMinutes % 60;
-  return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
-};
+  const diffMinutes = (new Date(end) - new Date(start)) / 60000
+  if (diffMinutes < 60) return `${diffMinutes}m`
+  const hours = Math.floor(diffMinutes / 60)
+  const minutes = diffMinutes % 60
+  return minutes ? `${hours}h ${minutes}m` : `${hours}h`
+}
 
 // ShiftTableRow - one shift row for the desktop table
 //
@@ -76,13 +83,16 @@ const getDuration = (start, end) => {
 //            opens the delete confirmation dialog
 const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
   // Get the current status of this shift
-  const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
-  const statusStyle = STATUS_CONFIG[status];
+  const status = getStatus(shift.shiftStartTime, shift.shiftEndTime)
+  const statusStyle = STATUS_CONFIG[status]
 
   // Calculate how full this shift is
-  const filledSlots = shift.acceptedEmployees?.length || 0;
-  const totalSlots = shift.slotsAvailable || 1;
-  const fillPercent = Math.min(Math.round((filledSlots / totalSlots) * 100), 100);
+  const filledSlots = shift.acceptedEmployees?.length || 0
+  const totalSlots = shift.slotsAvailable || 1
+  const fillPercent = Math.min(
+    Math.round((filledSlots / totalSlots) * 100),
+    100,
+  )
 
   return (
     <tr
@@ -115,7 +125,9 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
 
       {/* COLUMN 2: Date and time range */}
       <td className="px-6 py-4 whitespace-nowrap">
-        <p className="text-sm font-medium text-gray-800">{formatDate(shift.shiftStartTime)}</p>
+        <p className="text-sm font-medium text-gray-800">
+          {formatDate(shift.shiftStartTime)}
+        </p>
         <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {formatTime(shift.shiftStartTime)} → {formatTime(shift.shiftEndTime)}
@@ -132,10 +144,12 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle.bg} ${statusStyle.text}`}
         >
           {/* Pulsing animated dot for ongoing, static dot for others */}
-          {status === "ongoing" ? (
+          {status === 'ongoing' ? (
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${statusStyle.dot}`} />
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${statusStyle.dot}`}
+              />
             </span>
           ) : (
             <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
@@ -150,7 +164,11 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
           <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
             <div
               className={`h-1.5 rounded-full transition-all ${
-                fillPercent >= 100 ? "bg-emerald-500" : fillPercent >= 60 ? "bg-blue-500" : "bg-amber-400"
+                fillPercent >= 100
+                  ? 'bg-emerald-500'
+                  : fillPercent >= 60
+                    ? 'bg-blue-500'
+                    : 'bg-amber-400'
               }`}
               style={{ width: `${fillPercent}%` }}
             />
@@ -167,7 +185,10 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
           {/* Eye button — view details (also triggered by clicking the row) */}
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onView(shift); }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onView(shift)
+            }}
             className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-[#1B3F8B]"
             title="View details"
           >
@@ -177,7 +198,10 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
           {/* Pencil button — edit this shift */}
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onEdit(shift); }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(shift)
+            }}
             className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#EFF6FF] hover:text-[#1B3F8B]"
             title="Edit shift"
           >
@@ -187,7 +211,10 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
           {/* Trash button — delete this shift */}
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(shift); }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(shift)
+            }}
             className="flex h-11 min-h-[44px] w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
             title="Delete shift"
           >
@@ -202,7 +229,7 @@ const ShiftTableRow = ({ shift, onView, onEdit, onDelete }) => {
         </div>
       </td>
     </tr>
-  );
-};
+  )
+}
 
-export default ShiftTableRow;
+export default ShiftTableRow

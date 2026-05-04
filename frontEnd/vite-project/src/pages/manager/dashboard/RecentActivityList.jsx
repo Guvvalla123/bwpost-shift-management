@@ -58,8 +58,7 @@ const RecentActivityList = ({ recentShifts, onViewShift, onViewAll }) => {
             const filled     = shift.acceptedEmployees?.length || 0;
             const openSlots  = shift.slotsAvailable ?? 0;
             const totalSlots = filled + openSlots;
-            const fillPct    = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;
-            const statusKey  = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+            const fillPct    = totalSlots > 0 ? Math.round((filled / totalSlots) * 100) : 0;{/* fillPct is the percentage of the shift that is filled /Progress bar*/}            const statusKey  = getStatus(shift.shiftStartTime, shift.shiftEndTime);
             const { pill, label } = getListStatusStyle(statusKey);
 
             return (

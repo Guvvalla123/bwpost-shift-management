@@ -15,15 +15,15 @@
 // This is different from AddEmployeeModal where manager sets the password.
 // With invites, the employee sets their own password during registration.
 
-import React, { useState } from "react";
-import { X, Copy, Mail } from "lucide-react";
-import { toast } from "sonner";
-import { getApiErrorMessage } from "@/utils/apiError";
-import { createInvite } from "./employeeApi";
+import React, { useState } from 'react'
+import { X, Copy, Mail } from 'lucide-react'
+import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/utils/apiError'
+import { createInvite } from './employeeApi'
 
 // inputCls - CSS classes for all input fields in this modal
 const inputCls =
-  "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm";
+  'w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm'
 
 // InviteEmployeeModal - modal to generate a registration invite link
 //
@@ -35,63 +35,63 @@ const inputCls =
 //             can be used to refresh data if needed
 const InviteEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
   // Email address typed by the manager
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('')
 
   // The invite link returned by the server after creation
   // null means no link generated yet — shows the email input form
   // non-null means link is ready — shows the copy screen
-  const [inviteLink, setInviteLink] = useState(null);
+  const [inviteLink, setInviteLink] = useState(null)
 
   // True while the create invite API call is running
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false)
 
   // Don't render if modal is closed
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   // handleClose - resets form and clears link, then closes modal
   function handleClose() {
-    setEmail("");
-    setInviteLink(null);
-    onClose();
+    setEmail('')
+    setInviteLink(null)
+    onClose()
   }
 
   // handleSubmit - calls the invite API to generate a registration link
   async function handleSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
-    setInviteLink(null);
+    e.preventDefault()
+    setSubmitting(true)
+    setInviteLink(null)
     try {
-      const link = await createInvite(email);
-      setInviteLink(link);
-      toast.success("Invite created");
+      const link = await createInvite(email)
+      setInviteLink(link)
+      toast.success('Invite created')
 
       // Immediately try to copy the link to clipboard for convenience
       if (link) {
         try {
-          await navigator.clipboard.writeText(link);
-          toast.success("Invite link copied to clipboard");
+          await navigator.clipboard.writeText(link)
+          toast.success('Invite link copied to clipboard')
         } catch {
           // Clipboard copy failed — user can still manually copy
         }
       }
 
       // Notify parent that an invite was created
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess()
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to create invite"));
+      toast.error(getApiErrorMessage(err, 'Failed to create invite'))
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
   // handleCopy - copies the invite link to clipboard
   async function handleCopy() {
-    if (!inviteLink) return;
+    if (!inviteLink) return
     try {
-      await navigator.clipboard.writeText(inviteLink);
-      toast.success("Copied to clipboard");
+      await navigator.clipboard.writeText(inviteLink)
+      toast.success('Copied to clipboard')
     } catch {
-      toast.error("Could not copy — please copy manually");
+      toast.error('Could not copy — please copy manually')
     }
   }
 
@@ -126,8 +126,8 @@ const InviteEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
               <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl">
                 <Mail className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-blue-800">
-                  Invite created! Copy this link and send it to the employee via WhatsApp or email.
-                  They will use it to register their account.
+                  Invite created! Copy this link and send it to the employee via
+                  WhatsApp or email. They will use it to register their account.
                 </p>
               </div>
 
@@ -191,7 +191,7 @@ const InviteEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
                   disabled={submitting}
                   className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#162d5e] text-white font-semibold rounded-xl hover:shadow-md transition-all text-sm disabled:opacity-60"
                 >
-                  {submitting ? "Creating…" : "Create Invite"}
+                  {submitting ? 'Creating…' : 'Create Invite'}
                 </button>
               </div>
             </form>
@@ -199,7 +199,7 @@ const InviteEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default InviteEmployeeModal;
+export default InviteEmployeeModal

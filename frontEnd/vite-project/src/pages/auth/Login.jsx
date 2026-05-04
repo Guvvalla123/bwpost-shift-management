@@ -184,7 +184,7 @@ export default function Login() {
                   name="email"
                   value={email}
                   onChange={handleChange}
-                  placeholder="you@bwpost.de"
+                  placeholder="Enter your email"
                   autoComplete="email"
                   autoFocus
                   className={cn(

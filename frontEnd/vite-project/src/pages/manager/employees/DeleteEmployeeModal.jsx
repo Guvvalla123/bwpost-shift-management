@@ -7,8 +7,8 @@
 // Deactivation means they cannot log in anymore.
 // Their historical records (shifts, attendance) are still kept.
 
-import React from "react";
-import { AlertTriangle } from "lucide-react";
+import React from 'react'
+import { AlertTriangle } from 'lucide-react'
 
 // DeleteEmployeeModal - confirmation dialog for employee deactivation
 //
@@ -22,9 +22,15 @@ import { AlertTriangle } from "lucide-react";
 //              this is where the actual API call happens (in EmployeesPage)
 // onCancel   - function called when manager clicks "Cancel"
 //              closes the dialog without making any changes
-const DeleteEmployeeModal = ({ isOpen, employee, isRemoving, onConfirm, onCancel }) => {
+const DeleteEmployeeModal = ({
+  isOpen,
+  employee,
+  isRemoving,
+  onConfirm,
+  onCancel,
+}) => {
   // If not open or no employee selected, don't show anything
-  if (!isOpen || !employee) return null;
+  if (!isOpen || !employee) return null
 
   return (
     // Dark backdrop — clicking outside dismisses without deleting
@@ -45,13 +51,17 @@ const DeleteEmployeeModal = ({ isOpen, employee, isRemoving, onConfirm, onCancel
           </div>
 
           {/* Title */}
-          <h3 className="text-lg font-bold text-gray-900">Deactivate Employee?</h3>
+          <h3 className="text-lg font-bold text-gray-900">
+            Deactivate Employee?
+          </h3>
 
           {/* Message showing who will be deactivated */}
           <p className="text-sm text-gray-500 mt-2 mb-6">
-            Are you sure you want to deactivate{" "}
-            <span className="font-semibold text-gray-800">{employee.username}</span>?
-            They will no longer be able to log in.
+            Are you sure you want to deactivate{' '}
+            <span className="font-semibold text-gray-800">
+              {employee.username}
+            </span>
+            ? They will no longer be able to log in.
           </p>
 
           {/* Action buttons side by side */}
@@ -73,13 +83,13 @@ const DeleteEmployeeModal = ({ isOpen, employee, isRemoving, onConfirm, onCancel
               disabled={isRemoving}
               className="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition text-sm disabled:opacity-60"
             >
-              {isRemoving ? "Deactivating…" : "Yes, Deactivate"}
+              {isRemoving ? 'Deactivating…' : 'Yes, Deactivate'}
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DeleteEmployeeModal;
+export default DeleteEmployeeModal

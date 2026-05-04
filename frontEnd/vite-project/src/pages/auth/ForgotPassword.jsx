@@ -162,7 +162,7 @@ export default function ForgotPassword() {
                         setEmail(e.target.value);
                         setError("");
                       }}
-                      placeholder="your@bwpost.de"
+                      placeholder="Enter your email"
                       autoComplete="email"
                       autoFocus
                       className={cn(fieldInputCls, error && "border-red-400 focus:border-red-500 focus:ring-red-200")}

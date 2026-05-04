@@ -8,7 +8,7 @@ import {
   Pagination, SkeletonTable, SkeletonList, EmptyState, ErrorState, Modal, Button,
 } from "@/components/ui";
 import { UserPlus, Search, Briefcase, Mail, UserCheck } from "lucide-react";
-import ManagerRow from "../ManagerManagement/ManagerRow";
+import ManagerRow from "./components/ManagerRow";
 
 import {
   getAllManagers,

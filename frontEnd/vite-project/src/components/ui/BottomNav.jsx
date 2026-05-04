@@ -15,7 +15,7 @@ import {
 import API from "@/api";
 import { cn } from "@/lib/utils";
 
-const managerMorePaths = ["/manager/settings", "/manager/calender", "/manager/attendance", "/manager/reports"];
+const managerMorePaths = ["/manager/settings", "/manager/calendar", "/manager/attendance", "/manager/reports"];
 
 const BottomNav = () => {
   const { user } = useAuth();

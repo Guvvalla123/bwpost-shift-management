@@ -56,6 +56,7 @@ const PAGE_TITLES = {
   "/manager/shifts": "Shift Management",
   "/manager/employees": "Employee Management",
   "/manager/shiftrequests": "Shift Requests",
+  "/manager/calendar": "Calendar",
   "/manager/calender": "Calendar",
   "/manager/attendance": "Attendance & Timesheets",
   "/manager/reports": "Reports & Analytics",

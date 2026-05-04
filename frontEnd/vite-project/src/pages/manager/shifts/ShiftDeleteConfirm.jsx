@@ -12,8 +12,8 @@
 //
 // The dialog appears centered on screen with a dark backdrop.
 
-import React from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import React from 'react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 
 // ShiftDeleteConfirm - the delete confirmation dialog
 //
@@ -31,7 +31,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 //              closes the dialog without deleting anything
 const ShiftDeleteConfirm = ({ shift, isDeleting, onConfirm, onCancel }) => {
   // If no shift is set for deletion, don't render anything
-  if (!shift) return null;
+  if (!shift) return null
 
   return (
     // Dark backdrop — clicking it cancels the delete
@@ -55,9 +55,11 @@ const ShiftDeleteConfirm = ({ shift, isDeleting, onConfirm, onCancel }) => {
 
           {/* Warning message with the shift title bolded */}
           <p className="text-sm text-gray-500 mt-2 mb-6">
-            Are you sure you want to delete{" "}
-            <span className="font-semibold text-gray-800">"{shift.shiftTitle}"</span>?
-            This action cannot be undone.
+            Are you sure you want to delete{' '}
+            <span className="font-semibold text-gray-800">
+              "{shift.shiftTitle}"
+            </span>
+            ? This action cannot be undone.
           </p>
 
           {/* Cancel and Confirm buttons */}
@@ -86,14 +88,14 @@ const ShiftDeleteConfirm = ({ shift, isDeleting, onConfirm, onCancel }) => {
                   Deleting…
                 </span>
               ) : (
-                "Yes, Delete"
+                'Yes, Delete'
               )}
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ShiftDeleteConfirm;
+export default ShiftDeleteConfirm

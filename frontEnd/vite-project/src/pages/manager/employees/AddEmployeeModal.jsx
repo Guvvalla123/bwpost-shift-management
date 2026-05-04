@@ -6,24 +6,26 @@
 // This is different from InviteEmployeeModal which sends a link.
 // This modal creates the account right away with a set password.
 
-import React, { useState } from "react";
-import { X, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { getApiErrorMessage } from "@/utils/apiError";
-import { addEmployee } from "./employeeApi";
+import React, { useState } from 'react'
+import { X, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/utils/apiError'
+import { addEmployee } from './employeeApi'
 
 // ── Shared style constants ─────────────────────────────────────
 // inputCls - CSS classes for all input fields in the modal
 const inputCls =
-  "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm";
+  'w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm'
 
 // Field - small helper that wraps a label around a form input
 const Field = ({ label, children }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      {label}
+    </label>
     {children}
   </div>
-);
+)
 
 // AddEmployeeModal - form to create a new employee account
 //
@@ -37,42 +39,42 @@ const Field = ({ label, children }) => (
 const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
   // Form field values — start empty, reset when modal closes
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-  });
+    username: '',
+    email: '',
+    password: '',
+  })
 
   // True while the create API call is in progress
   // Disables the submit button to prevent double submission
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false)
 
   // If modal is not open, don't render anything
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   // handleClose - resets form and calls onClose
   function handleClose() {
-    setFormData({ username: "", email: "", password: "" });
-    onClose();
+    setFormData({ username: '', email: '', password: '' })
+    onClose()
   }
 
   // handleSubmit - validates and submits the create employee form
   async function handleSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
+    e.preventDefault()
+    setSubmitting(true)
     try {
       // Send the new employee data to the server
-      await addEmployee(formData);
-      toast.success("Employee created successfully");
+      await addEmployee(formData)
+      toast.success('Employee created successfully')
 
       // Clear the form fields
-      setFormData({ username: "", email: "", password: "" });
+      setFormData({ username: '', email: '', password: '' })
 
       // Tell the parent page to refresh the employee list
-      onSuccess();
+      onSuccess()
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to add employee"));
+      toast.error(getApiErrorMessage(err, 'Failed to add employee'))
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
@@ -108,7 +110,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
                 required
                 placeholder="Enter username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className={inputCls}
                 autoFocus
               />
@@ -121,7 +125,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
                 required
                 placeholder="Enter email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className={inputCls}
               />
             </Field>
@@ -133,7 +139,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
                 required
                 placeholder="Min 8 chars, uppercase, lowercase, number, special"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className={inputCls}
                 minLength={8}
               />
@@ -160,7 +168,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
                     Saving…
                   </>
                 ) : (
-                  "Create Employee"
+                  'Create Employee'
                 )}
               </button>
             </div>
@@ -168,7 +176,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AddEmployeeModal;
+export default AddEmployeeModal

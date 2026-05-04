@@ -32,7 +32,7 @@ const NAV_GROUPS = [
   {
     label: "Tracking",
     items: [
-      { name: "Calendar", path: "/manager/calender", icon: Clock },
+      { name: "Calendar", path: "/manager/calendar", icon: Clock },
       { name: "Attendance", path: "/manager/attendance", icon: FileText },
       { name: "Reports", path: "/manager/reports", icon: BarChart2 },
     ],

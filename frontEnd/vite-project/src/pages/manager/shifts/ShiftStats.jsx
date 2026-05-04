@@ -8,9 +8,8 @@
 // When manager clicks a card, onFilterClick is called
 // with the filter name, and the parent updates the list.
 
-import React from "react";
-import { CalendarDays, CheckCircle2, Timer, CalendarX } from "lucide-react";
-import { SkeletonKpi } from "@/components/ui";
+import { CalendarDays, CheckCircle2, Timer, CalendarX } from 'lucide-react'
+import { SkeletonKpi } from '@/components/ui'
 
 // StatCard - one clickable stat card
 // label   - the text label shown under the number
@@ -25,15 +24,15 @@ const StatCard = ({ label, value, icon: Icon, active, onClick }) => (
     onClick={onClick}
     className={`flex w-full flex-col rounded-2xl border p-4 text-left shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3F8B]/30 ${
       active
-        ? "border-[#1B3F8B] bg-[#EFF6FF] ring-1 ring-[#1B3F8B]/20"
-        : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-md"
+        ? 'border-[#1B3F8B] bg-[#EFF6FF] ring-1 ring-[#1B3F8B]/20'
+        : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-md'
     }`}
   >
     <div className="flex items-center gap-3">
       {/* Icon box — blue when active, light blue when inactive */}
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-          active ? "bg-[#1B3F8B] text-white" : "bg-blue-50 text-[#1B3F8B]"
+          active ? 'bg-[#1B3F8B] text-white' : 'bg-blue-50 text-[#1B3F8B]'
         }`}
       >
         <Icon className="h-4 w-4" strokeWidth={2} />
@@ -46,7 +45,7 @@ const StatCard = ({ label, value, icon: Icon, active, onClick }) => (
       </div>
     </div>
   </button>
-);
+)
 
 // ShiftStats - the row of 4 stat cards
 //
@@ -69,7 +68,7 @@ const ShiftStats = ({ statusCounts, activeFilter, onFilterClick, loading }) => {
           <SkeletonKpi key={i} />
         ))}
       </div>
-    );
+    )
   }
 
   return (
@@ -79,8 +78,8 @@ const ShiftStats = ({ statusCounts, activeFilter, onFilterClick, loading }) => {
         label="Total Shifts"
         value={statusCounts.all}
         icon={CalendarDays}
-        active={activeFilter === "all"}
-        onClick={() => onFilterClick("all")}
+        active={activeFilter === 'all'}
+        onClick={() => onFilterClick('all')}
       />
 
       {/* Ongoing card — clicking shows only ongoing shifts */}
@@ -88,8 +87,8 @@ const ShiftStats = ({ statusCounts, activeFilter, onFilterClick, loading }) => {
         label="Ongoing"
         value={statusCounts.ongoing}
         icon={CheckCircle2}
-        active={activeFilter === "ongoing"}
-        onClick={() => onFilterClick("ongoing")}
+        active={activeFilter === 'ongoing'}
+        onClick={() => onFilterClick('ongoing')}
       />
 
       {/* Upcoming card — clicking shows only upcoming shifts */}
@@ -97,8 +96,8 @@ const ShiftStats = ({ statusCounts, activeFilter, onFilterClick, loading }) => {
         label="Upcoming"
         value={statusCounts.upcoming}
         icon={Timer}
-        active={activeFilter === "upcoming"}
-        onClick={() => onFilterClick("upcoming")}
+        active={activeFilter === 'upcoming'}
+        onClick={() => onFilterClick('upcoming')}
       />
 
       {/* Completed card — clicking shows only completed shifts */}
@@ -106,11 +105,11 @@ const ShiftStats = ({ statusCounts, activeFilter, onFilterClick, loading }) => {
         label="Completed"
         value={statusCounts.completed}
         icon={CalendarX}
-        active={activeFilter === "completed"}
-        onClick={() => onFilterClick("completed")}
+        active={activeFilter === 'completed'}
+        onClick={() => onFilterClick('completed')}
       />
     </div>
-  );
-};
+  )
+}
 
-export default ShiftStats;
+export default ShiftStats

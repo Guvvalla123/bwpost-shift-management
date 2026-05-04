@@ -7,8 +7,8 @@
 // The search box updates searchText.
 // Both are passed up to ShiftsPage.jsx which reloads the shift list.
 
-import React from "react";
-import { Search, X } from "lucide-react";
+import React from 'react'
+import { Search, X } from 'lucide-react'
 
 // ShiftFilters - toolbar with filter tabs and search box
 //
@@ -33,15 +33,14 @@ const ShiftFilters = ({
   // key   - the value sent to onFilterChange when clicked
   // label - the text shown on the tab button
   const FILTER_TABS = [
-    { key: "all",       label: "All" },
-    { key: "upcoming",  label: "Upcoming" },
-    { key: "ongoing",   label: "Ongoing" },
-    { key: "completed", label: "Completed" },
-  ];
+    { key: 'all', label: 'All' },
+    { key: 'upcoming', label: 'Upcoming' },
+    { key: 'ongoing', label: 'Ongoing' },
+    { key: 'completed', label: 'Completed' },
+  ]
 
   return (
     <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-
       {/* Filter tab buttons */}
       <div className="inline-flex w-full flex-wrap gap-1 rounded-full bg-slate-100/80 p-1 sm:w-auto">
         {FILTER_TABS.map((tab) => (
@@ -51,12 +50,11 @@ const ShiftFilters = ({
             onClick={() => onFilterChange(tab.key)}
             className={`min-h-[40px] flex-1 rounded-full px-3 py-2 text-xs font-semibold transition-all sm:flex-none sm:px-4 ${
               activeFilter === tab.key
-                ? "bg-white text-[#1B3F8B] shadow-sm ring-1 ring-gray-200/80"
-                : "text-gray-500 hover:text-gray-800"
+                ? 'bg-white text-[#1B3F8B] shadow-sm ring-1 ring-gray-200/80'
+                : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            {tab.label}{" "}
-            {/* Show the count in brackets next to the label */}
+            {tab.label} {/* Show the count in brackets next to the label */}
             <span className="tabular-nums text-gray-400">
               ({statusCounts[tab.key] ?? 0})
             </span>
@@ -82,7 +80,7 @@ const ShiftFilters = ({
         {searchText.trim() ? (
           <button
             type="button"
-            onClick={() => onSearchChange("")}
+            onClick={() => onSearchChange('')}
             className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
             aria-label="Clear search"
           >
@@ -91,7 +89,7 @@ const ShiftFilters = ({
         ) : null}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ShiftFilters;
+export default ShiftFilters

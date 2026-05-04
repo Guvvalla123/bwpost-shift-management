@@ -20,16 +20,16 @@ const ManagerShifts = lazy(() => import("./pages/manager/shifts/ShiftsPage.jsx")
 // Updated to use the refactored EmployeesPage from the new employees/ folder
 const Employee = lazy(() => import("./pages/manager/employees/EmployeesPage.jsx"));
 const ShiftRequest = lazy(() => import("./pages/manager/requests/RequestsPage.jsx"));
-const Calender = lazy(() => import("./pages/manager/Calender.jsx"));
+const CalendarPage = lazy(() => import("./pages/manager/calendar/CalendarPage.jsx"));
 // Updated to use the refactored AttendancePage from the new attendance/ folder
-const AttendanceManagement = lazy(() => import("./pages/manager/attendance/AttendancePage.jsx"));
+const AttendancePage = lazy(() => import("./pages/manager/attendance/AttendancePage.jsx"));
 const Reports = lazy(() => import("./pages/manager/reports/ReportsPage.jsx"));
 const Settings = lazy(() => import("./pages/manager/settings/SettingsPage.jsx"));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 // Updated to use the refactored UsersPage from the new users/ folder
-const AdminUserManagement = lazy(() => import("./pages/admin/users/UsersPage.jsx"));
+const UsersPage = lazy(() => import("./pages/admin/users/UsersPage.jsx"));
 const ManagersPage = lazy(() => import("./pages/admin/managers/ManagersPage.jsx"));
 const InvitesPage = lazy(() => import("./pages/admin/invites/InvitesPage.jsx"));
 const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog.jsx"));
@@ -108,13 +108,13 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="users" element={<AdminUserManagement />} />
+              <Route path="users" element={<UsersPage />} />
               <Route path="managers" element={<ManagersPage />} />
               <Route path="invites" element={<InvitesPage />} />
               <Route path="audit-log" element={<AdminAuditLog />} />
               <Route path="employees" element={<Employee />} />
-              <Route path="calendar" element={<Calender />} />
-              <Route path="attendance" element={<AttendanceManagement />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="attendance" element={<AttendancePage />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
             </Route>
@@ -128,8 +128,9 @@ function App() {
               <Route path="shifts" element={<ManagerShifts />} />
               <Route path="employees" element={<Employee />} />
               <Route path="shiftrequests" element={<ShiftRequest />} />
-              <Route path="calender" element={<Calender />} />
-              <Route path="attendance" element={<AttendanceManagement />} />
+              <Route path="calender" element={<Navigate to="/manager/calendar" replace />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="attendance" element={<AttendancePage />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
             </Route>

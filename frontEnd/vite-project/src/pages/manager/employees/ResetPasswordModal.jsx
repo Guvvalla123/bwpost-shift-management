@@ -17,12 +17,12 @@
 //   Shows the link URL with Copy and WhatsApp share buttons.
 //   Manager copies and sends to employee.
 
-import React from "react";
-import { X, Loader2, Copy } from "lucide-react";
+import React from 'react'
+import { X, Loader2, Copy } from 'lucide-react'
 
 // inputCls - shared input styles for the read-only link display
 const inputCls =
-  "w-full h-12 px-4 rounded-xl border border-gray-300 bg-gray-50 text-xs focus:outline-none transition";
+  'w-full h-12 px-4 rounded-xl border border-gray-300 bg-gray-50 text-xs focus:outline-none transition'
 
 // ResetPasswordModal - handles the full password reset link flow
 //
@@ -50,35 +50,40 @@ const ResetPasswordModal = ({
   resetData,
 }) => {
   // Don't render if modal is closed or no employee selected
-  if (!isOpen || !employee) return null;
+  if (!isOpen || !employee) return null
 
   // handleCopy - copies the reset link to the user's clipboard
   async function handleCopy() {
-    if (!resetLink) return;
+    if (!resetLink) return
     try {
-      await navigator.clipboard.writeText(resetLink);
+      await navigator.clipboard.writeText(resetLink)
     } catch {
       // Fallback for browsers without clipboard API support
-      const textarea = document.createElement("textarea");
-      textarea.value = resetLink;
-      textarea.style.position = "fixed";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      try { document.execCommand("copy"); } catch { /* ignore */ }
-      finally { document.body.removeChild(textarea); }
+      const textarea = document.createElement('textarea')
+      textarea.value = resetLink
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      try {
+        document.execCommand('copy')
+      } catch {
+        /* ignore */
+      } finally {
+        document.body.removeChild(textarea)
+      }
     }
   }
 
   // handleWhatsApp - opens WhatsApp with the reset link pre-filled
   function handleWhatsApp() {
-    if (!resetLink) return;
-    const text = `Your password reset link (expires in 1 hour): ${resetLink}`;
+    if (!resetLink) return
+    const text = `Your password reset link (expires in 1 hour): ${resetLink}`
     window.open(
       `https://wa.me/?text=${encodeURIComponent(text)}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+      '_blank',
+      'noopener,noreferrer',
+    )
   }
 
   return (
@@ -94,16 +99,16 @@ const ResetPasswordModal = ({
       >
         {/* Modal title */}
         <h2 className="text-lg font-bold text-gray-900">
-          {resetLink ? "Password Reset Link" : "Generate Password Reset Link"}
+          {resetLink ? 'Password Reset Link' : 'Generate Password Reset Link'}
         </h2>
 
         {/* ── STATE 1: No link yet — show confirm prompt ── */}
         {!resetLink && (
           <>
             <p className="text-sm text-gray-600 mt-2">
-              Generate a reset link for{" "}
+              Generate a reset link for{' '}
               <span className="font-semibold">{employee.username}</span>
-              {employee.email ? ` (${employee.email})` : ""}?
+              {employee.email ? ` (${employee.email})` : ''}?
             </p>
             <p className="text-xs text-gray-400 mt-1">
               The link will expire after 1 hour. Share it via WhatsApp.
@@ -128,7 +133,7 @@ const ResetPasswordModal = ({
                 {isGenerating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : null}
-                {isGenerating ? "Generating…" : "Generate Link"}
+                {isGenerating ? 'Generating…' : 'Generate Link'}
               </button>
             </div>
           </>
@@ -195,7 +200,7 @@ const ResetPasswordModal = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ResetPasswordModal;
+export default ResetPasswordModal

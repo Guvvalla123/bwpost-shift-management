@@ -4,45 +4,52 @@
 // active status, weekly hours progress bar, and action buttons.
 // Manager can view attendance, edit, delete, or reset password.
 
-import React from "react";
-import { Eye, Pencil, Trash2, Key } from "lucide-react";
-import { Badge } from "@/components/ui";
+import React from 'react'
+import { Eye, Pencil, Trash2, Key } from 'lucide-react'
+import { Badge } from '@/components/ui'
 
 // AVATAR_GRADIENTS - list of gradient classes for avatar background
 // Each employee gets a consistent color based on their username's first letter.
 const AVATAR_GRADIENTS = [
-  "from-blue-600 to-[#162d5e]",
-  "from-violet-600 to-purple-600",
-  "from-emerald-500 to-teal-600",
-  "from-orange-500 to-amber-500",
-  "from-rose-500 to-pink-600",
-  "from-cyan-500 to-blue-600",
-];
+  'from-blue-600 to-[#162d5e]',
+  'from-violet-600 to-purple-600',
+  'from-emerald-500 to-teal-600',
+  'from-orange-500 to-amber-500',
+  'from-rose-500 to-pink-600',
+  'from-cyan-500 to-blue-600',
+]
 
 // getAvatarGradient - picks a gradient based on the first letter of the name
 // name - the employee's username string
 // Returns one of the gradient CSS class strings above
-function getAvatarGradient(name = "") {
-  return AVATAR_GRADIENTS[(name.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+function getAvatarGradient(name = '') {
+  return AVATAR_GRADIENTS[(name.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length]
 }
 
 // getInitials - gets 1-2 uppercase letters to show inside the avatar circle
 // name - the employee's full username
 // Returns a string like "JD" or "A"
-function getInitials(name = "") {
-  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+function getInitials(name = '') {
+  return (
+    name
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || '?'
+  )
 }
 
 // formatDate - converts a date string to a short readable format
 // iso - ISO date string from the server (e.g. "2024-03-15T...")
 // Returns a string like "Mar 15, 2024" or "—" if no date
 function formatDate(iso) {
-  if (!iso) return "—";
+  if (!iso) return '—'
   return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 // EmployeeCard - displays one employee as a mobile-friendly card
@@ -58,22 +65,30 @@ function formatDate(iso) {
 //                     opens the ResetPasswordModal for this employee
 // onViewAttendance  - function called when the eye button is clicked
 //                     opens the attendance history drawer for this employee
-const EmployeeCard = ({ employee, onEdit, onDelete, onResetPassword, onViewAttendance }) => {
+const EmployeeCard = ({
+  employee,
+  onEdit,
+  onDelete,
+  onResetPassword,
+  onViewAttendance,
+}) => {
   // Determine if employee is active or inactive
-  const isActive = employee.isActive !== false;
+  const isActive = employee.isActive !== false
 
   // Determine if this employee is a manager or regular employee
-  const isManager = employee.role === "manager";
+  const isManager = employee.role === 'manager'
 
   // Weekly hours data for the progress bar
-  const weeklyHours = employee.weeklyHours ?? 0;
-  const hoursPct = Math.min(Math.round((weeklyHours / 40) * 100), 100);
+  const weeklyHours = employee.weeklyHours ?? 0
+  const hoursPct = Math.min(Math.round((weeklyHours / 40) * 100), 100)
 
   // Bar color changes based on how many hours they have worked this week
   const hoursBarColor =
-    weeklyHours >= 40 ? "bg-red-400" :
-    weeklyHours >= 30 ? "bg-amber-400" :
-    "bg-green-500";
+    weeklyHours >= 40
+      ? 'bg-red-400'
+      : weeklyHours >= 30
+        ? 'bg-amber-400'
+        : 'bg-green-500'
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md">
@@ -91,20 +106,22 @@ const EmployeeCard = ({ employee, onEdit, onDelete, onResetPassword, onViewAtten
           <p className="text-sm font-bold leading-tight text-gray-900 truncate">
             {employee.username}
           </p>
-          <p className="mt-0.5 truncate text-xs text-gray-500">{employee.email}</p>
+          <p className="mt-0.5 truncate text-xs text-gray-500">
+            {employee.email}
+          </p>
         </div>
 
         {/* Active or Inactive status badge */}
-        <Badge variant={isActive ? "success" : "gray"} className="shrink-0">
-          {isActive ? "Active" : "Inactive"}
+        <Badge variant={isActive ? 'success' : 'gray'} className="shrink-0">
+          {isActive ? 'Active' : 'Inactive'}
         </Badge>
       </div>
 
       {/* MIDDLE ROW: role badge + join date */}
       <div className="mb-3 flex items-center justify-between">
         {/* Manager or Employee role badge */}
-        <Badge variant={isManager ? "navy" : "info"}>
-          {isManager ? "Manager" : "Employee"}
+        <Badge variant={isManager ? 'navy' : 'info'}>
+          {isManager ? 'Manager' : 'Employee'}
         </Badge>
         {/* When they joined the company */}
         <span className="text-xs text-gray-400">
@@ -116,7 +133,9 @@ const EmployeeCard = ({ employee, onEdit, onDelete, onResetPassword, onViewAtten
       <div className="mb-3">
         <div className="mb-1.5 flex items-center justify-between text-xs text-gray-500">
           <span>This week</span>
-          <span className="tabular-nums font-medium">{weeklyHours} of 40 hrs</span>
+          <span className="tabular-nums font-medium">
+            {weeklyHours} of 40 hrs
+          </span>
         </div>
         {/* Progress bar — color changes based on hours */}
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -172,7 +191,7 @@ const EmployeeCard = ({ employee, onEdit, onDelete, onResetPassword, onViewAtten
         </button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default EmployeeCard;
+export default EmployeeCard

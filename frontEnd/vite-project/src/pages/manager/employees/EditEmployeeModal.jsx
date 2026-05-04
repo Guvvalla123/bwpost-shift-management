@@ -4,23 +4,25 @@
 // Manager can update the username or email address.
 // Password is NOT editable here — use ResetPasswordModal for that.
 
-import React, { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { getApiErrorMessage } from "@/utils/apiError";
-import { updateEmployee } from "./employeeApi";
+import React, { useState, useEffect } from 'react'
+import { X, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/utils/apiError'
+import { updateEmployee } from './employeeApi'
 
 // inputCls - CSS classes shared by all input fields in this modal
 const inputCls =
-  "w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm";
+  'w-full h-12 px-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base md:text-sm'
 
 // Field - wraps a label element around a form input
 const Field = ({ label, children }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      {label}
+    </label>
     {children}
   </div>
-);
+)
 
 // EditEmployeeModal - form to update an existing employee's details
 //
@@ -34,48 +36,48 @@ const Field = ({ label, children }) => (
 //             triggers a list refresh in EmployeesPage.jsx
 const EditEmployeeModal = ({ isOpen, employee, onClose, onSuccess }) => {
   // Form values — pre-filled from the employee prop when it changes
-  const [formData, setFormData] = useState({ username: "", email: "" });
+  const [formData, setFormData] = useState({ username: '', email: '' })
 
   // True while the update API call is running
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false)
 
   // When the employee prop changes (a different employee is selected to edit),
   // update the form fields to show that employee's current values.
   useEffect(() => {
     if (employee) {
       setFormData({
-        username: employee.username || "",
-        email:    employee.email    || "",
-      });
+        username: employee.username || '',
+        email: employee.email || '',
+      })
     }
-  }, [employee]);
+  }, [employee])
 
   // Don't render if modal is closed or no employee selected
-  if (!isOpen || !employee) return null;
+  if (!isOpen || !employee) return null
 
   // handleClose - closes the modal without saving changes
   function handleClose() {
-    onClose();
+    onClose()
   }
 
   // handleSubmit - sends the updated username and email to the server
   async function handleSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
+    e.preventDefault()
+    setSubmitting(true)
     try {
       // Only username and email can be changed here
       await updateEmployee(employee._id, {
         username: formData.username,
-        email:    formData.email,
-      });
-      toast.success("Employee updated successfully");
+        email: formData.email,
+      })
+      toast.success('Employee updated successfully')
 
       // Tell parent to refresh the employee list
-      onSuccess();
+      onSuccess()
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to update employee"));
+      toast.error(getApiErrorMessage(err, 'Failed to update employee'))
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
@@ -111,7 +113,9 @@ const EditEmployeeModal = ({ isOpen, employee, onClose, onSuccess }) => {
                 required
                 placeholder="Enter username"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, username: e.target.value })
+                }
                 className={inputCls}
                 autoFocus
               />
@@ -124,7 +128,9 @@ const EditEmployeeModal = ({ isOpen, employee, onClose, onSuccess }) => {
                 required
                 placeholder="Enter email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className={inputCls}
               />
             </Field>
@@ -150,7 +156,7 @@ const EditEmployeeModal = ({ isOpen, employee, onClose, onSuccess }) => {
                     Saving…
                   </>
                 ) : (
-                  "Save Changes"
+                  'Save Changes'
                 )}
               </button>
             </div>
@@ -158,7 +164,7 @@ const EditEmployeeModal = ({ isOpen, employee, onClose, onSuccess }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default EditEmployeeModal;
+export default EditEmployeeModal

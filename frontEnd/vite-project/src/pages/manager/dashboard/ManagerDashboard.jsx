@@ -25,17 +25,17 @@ import { getStatus } from "@/utils/shiftStatus";
 import { getDashboardData } from "./dashboardApi";
 
 // Import sub-components
-import DashboardStats      from "./DashboardStats";
-import ShiftStatusDonut    from "./ShiftStatusDonut";
-import StaffPresenceDonut  from "./StaffPresenceDonut";
-import RecentActivityList  from "./RecentActivityList";
+import DashboardStats from "./DashboardStats";
+import ShiftStatusDonut from "./ShiftStatusDonut";
+import StaffPresenceDonut from "./StaffPresenceDonut";
+import RecentActivityList from "./RecentActivityList";
 
 // ── Color constants ────────────────────────────────────────────
 const SHIFT_STATUS_COLORS = {
-  ongoing:    "#059669",
-  upcoming:   "#1B3F8B",
+  ongoing: "#059669",
+  upcoming: "#1B3F8B",
   needsStaff: "#f59e0b",
-  completed:  "#d1d5db",
+  completed: "#d1d5db",
 };
 
 // GRADS - gradient colors for employee avatar circles
@@ -56,12 +56,12 @@ function getInitials(name = "") {
 
 // classifyShiftForDonut - determines which donut segment a shift belongs to
 function classifyShiftForDonut(shift) {
-  const s    = getStatus(shift.shiftStartTime, shift.shiftEndTime);
+  const s = getStatus(shift.shiftStartTime, shift.shiftEndTime);
   const open = shift.slotsAvailable ?? 0;
-  if (s === "ongoing")              return "ongoing";
-  if (s === "completed")            return "completed";
+  if (s === "ongoing") return "ongoing";
+  if (s === "completed") return "completed";
   if (s === "upcoming" && open > 0) return "needsStaff";
-  if (s === "upcoming")             return "upcoming";
+  if (s === "upcoming") return "upcoming";
   return "completed";
 }
 
@@ -69,12 +69,12 @@ function classifyShiftForDonut(shift) {
 // This avoids rounding errors in the donut chart.
 function scaleCountsToTotal(raw, total) {
   const keys = ["ongoing", "upcoming", "needsStaff", "completed"];
-  const sum  = keys.reduce((a, k) => a + raw[k], 0);
+  const sum = keys.reduce((a, k) => a + raw[k], 0);
   if (total <= 0 || sum <= 0) return { ongoing: 0, upcoming: 0, needsStaff: 0, completed: 0 };
-  const scaled  = keys.map((k) => Math.round((raw[k] / sum) * total));
-  const diff    = total - scaled.reduce((a, b) => a + b, 0);
+  const scaled = keys.map((k) => Math.round((raw[k] / sum) * total));
+  const diff = total - scaled.reduce((a, b) => a + b, 0);
   // Add rounding remainder to the largest segment
-  const maxIdx  = scaled.indexOf(Math.max(...scaled));
+  const maxIdx = scaled.indexOf(Math.max(...scaled));
   scaled[maxIdx] += diff;
   return { ongoing: scaled[0], upcoming: scaled[1], needsStaff: scaled[2], completed: scaled[3] };
 }
@@ -89,17 +89,17 @@ const ShiftModal = ({ shift, onClose }) => {
   const fmtTime = (d) => d ? new Date(d).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—";
 
   const STATUS = {
-    upcoming:  { label: "Upcoming",  dot: "bg-[#1B3F8B]" },
-    ongoing:   { label: "Ongoing",   dot: "bg-emerald-500" },
+    upcoming: { label: "Upcoming", dot: "bg-[#1B3F8B]" },
+    ongoing: { label: "Ongoing", dot: "bg-emerald-500" },
     completed: { label: "Completed", dot: "bg-slate-400" },
   };
 
   const filled = shift.acceptedEmployees?.length || 0;
-  const total  = shift.slotsAvailable || 0;
-  const pct    = total > 0 ? Math.min(Math.round((filled / total) * 100), 100) : 0;
+  const total = shift.slotsAvailable || 0;
+  const pct = total > 0 ? Math.min(Math.round((filled / total) * 100), 100) : 0;
   const status = getStatus(shift.shiftStartTime, shift.shiftEndTime);
-  const st     = STATUS[status] || STATUS.upcoming;
-  const bar    = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-[#1B3F8B]" : "bg-amber-400";
+  const st = STATUS[status] || STATUS.upcoming;
+  const bar = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-[#1B3F8B]" : "bg-amber-400";
 
   return (
     <div
@@ -320,24 +320,26 @@ const ManagerDashboard = () => {
 
   // Shift status donut data array
   const shiftDonutData = [
-    { name: "Ongoing",     value: scaled.ongoing,    color: SHIFT_STATUS_COLORS.ongoing },
-    { name: "Upcoming",    value: scaled.upcoming,   color: SHIFT_STATUS_COLORS.upcoming },
+    { name: "Ongoing", value: scaled.ongoing, color: SHIFT_STATUS_COLORS.ongoing },
+    { name: "Upcoming", value: scaled.upcoming, color: SHIFT_STATUS_COLORS.upcoming },
     { name: "Needs staff", value: scaled.needsStaff, color: SHIFT_STATUS_COLORS.needsStaff },
-    { name: "Completed",   value: scaled.completed,  color: SHIFT_STATUS_COLORS.completed },
+    { name: "Completed", value: scaled.completed, color: SHIFT_STATUS_COLORS.completed },
   ];
 
   // Staff presence donut data
-  const presentToday    = attendance?.presentToday ?? 0;
-  const lateToday       = attendance?.lateToday    ?? 0;
-  const absentToday     = attendance?.absentToday  ?? 0;
-  const onTime          = Math.max(0, presentToday - lateToday);
+  const presentToday = attendance?.presentToday ?? 0;
+  const lateToday = attendance?.lateToday ?? 0;
+  const absentToday = attendance?.absentToday ?? 0;
+  const onTime = Math.max(0, presentToday - lateToday);
   const attendanceTotal = onTime + lateToday + absentToday;
-  const onTimeRate      = attendanceTotal > 0 ? Math.round((onTime / attendanceTotal) * 100) : 0;
+  const onTimeRate = attendanceTotal > 0 ? Math.round((onTime / attendanceTotal) * 100) : 0;
 
   const attendanceDonutData = [
-    { name: "On time", value: onTime,      color: "#1B3F8B" },
-    { name: "Late",    value: lateToday,   color: "#f59e0b" },
-    { name: "Absent",  value: absentToday, color: "#ef4444" },
+    { name: "Present Today", value: presentToday, color: "#10b981" },
+    { name: "Absent Today", value: absentToday, color: "#ef4444" },
+    { name: "Late Today", value: lateToday, color: "#f59e0b" },
+    { name: "On time", value: onTime, color: "#1B3F8B" },
+    { name: "Total Attendance", value: attendanceTotal, color: "#1B3F8B" },
   ];
 
   // ── Main render ────────────────────────────────────────────
